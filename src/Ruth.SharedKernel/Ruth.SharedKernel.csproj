@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.SharedKernel</RootNamespace>
+    <AssemblyName>Ruth.SharedKernel</AssemblyName>
+  </PropertyGroup>
+</Project>

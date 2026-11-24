@@ -1,0 +1,14 @@
+# Cyclomatic complexity maximum per method
+CA1502: 15
+
+# Maintainability index minimum
+CA1505: 20
+
+# Class coupling maximum per method
+CA1506: 25
+
+# Class coupling maximum per type
+CA1506(Type): 60
+
+# Inheritance depth maximum
+CA1501: 4

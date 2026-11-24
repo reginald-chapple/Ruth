@@ -1,0 +1,8 @@
+refs/
+node_modules/
+artifacts/
+test-results/
+**/bin/
+**/obj/
+**/Migrations/
+**/Generated/

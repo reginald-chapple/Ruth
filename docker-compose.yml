@@ -1,0 +1,74 @@
+name: ruth
+
+services:
+  postgres:
+    build:
+      context: ./deploy/docker/postgres
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ruth}
+      POSTGRES_USER: ${POSTGRES_USER:-ruth}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ruth_secret}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ruth} -d ${POSTGRES_DB:-ruth}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+    ports:
+      - "${RUSTFS_PORT:-9000}:9000"
+      - "${RUSTFS_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - rustfs_data:/data
+
+  ruth-host:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: deploy/docker/dotnet/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__RuthDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ruth};Username=${POSTGRES_USER:-ruth};Password=${POSTGRES_PASSWORD:-ruth_secret}
+      ConnectionStrings__Redis: redis:6379
+      Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:-replace-with-a-unique-random-32-plus-character-secret-in-production}
+      Bootstrap__AutoMigrateAndSeed: ${Bootstrap__AutoMigrateAndSeed:-true}
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
+  redis_data:
+  rustfs_data:

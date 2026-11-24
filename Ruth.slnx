@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ruth.Host/Ruth.Host.csproj" />
+    <Project Path="src/Ruth.SharedKernel/Ruth.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj" />
+  </Folder>
+</Solution>

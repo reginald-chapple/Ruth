@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Host</RootNamespace>
+    <AssemblyName>Ruth.Host</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

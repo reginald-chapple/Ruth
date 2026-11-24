@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.404@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 WORKDIR /source
-COPY Directory.Build.props Directory.Build.targets global.json Ruth.slnx ./
+COPY Directory.Build.props Directory.Build.targets Directory.Packages.props CodeMetricsConfig.txt .editorconfig global.json Ruth.slnx ./
 COPY src/ ./src/
 RUN dotnet publish src/Ruth.Host/Ruth.Host.csproj -c Release -o /out
 

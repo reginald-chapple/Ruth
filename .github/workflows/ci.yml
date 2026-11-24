@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Build, Analyze, Format & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Restore .NET Tools & Dependencies
+        run: |
+          dotnet tool restore
+          dotnet restore Ruth.slnx
+
+      - name: Check CSharpier Formatting
+        run: dotnet tool run csharpier check .
+
+      - name: Build & Static Analysis (Warnings as Errors)
+        run: dotnet build Ruth.slnx --no-restore -warnaserror
+
+      - name: Verify Non-Whitespace Style & Analyzer Rules
+        run: |
+          dotnet format style Ruth.slnx --verify-no-changes --no-restore
+          dotnet format analyzers Ruth.slnx --verify-no-changes --no-restore
+
+      - name: Run Tests & Collect Cobertura Coverage
+        run: dotnet test Ruth.slnx --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/coverage
+
+      - name: Frontend JS/JSON & CSS Lint Gates
+        run: |
+          npm ci
+          npm run lint:js
+          npm run lint:css
