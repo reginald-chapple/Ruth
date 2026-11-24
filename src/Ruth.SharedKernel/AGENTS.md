@@ -11,5 +11,6 @@
 ## Verification
 ```bash
 dotnet build src/Ruth.SharedKernel/Ruth.SharedKernel.csproj -warnaserror
+dotnet test tests/Ruth.SharedKernel.Tests/Ruth.SharedKernel.Tests.csproj
 dotnet test tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj
 ```

@@ -150,6 +150,24 @@ public sealed class ModularMonolithArchitectureTests
                 .AreNotAbstract()
                 .And()
                 .HaveNameEndingWith("Response", StringComparison.Ordinal)
+                .Or()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .And()
+                .HaveNameEndingWith("Command", StringComparison.Ordinal)
+                .Or()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .And()
+                .HaveNameEndingWith("Query", StringComparison.Ordinal)
+                .Or()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .And()
+                .HaveNameEndingWith("Consumer", StringComparison.Ordinal)
                 .Should()
                 .BeSealed()
                 .GetResult();
@@ -157,7 +175,7 @@ public sealed class ModularMonolithArchitectureTests
             Assert.True(
                 result.IsSuccessful,
                 FormatFailingTypes(
-                    $"{assembly.GetName().Name} contains non-sealed Handler/Request/Response types",
+                    $"{assembly.GetName().Name} contains non-sealed Handler/Request/Response/Command/Query/Consumer types",
                     result
                 )
             );

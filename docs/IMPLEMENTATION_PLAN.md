@@ -159,7 +159,7 @@ flowchart TD
 * **Authoring Skills:** `mcaf`, `architecture`, `quality-ci`, `analyzer-config`, `code-analysis`, `meziantou-analyzer`, `complexity`, `csharpier`, `biome`, `stylelint`.
 * **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`.
 
-#### `W0-S2` — `Ruth.SharedKernel` (DDD & Zero-Magic CQRS Primitives)
+#### `W0-S2` — `Ruth.SharedKernel` (DDD & Zero-Magic CQRS Primitives) ✅ *(Completed)*
 * **Scope:** `Entity<TId>`, `AggregateRoot<TId>`, `IStronglyTypedId<T>` (`Guid.CreateVersion7()`), `ValueObject`, `Result` / `Result<T>` / `Error`, `IClock` (`TimeProvider` adapter), `IDomainEvent` / `IDomainEventHandler<T>`, `IIntegrationEvent` / `IIntegrationEventHandler<T>`, explicit DI-dispatched `ICommand<TResponse>` / `ICommandHandler<TCommand, TResponse>` and `IQuery<TResponse>` / `IQueryHandler<TQuery, TResponse>` with logging/validation decorator pipeline.
 * **`refs/Rock` Reference:** Replaces `Rock/Data/Entity.cs`, `Rock/Data/IEntity.cs`, `RockDateTime`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`.
