@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+*.log
+.DS_Store
+coverage.*
+old/
+legacy/
+bin/
+coalesce.db*
+
+apps/photocraft-*/
+apps/vectorcraft-*/
+web/app/node_modules/
+web/app/.angular/
