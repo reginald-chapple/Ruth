@@ -1,6 +1,9 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Ruth.Host;
+using Ruth.Modules.Identity;
+using Ruth.Modules.Identity.Contracts;
+using Ruth.Persistence;
 using Ruth.SharedKernel;
 using Xunit;
 
@@ -10,11 +13,37 @@ public sealed class ModularMonolithArchitectureTests
 {
     private static Assembly[] GetModuleAssemblies()
     {
+        Assembly[] knownModules = [IdentityModuleAssembly.Instance];
+
         return
         [
-            .. AppDomain
-                .CurrentDomain.GetAssemblies()
-                .Where(static assembly => IsModuleImplementationAssembly(assembly.GetName().Name)),
+            .. knownModules
+                .Concat(
+                    AppDomain
+                        .CurrentDomain.GetAssemblies()
+                        .Where(static assembly =>
+                            IsModuleImplementationAssembly(assembly.GetName().Name)
+                        )
+                )
+                .Distinct(),
+        ];
+    }
+
+    private static Assembly[] GetModuleContractsAssemblies()
+    {
+        Assembly[] knownContracts = [IdentityContractsAssembly.Instance];
+
+        return
+        [
+            .. knownContracts
+                .Concat(
+                    AppDomain
+                        .CurrentDomain.GetAssemblies()
+                        .Where(static assembly =>
+                            IsModuleContractsAssembly(assembly.GetName().Name)
+                        )
+                )
+                .Distinct(),
         ];
     }
 
@@ -24,6 +53,13 @@ public sealed class ModularMonolithArchitectureTests
             && name.StartsWith("Ruth.Modules.", StringComparison.Ordinal)
             && !name.EndsWith(".Contracts", StringComparison.Ordinal)
             && !name.EndsWith(".Tests", StringComparison.Ordinal);
+    }
+
+    private static bool IsModuleContractsAssembly(string? name)
+    {
+        return name is not null
+            && name.StartsWith("Ruth.Modules.", StringComparison.Ordinal)
+            && name.EndsWith(".Contracts", StringComparison.Ordinal);
     }
 
     [Fact]
@@ -40,6 +76,7 @@ public sealed class ModularMonolithArchitectureTests
                 "StackExchange.Redis",
                 "Ruth.Host",
                 "Ruth.Modules",
+                "Ruth.Persistence",
                 "Ruth.Providers"
             )
             .GetResult();
@@ -53,7 +90,10 @@ public sealed class ModularMonolithArchitectureTests
     [Fact]
     public void Domain_Types_Should_Not_Depend_On_Infrastructure_Slices_Or_Frameworks()
     {
-        foreach (var moduleAssembly in GetModuleAssemblies())
+        var moduleAssemblies = GetModuleAssemblies();
+        Assert.NotEmpty(moduleAssemblies);
+
+        foreach (var moduleAssembly in moduleAssemblies)
         {
             var result = Types
                 .InAssembly(moduleAssembly)
@@ -63,9 +103,11 @@ public sealed class ModularMonolithArchitectureTests
                 .HaveDependencyOnAny(
                     "Microsoft.AspNetCore",
                     "Microsoft.EntityFrameworkCore",
+                    "Microsoft.Extensions.Identity",
                     "Microsoft.FluentUI",
                     "Npgsql",
-                    "StackExchange.Redis"
+                    "StackExchange.Redis",
+                    "Ruth.Persistence"
                 )
                 .GetResult();
 
@@ -99,7 +141,10 @@ public sealed class ModularMonolithArchitectureTests
     [Fact]
     public void Modules_Should_Only_Reference_SharedKernel_Or_Other_Module_Contracts()
     {
-        foreach (var moduleAssembly in GetModuleAssemblies())
+        var moduleAssemblies = GetModuleAssemblies();
+        Assert.NotEmpty(moduleAssemblies);
+
+        foreach (var moduleAssembly in moduleAssemblies)
         {
             var currentName = moduleAssembly.GetName().Name!;
             string[] referencedRuthModules =
@@ -119,12 +164,74 @@ public sealed class ModularMonolithArchitectureTests
     }
 
     [Fact]
+    public void ModuleContracts_Should_Only_Depend_On_SharedKernel()
+    {
+        var contractsAssemblies = GetModuleContractsAssemblies();
+        Assert.NotEmpty(contractsAssemblies);
+
+        foreach (var contractsAssembly in contractsAssemblies)
+        {
+            var result = Types
+                .InAssembly(contractsAssembly)
+                .ShouldNot()
+                .HaveDependencyOnAny(
+                    "Microsoft.AspNetCore",
+                    "Microsoft.EntityFrameworkCore",
+                    "Microsoft.Extensions.Identity",
+                    "Microsoft.FluentUI",
+                    "Npgsql",
+                    "StackExchange.Redis",
+                    "Ruth.Host",
+                    "Ruth.Persistence",
+                    "Ruth.Modules.Identity.Domain",
+                    "Ruth.Modules.Identity.Infrastructure",
+                    "Ruth.Modules.Identity.Slices"
+                )
+                .GetResult();
+
+            Assert.True(
+                result.IsSuccessful,
+                FormatFailingTypes(
+                    $"{contractsAssembly.GetName().Name} has forbidden dependencies",
+                    result
+                )
+            );
+        }
+    }
+
+    [Fact]
+    public void Host_Components_Should_Not_Depend_On_Module_Internals()
+    {
+        var result = Types
+            .InAssembly(HostAssembly.Instance)
+            .That()
+            .ResideInNamespaceStartingWith("Ruth.Host.Components")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Ruth.Modules.Identity.Domain",
+                "Ruth.Modules.Identity.Infrastructure",
+                "Ruth.Modules.Identity.Slices"
+            )
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            FormatFailingTypes(
+                "Ruth.Host.Components must only depend on Contracts and SharedKernel",
+                result
+            )
+        );
+    }
+
+    [Fact]
     public void Handlers_Requests_And_Responses_Should_Be_Sealed()
     {
         Assembly[] assemblies =
         [
             SharedKernelAssembly.Instance,
+            PersistenceAssembly.Instance,
             HostAssembly.Instance,
+            .. GetModuleContractsAssemblies(),
             .. GetModuleAssemblies(),
         ];
 
@@ -168,6 +275,18 @@ public sealed class ModularMonolithArchitectureTests
                 .AreNotAbstract()
                 .And()
                 .HaveNameEndingWith("Consumer", StringComparison.Ordinal)
+                .Or()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .And()
+                .HaveNameEndingWith("Validator", StringComparison.Ordinal)
+                .Or()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .And()
+                .HaveNameEndingWith("IntegrationEvent", StringComparison.Ordinal)
                 .Should()
                 .BeSealed()
                 .GetResult();
@@ -175,11 +294,33 @@ public sealed class ModularMonolithArchitectureTests
             Assert.True(
                 result.IsSuccessful,
                 FormatFailingTypes(
-                    $"{assembly.GetName().Name} contains non-sealed Handler/Request/Response/Command/Query/Consumer types",
+                    $"{assembly.GetName().Name} contains non-sealed Handler/Request/Response/Command/Query/Consumer/Validator/IntegrationEvent types",
                     result
                 )
             );
         }
+    }
+
+    [Fact]
+    public void Persistence_Should_Not_Depend_On_Web_Host_Or_Modules()
+    {
+        var result = Types
+            .InAssembly(PersistenceAssembly.Instance)
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Microsoft.AspNetCore",
+                "Microsoft.FluentUI",
+                "StackExchange.Redis",
+                "Ruth.Host",
+                "Ruth.Modules",
+                "Ruth.Providers"
+            )
+            .GetResult();
+
+        Assert.True(
+            result.IsSuccessful,
+            FormatFailingTypes("Ruth.Persistence has forbidden dependencies", result)
+        );
     }
 
     private static bool IsForbiddenCrossModuleReference(string? name, string currentModuleName)

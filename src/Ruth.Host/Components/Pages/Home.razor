@@ -1,0 +1,23 @@
+@page "/"
+@inject IOnboardingStateReader OnboardingStateReader
+@inject NavigationManager Navigation
+
+<PageTitle>Ruth RMS</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <h1>Ruth RMS</h1>
+    <FluentCard Padding="@Padding.All4">
+        <p>Welcome to Ruth RMS. System shell initialized.</p>
+    </FluentCard>
+</FluentStack>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var status = await OnboardingStateReader.GetStatusAsync();
+        if (status.IsOnboardingRequired)
+        {
+            Navigation.NavigateTo("/onboarding", replace: true);
+        }
+    }
+}

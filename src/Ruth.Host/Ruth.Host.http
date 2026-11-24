@@ -3,3 +3,30 @@
 ### Check host liveness
 GET {{baseUrl}}/health/live
 Accept: application/json
+
+### Check host readiness (PostgreSQL 18, Redis 8, RustFS)
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Fetch built-in OpenAPI v1 specification
+GET {{baseUrl}}/openapi/v1.json
+Accept: application/json
+
+### Check first-run onboarding status
+GET {{baseUrl}}/api/onboarding/status
+Accept: application/json
+
+### Complete initial organization and administrator onboarding
+POST {{baseUrl}}/api/onboarding
+Content-Type: application/json
+
+{
+  "organizationName": "Grace Fellowship",
+  "timeZoneId": "UTC",
+  "primaryCampusName": "Main Campus",
+  "primaryCampusShortCode": "MAIN",
+  "adminUserName": "admin",
+  "adminEmail": "admin@grace.org",
+  "adminDisplayName": "Grace Admin",
+  "adminPassword": "ReplaceWithStrongPass#2026!"
+}

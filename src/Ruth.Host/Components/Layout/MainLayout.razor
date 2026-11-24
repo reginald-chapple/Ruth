@@ -1,0 +1,70 @@
+@inherits LayoutComponentBase
+
+<FluentProviders />
+
+<FluentLayout>
+    <FluentLayoutItem Area="LayoutArea.Header">
+        <header class="ruth-header">
+            <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="Ruth RMS" />
+            <a href="/" class="ruth-brand">Ruth RMS</a>
+            <div class="ruth-header-spacer"></div>
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          IconOnly="true"
+                          Title="Toggle light or dark theme"
+                          aria-label="Toggle light or dark theme"
+                          data-theme-command="Blazor.theme.switchTheme"
+                          Style="@_themeToggleStyle"
+                          OnClick="@ToggleThemeAsync">
+                <FluentIcon Class="hidden-if-light"
+                            Value="@(new Icons.Filled.Size20.WeatherSunny())" />
+                <FluentIcon Class="hidden-if-dark"
+                            Value="@(new Icons.Filled.Size20.WeatherMoon())" />
+            </FluentButton>
+        </header>
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="LayoutArea.Navigation">
+        <FluentNav aria-label="Primary navigation">
+            <FluentNavItem Href="/"
+                           Match="NavLinkMatch.All"
+                           IconRest="@(new Icons.Regular.Size20.Home())"
+                           IconActive="@(new Icons.Filled.Size20.Home())">
+                Home
+            </FluentNavItem>
+        </FluentNav>
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="LayoutArea.Content">
+        <main class="ruth-main">
+            <ErrorBoundary @ref="_errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <div class="ruth-error-panel" role="alert">
+                        <FluentMessageBar Intent="MessageBarIntent.Error"
+                                          Title="Something went wrong"
+                                          AllowDismiss="false">
+                            <ChildContent>
+                                An unexpected error occurred while rendering this page.
+                            </ChildContent>
+                            <ActionsTemplate>
+                                <FluentButton Appearance="ButtonAppearance.Primary"
+                                              OnClick="@RecoverFromError">
+                                    Try again
+                                </FluentButton>
+                            </ActionsTemplate>
+                        </FluentMessageBar>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+        </main>
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="LayoutArea.Footer">
+        <footer class="ruth-footer">
+            <span>Ruth RMS</span>
+            <span>&copy; @DateTimeOffset.UtcNow.Year Ruth</span>
+        </footer>
+    </FluentLayoutItem>
+</FluentLayout>

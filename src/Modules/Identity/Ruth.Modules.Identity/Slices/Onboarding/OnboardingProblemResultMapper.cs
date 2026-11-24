@@ -1,0 +1,91 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Ruth.SharedKernel.Results;
+using DomainResult = Ruth.SharedKernel.Results.Result;
+
+namespace Ruth.Modules.Identity.Slices.Onboarding;
+
+internal static class OnboardingProblemResultMapper
+{
+    public static ProblemHttpResult ToProblemResult(DomainResult result, HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var primary = result.PrimaryError;
+        var (statusCode, title, typeReference) = MapErrorType(primary.Type);
+
+        var problem = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = primary.Description,
+            Type = typeReference,
+            Instance = httpContext.Request.Path,
+        };
+
+        problem.Extensions["errorCode"] = primary.Code;
+        if (result.Errors.Count > 1)
+        {
+            problem.Extensions["errors"] = BuildErrorsDictionary(result.Errors);
+        }
+
+        return TypedResults.Problem(problem);
+    }
+
+    private static (int StatusCode, string Title, string TypeReference) MapErrorType(ErrorType type)
+    {
+        return type switch
+        {
+            ErrorType.Validation => (
+                StatusCodes.Status400BadRequest,
+                "Validation Failed",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.1"
+            ),
+            ErrorType.Unauthorized => (
+                StatusCodes.Status401Unauthorized,
+                "Unauthorized",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.2"
+            ),
+            ErrorType.Forbidden => (
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.4"
+            ),
+            ErrorType.NotFound => (
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+            ),
+            ErrorType.Conflict => (
+                StatusCodes.Status409Conflict,
+                "Conflict",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.10"
+            ),
+            ErrorType.Failure => (
+                StatusCodes.Status422UnprocessableEntity,
+                "Unprocessable Entity",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.21"
+            ),
+            ErrorType.Unexpected or _ => (
+                StatusCodes.Status500InternalServerError,
+                "Internal Server Error",
+                "https://tools.ietf.org/html/rfc9110#section-15.6.1"
+            ),
+        };
+    }
+
+    private static Dictionary<string, string[]> BuildErrorsDictionary(
+        IReadOnlyList<DomainError> errors
+    )
+    {
+        var grouped = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        foreach (var group in errors.GroupBy(static error => error.Code, StringComparer.Ordinal))
+        {
+            grouped[group.Key] = [.. group.Select(static error => error.Description)];
+        }
+
+        return grouped;
+    }
+}

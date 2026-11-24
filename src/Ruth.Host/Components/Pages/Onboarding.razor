@@ -1,0 +1,151 @@
+@page "/onboarding"
+@layout OnboardingLayout
+
+<PageTitle>Initial Setup — Ruth RMS</PageTitle>
+
+<div class="ruth-onboarding-container">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <header>
+            <h1>Welcome to Ruth RMS — Initial Setup</h1>
+            <p>
+                Create your organization profile and the initial system administrator account.
+                Anonymous self-registration permanently locks after setup completes.
+            </p>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+        {
+            <div role="alert">
+                <FluentMessageBar Intent="MessageBarIntent.Error"
+                                  Title="Unable to complete setup"
+                                  AllowDismiss="false">
+                    @ErrorMessage
+                </FluentMessageBar>
+            </div>
+        }
+
+        <FluentCard Padding="@Padding.All4">
+            <EditForm Model="@Model" OnValidSubmit="@SubmitAsync">
+                <DataAnnotationsValidator />
+
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+                    <section aria-labelledby="org-section-heading">
+                        <h2 id="org-section-heading">Organization &amp; Primary Campus</h2>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                            <div>
+                                <FluentTextInput Id="org-name"
+                                                 @bind-Value="Model.OrganizationName"
+                                                 Label="Organization Name"
+                                                 Placeholder="e.g., Grace Fellowship"
+                                                 AutoComplete="organization"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.OrganizationName)" />
+                            </div>
+
+                            <div>
+                                <FluentSelect TOption="TimeZoneOption"
+                                              TValue="string"
+                                              Id="org-timezone"
+                                              Items="@TimeZones"
+                                              OptionText="@(static tz => tz.DisplayName)"
+                                              OptionValue="@(static tz => tz.Id)"
+                                              @bind-Value="Model.TimeZoneId"
+                                              Label="Time Zone"
+                                              Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.TimeZoneId)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="campus-name"
+                                                 @bind-Value="Model.PrimaryCampusName"
+                                                 Label="Primary Campus Name"
+                                                 Placeholder="e.g., Main Campus"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.PrimaryCampusName)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="campus-code"
+                                                 @bind-Value="Model.PrimaryCampusShortCode"
+                                                 Label="Primary Campus Short Code (optional)"
+                                                 Placeholder="e.g., MAIN"
+                                                 MaxLength="50"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.PrimaryCampusShortCode)" />
+                            </div>
+                        </FluentStack>
+                    </section>
+
+                    <section aria-labelledby="admin-section-heading">
+                        <h2 id="admin-section-heading">Initial Administrator Account</h2>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                            <div>
+                                <FluentTextInput Id="admin-display-name"
+                                                 @bind-Value="Model.AdminDisplayName"
+                                                 Label="Administrator Display Name"
+                                                 AutoComplete="name"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.AdminDisplayName)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="admin-username"
+                                                 @bind-Value="Model.AdminUserName"
+                                                 Label="Administrator Username"
+                                                 AutoComplete="username"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.AdminUserName)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="admin-email"
+                                                 @bind-Value="Model.AdminEmail"
+                                                 TextInputType="TextInputType.Email"
+                                                 Label="Administrator Email"
+                                                 AutoComplete="email"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.AdminEmail)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="admin-password"
+                                                 @bind-Value="Model.AdminPassword"
+                                                 TextInputType="TextInputType.Password"
+                                                 Label="Administrator Password"
+                                                 AutoComplete="new-password"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.AdminPassword)" />
+                            </div>
+
+                            <div>
+                                <FluentTextInput Id="admin-confirm-password"
+                                                 @bind-Value="Model.ConfirmPassword"
+                                                 TextInputType="TextInputType.Password"
+                                                 Label="Confirm Password"
+                                                 AutoComplete="new-password"
+                                                 Required="true"
+                                                 Width="100%" />
+                                <FluentValidationMessage For="@(() => Model.ConfirmPassword)" />
+                            </div>
+                        </FluentStack>
+                    </section>
+
+                    <div>
+                        <FluentButton Type="ButtonType.Submit"
+                                      Appearance="ButtonAppearance.Primary"
+                                      Disabled="@IsSubmitting"
+                                      Loading="@IsSubmitting">
+                            Complete Setup
+                        </FluentButton>
+                    </div>
+                </FluentStack>
+            </EditForm>
+        </FluentCard>
+    </FluentStack>
+</div>

@@ -1,0 +1,44 @@
+.ruth-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ruth-brand {
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ruth-header-spacer {
+  margin-inline-start: auto;
+}
+
+.ruth-main {
+  padding: 1.25rem 1.5rem;
+}
+
+.ruth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.75rem;
+}
+
+.ruth-error-panel {
+  max-width: 40rem;
+}
+
+.ruth-onboarding-main {
+  display: flex;
+  justify-content: center;
+}
+
+.ruth-onboarding-container {
+  width: 100%;
+  max-width: 44rem;
+  margin-inline: auto;
+}

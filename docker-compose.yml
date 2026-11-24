@@ -63,6 +63,10 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__RuthDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ruth};Username=${POSTGRES_USER:-ruth};Password=${POSTGRES_PASSWORD:-ruth_secret}
       ConnectionStrings__Redis: redis:6379
+      Storage__RustFs__Endpoint: http://rustfs:9000
+      Storage__RustFs__BucketName: ${RUSTFS_BUCKET:-ruth}
+      Storage__RustFs__AccessKey: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      Storage__RustFs__SecretKey: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:-replace-with-a-unique-random-32-plus-character-secret-in-production}
       Bootstrap__AutoMigrateAndSeed: ${Bootstrap__AutoMigrateAndSeed:-true}
     ports:

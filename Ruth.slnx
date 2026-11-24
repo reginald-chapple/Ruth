@@ -1,10 +1,19 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Ruth.Host/Ruth.Host.csproj" />
+    <Project Path="src/Ruth.Persistence/Ruth.Persistence.csproj" />
     <Project Path="src/Ruth.SharedKernel/Ruth.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Ruth.Modules.Identity.Contracts/Ruth.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Ruth.Modules.Identity/Ruth.Modules.Identity.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj" />
+    <Project Path="tests/Ruth.E2E.Tests/Ruth.E2E.Tests.csproj" />
+    <Project Path="tests/Ruth.Host.IntegrationTests/Ruth.Host.IntegrationTests.csproj" />
+    <Project Path="tests/Ruth.Modules.Identity.Tests/Ruth.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />
     <Project Path="tests/Ruth.SharedKernel.Tests/Ruth.SharedKernel.Tests.csproj" />
   </Folder>
 </Solution>
