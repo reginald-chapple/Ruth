@@ -30,7 +30,7 @@ internal sealed class CreateSignatureDocumentCommandHandler(CoreDbContext dbCont
             command.AppliesToEntityId,
             command.AssignedToUserId,
             command.DocumentKey,
-            command.RenderedDocumentText ?? template.LavaTemplate
+            command.RenderedDocumentText ?? template.TemplateMarkup
         );
         if (created.IsFailure)
         {

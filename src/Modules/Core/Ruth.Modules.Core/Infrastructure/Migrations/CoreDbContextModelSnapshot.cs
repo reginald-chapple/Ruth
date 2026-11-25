@@ -1927,10 +1927,6 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_valid_in_future");
 
-                    b.Property<string>("LavaTemplate")
-                        .HasColumnType("text")
-                        .HasColumnName("lava_template");
-
                     b.Property<DateTimeOffset?>("ModifiedOnUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_on_utc");
@@ -1950,6 +1946,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.Property<Guid>("SystemGuid")
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
+
+                    b.Property<string>("TemplateMarkup")
+                        .HasColumnType("text")
+                        .HasColumnName("template_markup");
 
                     b.Property<int?>("ValidityDurationInDays")
                         .HasColumnType("integer")

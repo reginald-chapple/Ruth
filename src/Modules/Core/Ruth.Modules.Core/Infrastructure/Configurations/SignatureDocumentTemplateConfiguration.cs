@@ -27,7 +27,7 @@ internal sealed class SignatureDocumentTemplateConfiguration
             .HasMaxLength(CoreTextPolicy.DescriptionMaxLength);
         _ = builder.Property(x => x.BinaryFileTypeId).HasColumnName("binary_file_type_id");
         _ = builder.Property(x => x.DocumentTerm).HasColumnName("document_term").HasMaxLength(100);
-        _ = builder.Property(x => x.LavaTemplate).HasColumnName("lava_template");
+        _ = builder.Property(x => x.TemplateMarkup).HasColumnName("template_markup");
         _ = builder
             .Property(x => x.SignatureType)
             .HasColumnName("signature_type")

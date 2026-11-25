@@ -13,6 +13,7 @@
 | **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (RMS) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff RMS components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process (zero redundant HTTP DTO client wrappers for internal views). Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
 | **4** | **CQRS, Messaging & Jobs** | **Zero-Magic Explicit Abstractions** | Custom lightweight `ICommand<T>`, `ICommandHandler<TCommand, T>`, `IQuery<T>`, `IQueryHandler<TQuery, T>`, `IDomainEvent`, `IIntegrationEvent`, and `Result<T>` in `Ruth.SharedKernel` (zero commercial licensing risk from MediatR/MassTransit, zero reflection magic). Per-module EF Core **Transactional Outbox** + `BackgroundService` dispatcher + Postgres-backed `IScheduledJob` runner. |
 | **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `IAiProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
+| **6** | **Templating & Rendering** | **Compiled Razor Components (`HtmlRenderer`) + Safe Merge Tokens** | Replaces Rock's Lava/Liquid engine. Built-in layouts, transactional emails, contribution statements, and CMS blocks are strongly-typed `.razor` components rendered via Blazor's built-in `HtmlRenderer`. Database-stored, staff-editable content (bulk emails, SMS, waivers, merge fields) uses a safe declarative merge-token engine (`IMergeTemplateEngine` / `TemplateSnippet`) over read-only DTO contexts—eliminating arbitrary runtime scripting/RCE risk. |
 
 ---
 
@@ -38,7 +39,7 @@ src/
     Crm/                                   # Schema: crm       (People, Households, Apache AGE Relationships, Merge/Deduplication, Badges, Assessments, Protection)
     Groups/                                # Schema: groups    (GroupTypes, Groups, Memberships, Requirements, Serving Scheduler, Attendance)
     CheckIn/                               # Schema: checkin   (Kiosk Config, Family/Individual Matching, Capacity Thresholds, ZPL Labels)
-    Communication/                         # Schema: comms     (Fluid Lava Engine, Mediums/Transports, Templates, Bulk Email/SMS/Push, Two-Way SMS, Flows)
+    Communication/                         # Schema: comms     (Razor HtmlRenderer + Safe Merge Engine, Mediums/Transports, Templates, Bulk Email/SMS/Push, Two-Way SMS, Flows)
     Finance/                               # Schema: finance   (Accounts, Gateways, Saved Accounts, Batches, Transactions, Scheduled Giving, Pledges, Statements, Benevolence, Fundraising)
     Events/                                # Schema: events    (Calendars, EventItems, Registrations, Fees/Discounts/Waitlists, Interactive Experiences)
     Engagement/                            # Schema: engage    (Connections, Steps, Streaks, Achievements, Prayer, Reminders, Following, Outreach Touchpoints)
@@ -84,7 +85,7 @@ Every skill in `.agents/skills/` has a distinct role. Per `quality-ci`, **overla
 | **`analyzer-config`** | [.agents/skills/analyzer-config/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/analyzer-config/SKILL.md) | Owns the repo-root `.editorconfig` rule severity layout (`root = true`, no inline comments). |
 | **`meziantou-analyzer`** | [.agents/skills/meziantou-analyzer/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/meziantou-analyzer/SKILL.md) | **Primary third-party Roslyn analyzer pack** (`Meziantou.Analyzer`) catching async/CancellationToken misuse, culture-unsafe string ops, concurrency bugs, and security issues. |
 | **`complexity`** | [.agents/skills/complexity/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/complexity/SKILL.md) | Enforces `CA1502` (cyclomatic complexity), `CA1505` (maintainability), `CA1506` (class coupling), and `CA1501` via checked-in `CodeMetricsConfig.txt`. |
-| **`crap-score`** | [.agents/skills/crap-score/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/crap-score/SKILL.md) | Evaluates Change Risk Anti-Patterns (`CRAP < 15` target, never `> 30`) using real Cobertura coverage on complex domain services/engines (ACLs, Merge, Check-In, Lava, DataViews, Batches/Fees, Workflows). |
+| **`crap-score`** | [.agents/skills/crap-score/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/crap-score/SKILL.md) | Evaluates Change Risk Anti-Patterns (`CRAP < 15` target, never `> 30`) using real Cobertura coverage on complex domain services/engines (ACLs, Merge, Check-In, Template/Merge Engine, DataViews, Batches/Fees, Workflows). |
 | **`roslynator`** | [.agents/skills/roslynator/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/roslynator/SKILL.md) | **On-demand CLI cleanup & dead-code audit** (`roslynator find-unused`) at the end of each Wave; not stacked as duplicate build errors over SDK + Meziantou. |
 | **`stylecop-analyzers`** | [.agents/skills/stylecop-analyzers/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/stylecop-analyzers/SKILL.md) | **Scoped opt-in only** if public `Contracts`/API DTO XML documentation rules (`SA1600`) are desired; layout rules stay disabled so `csharpier` remains sole layout owner. |
 
@@ -292,11 +293,11 @@ flowchart TD
 ---
 
 ### Wave 3 — Check-In & Communications
-*Goal: Deliver Sunday-morning mission-critical Kiosk Check-In, ZPL label printing, the Fluid Lava template engine, and multi-channel communications.*
+*Goal: Deliver Sunday-morning mission-critical Kiosk Check-In, ZPL label printing, the Razor & safe merge-token template engine, and multi-channel communications.*
 
-#### `W3-S1` — Fluid Lava Engine, Safe Drops & Shortcodes
-* **Scope:** `ILavaEngine` built on `Fluid` (`Rock.Lava.Fluid` modernization): compiled template cache, strict execution timeout/recursion caps, custom Rock-compatible filters (date, text, address, math, personalization), `LavaShortCode` definitions, and read-only DTO `LavaDataObject` Drops (never exposing `DbContext` or mutable domain entities).
-* **`refs/Rock` Reference:** `Rock.Lava`, `Rock.Lava.Fluid`, `Rock.Lava.Shared`, `Rock/Model/CMS/LavaShortCode`, `Rock.Blocks/Cms/LavaShortcodeDetail.cs`.
+#### `W3-S1` — Razor Template Renderer, Safe Merge Tokens & Reusable Snippets
+* **Scope:** `IRazorTemplateRenderer` built on Blazor's native `.NET 10` `HtmlRenderer` (rendering strongly-typed `.razor` component templates to HTML/text with DI support) paired with `IMergeTemplateEngine` for database-stored, staff-editable content (emails, SMS, signature waivers, ZPL/text): compiled token parser (`{{ Field }}` with safe built-in formatters for dates, currency, casing, fallback defaults, and HTML encoding), strict size/recursion limits, reusable `TemplateSnippet` definitions, and read-only DTO merge contexts (never exposing `DbContext`, mutable domain entities, or arbitrary runtime C# execution).
+* **`refs/Rock` Reference:** Functional parity for `Rock/Model/CMS/LavaShortCode` & `Rock.Blocks/Cms/LavaShortcodeDetail.cs` (re-architected onto native `.NET 10` Razor components + safe merge tokens instead of Lava/Liquid).
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
@@ -366,7 +367,7 @@ flowchart TD
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W4-S5` — Contribution Statements & Benevolence Management
-* **Scope:** `FinancialStatementTemplate` (Fluid Lava HTML -> print-CSS / PDF statement generation for individuals & combined households, online donor download + bulk batch run), `BenevolenceType`, `BenevolenceRequest`, `BenevolenceRequestDocument`, `BenevolenceResult` caseworker UI.
+* **Scope:** `FinancialStatementTemplate` (compiled `.razor` statement layout via `HtmlRenderer` + staff-editable header/footer merge tokens -> print-CSS / PDF statement generation for individuals & combined households, online donor download + bulk batch run), `BenevolenceType`, `BenevolenceRequest`, `BenevolenceRequestDocument`, `BenevolenceResult` caseworker UI.
 * **`refs/Rock` Reference:** `Rock/Model/Finance/FinancialStatementTemplate`, `Benevolence*`, `Rock.StatementGenerator`, `Rock.Blocks/Finance/FinancialStatementTemplateDetail.cs`, `ContributionStatementGenerator.cs`, `BenevolenceRequestDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`.
@@ -419,7 +420,7 @@ flowchart TD
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W5-S5` — Workflow State/Activity/Action Engine & Entity Triggers
-* **Scope:** `Workflow` module (`workflow` schema): `WorkflowType`, `WorkflowActivityType`, `WorkflowActionType`, `Workflow` state-machine aggregate (`WorkflowActivity`, `WorkflowAction`, `WorkflowLog`, persisted `jsonb` workflow attributes), `WorkflowTrigger` / `AutomationTrigger` (reacting to integration events), background processing worker, and the core ~50 modular `IWorkflowAction` implementations (Control Flow, Attribute manipulation, Person/Group/Finance/Connection/Communication actions, Lava, Webhook).
+* **Scope:** `Workflow` module (`workflow` schema): `WorkflowType`, `WorkflowActivityType`, `WorkflowActionType`, `Workflow` state-machine aggregate (`WorkflowActivity`, `WorkflowAction`, `WorkflowLog`, persisted `jsonb` workflow attributes), `WorkflowTrigger` / `AutomationTrigger` (reacting to integration events), background processing worker, and the core ~50 modular `IWorkflowAction` implementations (Control Flow, Attribute manipulation, Person/Group/Finance/Connection/Communication actions, Razor/Merge Template, Webhook).
 * **`refs/Rock` Reference:** `Rock/Model/Workflow/*`, `Rock/Model/Core/Automation*`, `Rock/Workflow/Action/*`, `Rock.Blocks/WorkFlow/WorkflowList.cs`, `WorkflowTriggerDetail.cs`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (core state machine must pass deep loop/error/persistence tests).
@@ -441,9 +442,9 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `stylelint`, `htmlhint`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `stylelint`, `htmlhint`, `webhint`, `complexity`, `crap-score`.
 
-#### `W6-S2` — Content Channels, Media Accounts, Personal Links & Lava Endpoints
-* **Scope:** `ContentChannelType`, `ContentChannel`, `ContentChannelItem` (`Slug`, `Association`, scheduled publishing, RSS/JSON feeds), `ContentTopic`, `MediaAccount` / `MediaFolder` / `MediaElement` (Vimeo/YouTube/HLS sync provider), `PersonalLinkSection` / `PersonalLink` staff bookmarks bar, and custom `LavaApplication` / `LavaEndpoint` (`PersistedDataset`) REST/HTML builders.
-* **`refs/Rock` Reference:** `Rock/Model/CMS/ContentChannel*`, `ContentTopic*`, `Media*`, `PersonalLink*`, `LavaApplication`, `LavaEndpoint`, `PersistedDataset`, `Rock.Blocks/Cms/ContentChannel*`, `Media*`, `LavaApplicationDetail.cs`.
+#### `W6-S2` — Content Channels, Media Accounts, Personal Links & Persisted Datasets
+* **Scope:** `ContentChannelType`, `ContentChannel`, `ContentChannelItem` (`Slug`, `Association`, scheduled publishing, RSS/JSON feeds), `ContentTopic`, `MediaAccount` / `MediaFolder` / `MediaElement` (Vimeo/YouTube/HLS sync provider), `PersonalLinkSection` / `PersonalLink` staff bookmarks bar, and `PersistedDataset` cached JSON/query datasets consumed by Razor CMS blocks and typed Minimal API endpoints.
+* **`refs/Rock` Reference:** `Rock/Model/CMS/ContentChannel*`, `ContentTopic*`, `Media*`, `PersonalLink*`, `PersistedDataset`, `Rock.Blocks/Cms/ContentChannel*`, `Media*` (replacing custom `LavaApplication`/`LavaEndpoint` with typed Minimal APIs and Razor `<DynamicComponent>` blocks).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 

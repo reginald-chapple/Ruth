@@ -100,7 +100,7 @@ internal static class FileMapper
             t.Description,
             t.BinaryFileTypeId?.Value,
             t.DocumentTerm,
-            t.LavaTemplate,
+            t.TemplateMarkup,
             t.SignatureType,
             t.IsActive,
             t.IsValidInFuture,

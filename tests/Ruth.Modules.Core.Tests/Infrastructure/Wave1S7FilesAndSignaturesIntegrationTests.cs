@@ -188,10 +188,12 @@ public sealed class Wave1S7FilesAndSignaturesIntegrationTests(
             >(
                 new CreateSignatureDocumentTemplateCommand(
                     "Volunteer Agreement",
+                    TemplateMarkup: "Default waiver body.",
                     SignatureType: ElectronicSignatureType.Typed
                 )
             )
         ).Value;
+        Assert.Equal("Default waiver body.", sigTemplate.TemplateMarkup);
         var sigDoc = (
             await commands.SendAsync<CreateSignatureDocumentCommand, SignatureDocumentResponse>(
                 new CreateSignatureDocumentCommand(

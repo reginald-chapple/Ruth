@@ -24,7 +24,7 @@ public sealed class SignatureDocumentTemplate
         string? description,
         BinaryFileTypeId? binaryFileTypeId,
         string? documentTerm,
-        string? lavaTemplate,
+        string? templateMarkup,
         ElectronicSignatureType signatureType,
         bool isActive,
         bool isValidInFuture,
@@ -37,7 +37,7 @@ public sealed class SignatureDocumentTemplate
         Description = description;
         BinaryFileTypeId = binaryFileTypeId;
         DocumentTerm = documentTerm;
-        LavaTemplate = lavaTemplate;
+        TemplateMarkup = templateMarkup;
         SignatureType = signatureType;
         IsActive = isActive;
         IsValidInFuture = isValidInFuture;
@@ -60,7 +60,7 @@ public sealed class SignatureDocumentTemplate
     public string? DocumentTerm { get; private set; }
 
     /// <summary>Gets the template body markup.</summary>
-    public string? LavaTemplate { get; private set; }
+    public string? TemplateMarkup { get; private set; }
 
     /// <summary>Gets whether the signer types or draws their signature.</summary>
     public ElectronicSignatureType SignatureType { get; private set; }
@@ -139,7 +139,7 @@ public sealed class SignatureDocumentTemplate
         string? description = null,
         BinaryFileTypeId? binaryFileTypeId = null,
         string? documentTerm = "Document",
-        string? lavaTemplate = null,
+        string? templateMarkup = null,
         ElectronicSignatureType signatureType = ElectronicSignatureType.Typed,
         bool isActive = true,
         bool isValidInFuture = false,
@@ -165,7 +165,7 @@ public sealed class SignatureDocumentTemplate
             string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             binaryFileTypeId,
             string.IsNullOrWhiteSpace(documentTerm) ? "Document" : documentTerm.Trim(),
-            lavaTemplate,
+            templateMarkup,
             signatureType,
             isActive,
             isValidInFuture,

@@ -21,7 +21,7 @@ internal sealed class CreateSignatureDocumentTemplateCommandHandler(CoreDbContex
                 ? BinaryFileTypeId.From(command.BinaryFileTypeId.Value)
                 : null,
             command.DocumentTerm,
-            command.LavaTemplate,
+            command.TemplateMarkup,
             command.SignatureType,
             command.IsActive,
             command.IsValidInFuture,

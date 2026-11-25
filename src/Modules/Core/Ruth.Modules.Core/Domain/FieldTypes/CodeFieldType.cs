@@ -23,7 +23,7 @@ internal sealed class CodeFieldType : FieldTypePluginBase
     ;
     public override string Name => "Code Editor";
     public override string Description =>
-        "Source code or template snippet (HTML, CSS, SQL, Lava, Markdown).";
+        "Source code or template snippet (HTML, CSS, SQL, Razor, Markdown).";
     public override FieldEditorKind EditorKind => FieldEditorKind.Code;
 
     public override IReadOnlyList<FieldQualifierDefinition> Qualifiers =>
@@ -31,7 +31,7 @@ internal sealed class CodeFieldType : FieldTypePluginBase
             new(
                 "editorMode",
                 "Language Mode",
-                "Syntax language mode (html, css, sql, lava, json, markdown).",
+                "Syntax language mode (html, css, sql, razor, json, markdown).",
                 "html"
             ),
         ];

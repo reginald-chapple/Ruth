@@ -26,9 +26,10 @@ This repository adopts **MCAF 1.3**:
 2. **Zero-Magic CQRS & DDD:**
    - Commands, Queries, Handlers, and API Request/Response DTOs must be `sealed` (`sealed record` / `sealed class`).
    - Use Strongly-Typed `Guid.CreateVersion7()` IDs (`readonly record struct`), `DateTimeOffset` (`timestamptz`), and explicit `Result<T>` domain outcomes instead of throwing exceptions for expected business rule failures.
-3. **UI & API Split:**
+3. **UI, Templating & API Split:**
    - Internal Staff RMS uses `InteractiveServer` Fluent UI Blazor v5 pages dispatching Application handlers in-process.
    - Public CMS routes use `Static SSR` + `<DynamicComponent>` interactive islands.
+   - Templating uses compiled `.razor` components (`HtmlRenderer`) plus safe declarative merge tokens for database-stored content—never Lava/Liquid or arbitrary runtime C# scripting.
    - External HTTP APIs use ASP.NET Core Minimal APIs (`TypedResults`, `CancellationToken` forwarded everywhere, built-in `AddOpenApi()` — never Swashbuckle).
 
 ## 4. Tool Ownership & Quality Baseline

@@ -8,7 +8,7 @@ public sealed record SignatureDocumentTemplateResponse(
     string? Description,
     Guid? BinaryFileTypeId,
     string? DocumentTerm,
-    string? LavaTemplate,
+    string? TemplateMarkup,
     ElectronicSignatureType SignatureType,
     bool IsActive,
     bool IsValidInFuture,

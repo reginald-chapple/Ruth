@@ -8,7 +8,7 @@ public sealed record CreateSignatureDocumentTemplateCommand(
     string? Description = null,
     Guid? BinaryFileTypeId = null,
     string? DocumentTerm = "Document",
-    string? LavaTemplate = null,
+    string? TemplateMarkup = null,
     ElectronicSignatureType SignatureType = ElectronicSignatureType.Typed,
     bool IsActive = true,
     bool IsValidInFuture = false,
