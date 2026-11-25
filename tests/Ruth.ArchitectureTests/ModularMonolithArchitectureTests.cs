@@ -5,6 +5,8 @@ using Ruth.Modules.Core;
 using Ruth.Modules.Core.Contracts;
 using Ruth.Modules.Crm;
 using Ruth.Modules.Crm.Contracts;
+using Ruth.Modules.Groups;
+using Ruth.Modules.Groups.Contracts;
 using Ruth.Modules.Identity;
 using Ruth.Modules.Identity.Contracts;
 using Ruth.Persistence;
@@ -22,6 +24,7 @@ public sealed class ModularMonolithArchitectureTests
             IdentityModuleAssembly.Instance,
             CoreModuleAssembly.Instance,
             CrmModuleAssembly.Instance,
+            GroupsModuleAssembly.Instance,
         ];
 
         return
@@ -45,6 +48,7 @@ public sealed class ModularMonolithArchitectureTests
             IdentityContractsAssembly.Instance,
             CoreContractsAssembly.Instance,
             CrmContractsAssembly.Instance,
+            GroupsContractsAssembly.Instance,
         ];
 
         return
@@ -205,7 +209,10 @@ public sealed class ModularMonolithArchitectureTests
                     "Ruth.Modules.Core.Slices",
                     "Ruth.Modules.Crm.Domain",
                     "Ruth.Modules.Crm.Infrastructure",
-                    "Ruth.Modules.Crm.Slices"
+                    "Ruth.Modules.Crm.Slices",
+                    "Ruth.Modules.Groups.Domain",
+                    "Ruth.Modules.Groups.Infrastructure",
+                    "Ruth.Modules.Groups.Slices"
                 )
                 .GetResult();
 
@@ -236,7 +243,10 @@ public sealed class ModularMonolithArchitectureTests
                 "Ruth.Modules.Core.Slices",
                 "Ruth.Modules.Crm.Domain",
                 "Ruth.Modules.Crm.Infrastructure",
-                "Ruth.Modules.Crm.Slices"
+                "Ruth.Modules.Crm.Slices",
+                "Ruth.Modules.Groups.Domain",
+                "Ruth.Modules.Groups.Infrastructure",
+                "Ruth.Modules.Groups.Slices"
             )
             .GetResult();
 

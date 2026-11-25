@@ -1,0 +1,108 @@
+@page "/groups/toolbox"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Volunteer Schedule Toolbox — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Volunteer Schedule Toolbox &amp; RSVPs</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentTextInput @bind-Value="_personIdText" Label="Volunteer Person ID" Placeholder="GUID" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@LoadToolboxAsync">
+                Load My Schedule
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_toolbox is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <h2>Upcoming Serving Requests</h2>
+            <FluentDataGrid Items="@_toolbox.UpcomingAssignments.AsQueryable()">
+                <PropertyColumn Property="@(static v => v.OccurrenceDate)" Title="Date" />
+                <PropertyColumn Property="@(static v => v.GroupName)" Title="Team" />
+                <PropertyColumn Property="@(static v => v.LocationName)" Title="Location" />
+                <PropertyColumn Property="@(static v => v.Rsvp)" Title="RSVP" />
+                <TemplateColumn Title="Respond">
+                    <FluentButton Size="ButtonSize.Small" Appearance="ButtonAppearance.Primary" OnClick="@(() => RespondAsync(context.AttendanceId, RsvpStatus.Yes))">
+                        Accept
+                    </FluentButton>
+                    <FluentButton Size="ButtonSize.Small" Appearance="ButtonAppearance.Outline" OnClick="@(() => RespondAsync(context.AttendanceId, RsvpStatus.No))">
+                        Decline
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <h2>My Blackout Dates</h2>
+            <ul>
+                @foreach (var ex in _toolbox.BlackoutDates)
+                {
+                    <li @key="ex.Id">@ex.StartDate.ToString("yyyy-MM-dd") – @ex.EndDate.ToString("yyyy-MM-dd"): @(ex.Title ?? "Unavailable")</li>
+                }
+            </ul>
+        </FluentCard>
+    }
+</FluentStack>
+
+@code {
+    private VolunteerScheduleToolboxResponse? _toolbox;
+    private string _personIdText = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    private async Task LoadToolboxAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (!Guid.TryParse(_personIdText.Trim(), out var personId))
+        {
+            _isError = true;
+            _statusMessage = "Enter a valid Person GUID.";
+            return;
+        }
+
+        var result = await QueryDispatcher.QueryAsync<
+            GetVolunteerScheduleToolboxQuery,
+            VolunteerScheduleToolboxResponse
+        >(new GetVolunteerScheduleToolboxQuery(personId));
+        if (result.IsSuccess)
+        {
+            _toolbox = result.Value;
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+
+    private async Task RespondAsync(Guid attendanceId, RsvpStatus response)
+    {
+        var result = await CommandDispatcher.SendAsync<RespondToRsvpCommand, ScheduledVolunteerResponse>(
+            new RespondToRsvpCommand(attendanceId, RsvpToken: null, response)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = $"RSVP recorded as {response}.";
+            _isError = false;
+            await LoadToolboxAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

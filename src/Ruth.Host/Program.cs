@@ -8,6 +8,7 @@ using Ruth.Host.Middleware;
 using Ruth.Host.Observability;
 using Ruth.Modules.Core;
 using Ruth.Modules.Crm;
+using Ruth.Modules.Groups;
 using Ruth.Modules.Identity;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.Checkr;
@@ -23,6 +24,7 @@ builder.Services.AddRustFsStorageProvider(builder.Configuration);
 builder.Services.AddCoreModule(builder.Configuration);
 builder.Services.AddCheckrBackgroundCheckProvider(builder.Configuration);
 builder.Services.AddCrmModule(builder.Configuration);
+builder.Services.AddGroupsModule(builder.Configuration);
 builder.Services.AddRuthJwtConfiguration();
 
 builder.Services.AddProblemDetails();
@@ -113,5 +115,6 @@ app.MapHealthEndpoints();
 app.MapIdentityModuleEndpoints();
 app.MapCoreModuleEndpoints();
 app.MapCrmModuleEndpoints();
+app.MapGroupsModuleEndpoints();
 
 await app.RunAsync();

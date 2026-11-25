@@ -1,0 +1,170 @@
+@page "/groups/{GroupId:guid}"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>@(_group?.Name ?? "Group Detail") — Ruth RMS</PageTitle>
+
+@if (_loading)
+{
+    <FluentProgressBar />
+}
+else if (_group is null)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" AllowDismiss="false">
+        Group not found.
+    </FluentMessageBar>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                              AllowDismiss="true">
+                @_statusMessage
+            </FluentMessageBar>
+        }
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                <div>
+                    <h1 style="margin: 0;">@_group.Name</h1>
+                    <small>
+                        @_group.GroupTypeName · Active: @_group.ActiveMemberCount · Pending: @_group.PendingMemberCount
+                        @if (_group.GroupCapacity.HasValue)
+                        {
+                            <span> · Capacity: @_group.GroupCapacity</span>
+                        }
+                    </small>
+                </div>
+                <a href="@($"/groups/{_group.Id:D}/attendance")">Take Attendance</a>
+                <a href="/groups/scheduler">Serving Scheduler</a>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <h2>Members</h2>
+            <FluentDataGrid Items="@_members.AsQueryable()">
+                <TemplateColumn Title="Person">
+                    <a href="@($"/crm/people/{context.PersonId:D}")">@context.PersonId</a>
+                </TemplateColumn>
+                <PropertyColumn Property="@(static m => m.GroupRoleName)" Title="Role" />
+                <PropertyColumn Property="@(static m => m.Status)" Title="Status" />
+                <PropertyColumn Property="@(static m => m.Note)" Title="Note" />
+                <TemplateColumn Title="Actions">
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => ArchiveMemberAsync(context.Id))">
+                        Archive
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <h2>Locations (PostGIS)</h2>
+            @if (_group.Locations.Count == 0)
+            {
+                <p>No locations attached.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var loc in _group.Locations)
+                    {
+                        <li @key="loc.Id">
+                            <strong>@loc.LocationName</strong>
+                            @if (loc.GeoPoint is not null)
+                            {
+                                <span> (@loc.GeoPoint.Latitude.ToString("F4"), @loc.GeoPoint.Longitude.ToString("F4"))</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <h2>History Snapshots</h2>
+            @if (_history.Count == 0)
+            {
+                <p>No historical snapshots recorded for this group.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var row in _history)
+                    {
+                        <li @key="row.Id">
+                            <strong>@row.GroupName</strong> — Effective @row.EffectiveDateTimeUtc.ToString("u")
+                            @(row.CurrentRowIndicator ? " [Current]" : $" -> Expired {row.ExpireDateTimeUtc:u}")
+                        </li>
+                    }
+                </ul>
+            }
+        </FluentCard>
+    </FluentStack>
+}
+
+@code {
+    [Parameter]
+    public Guid GroupId { get; set; }
+
+    private GroupDetailResponse? _group;
+    private List<GroupMemberResponse> _members = [];
+    private List<GroupHistoricalResponse> _history = [];
+    private bool _loading = true;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var detail = await QueryDispatcher.QueryAsync<GetGroupByIdQuery, GroupDetailResponse>(
+            new GetGroupByIdQuery(GroupId)
+        );
+        if (detail.IsSuccess)
+        {
+            _group = detail.Value;
+            var membersRes = await QueryDispatcher.QueryAsync<
+                GetGroupMembersQuery,
+                IReadOnlyList<GroupMemberResponse>
+            >(new GetGroupMembersQuery(GroupId));
+            if (membersRes.IsSuccess)
+            {
+                _members = [.. membersRes.Value];
+            }
+
+            var histRes = await QueryDispatcher.QueryAsync<
+                GetGroupHistoryQuery,
+                IReadOnlyList<GroupHistoricalResponse>
+            >(new GetGroupHistoryQuery(GroupId));
+            if (histRes.IsSuccess)
+            {
+                _history = [.. histRes.Value];
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task ArchiveMemberAsync(Guid memberId)
+    {
+        var result = await CommandDispatcher.SendAsync<RemoveGroupMemberCommand, bool>(
+            new RemoveGroupMemberCommand(memberId, ArchiveInsteadOfDelete: true)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Member archived.";
+            _isError = false;
+            await LoadAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

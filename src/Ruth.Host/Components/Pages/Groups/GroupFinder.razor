@@ -1,0 +1,98 @@
+@page "/groups/finder"
+@using System.Globalization
+@inject IQueryDispatcher QueryDispatcher
+
+<PageTitle>Group Finder &amp; Map — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>PostGIS Group Finder &amp; Map</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentTextInput @bind-Value="_searchText" Label="Keyword" Placeholder="Young adults, downtown..." />
+            <FluentTextInput @bind-Value="_latitudeText" Label="Latitude" Placeholder="39.7392" />
+            <FluentTextInput @bind-Value="_longitudeText" Label="Longitude" Placeholder="-104.9903" />
+            <FluentTextInput @bind-Value="_radiusMilesText" Label="Radius (Miles)" Placeholder="10" />
+            <FluentCheckbox @bind-Value="_openCapacityOnly" Label="Open Spots Only" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SearchAsync">
+                Find Groups
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_results.AsQueryable()">
+        <TemplateColumn Title="Group">
+            <a href="@($"/groups/{context.GroupId:D}")">@context.Name</a>
+        </TemplateColumn>
+        <PropertyColumn Property="@(static g => g.GroupTypeName)" Title="Type" />
+        <PropertyColumn Property="@(static g => g.LocationName)" Title="Location" />
+        <PropertyColumn Property="@(static g => g.DistanceMiles)" Title="Distance (mi)" />
+        <PropertyColumn Property="@(static g => g.MeetingStyle)" Title="Meeting Style" />
+        <PropertyColumn Property="@(static g => g.RemainingCapacity)" Title="Open Spots" />
+        <TemplateColumn Title="Map Pin">
+            @if (context.GeoPoint is not null)
+            {
+                <span>@context.GeoPoint.Latitude.ToString("F4"), @context.GeoPoint.Longitude.ToString("F4")</span>
+            }
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<GroupFinderItemResponse> _results = [];
+    private string _searchText = string.Empty;
+    private string _latitudeText = string.Empty;
+    private string _longitudeText = string.Empty;
+    private string _radiusMilesText = "15";
+    private bool _openCapacityOnly;
+    private string? _statusMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        _statusMessage = null;
+        double? lat = double.TryParse(_latitudeText, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedLat)
+            ? parsedLat
+            : null;
+        double? lon = double.TryParse(_longitudeText, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedLon)
+            ? parsedLon
+            : null;
+        double? radiusMeters =
+            lat.HasValue && lon.HasValue && double.TryParse(_radiusMilesText, NumberStyles.Float, CultureInfo.InvariantCulture, out var miles)
+                ? miles * 1609.344
+                : null;
+
+        var result = await QueryDispatcher.QueryAsync<
+            FindGroupsQuery,
+            IReadOnlyList<GroupFinderItemResponse>
+        >(
+            new FindGroupsQuery(
+                SearchText: string.IsNullOrWhiteSpace(_searchText) ? null : _searchText,
+                HasOpenCapacityOnly: _openCapacityOnly,
+                Latitude: lat,
+                Longitude: lon,
+                RadiusMeters: radiusMeters
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _results = [.. result.Value];
+            return;
+        }
+
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

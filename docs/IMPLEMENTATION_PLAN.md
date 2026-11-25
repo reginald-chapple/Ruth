@@ -265,25 +265,25 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W2-S5` — GroupTypes, Group Hierarchy, Locations & PostGIS Group Finder
+#### `W2-S5` — GroupTypes, Group Hierarchy, Locations & PostGIS Group Finder ✅ *(Completed)*
 * **Scope:** `Groups` module (`groups` schema): `GroupType` (`GroupTypeRole`, allowed child GroupTypes, location modes, attendance rules), `Group` tree aggregate, `GroupLocation`, `GroupDemographicType`/`Value`, `GroupHistorical` snapshots, Admin `GroupTreeView`/`GroupDetail` shell, and public/internal PostGIS radius/polygon `GroupFinder` + map view.
 * **`refs/Rock` Reference:** `Rock/Model/Group/Group`, `GroupType*`, `GroupLocation*`, `GroupDemographic*`, `GroupHistorical`, `Rock.Blocks/Group/GroupTreeView.cs`, `GroupDetail.cs`, `GroupTypeDetail.cs`, `GroupFinder.cs`, `GroupMap.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W2-S6` — Group Memberships, Requirements, Placement & Sync
+#### `W2-S6` — Group Memberships, Requirements, Placement & Sync ✅ *(Completed)*
 * **Scope:** `GroupMember` lifecycle (Active, Inactive, Pending, capacity/role limits, `GroupMemberHistorical`), `GroupRequirementType` / `GroupRequirement` / `GroupMemberRequirement` (background check/step/attribute prerequisites), `GroupPlacement` board, `GroupSimpleRegister`, and scheduled `GroupSync` reconciliation.
 * **`refs/Rock` Reference:** `Rock/Model/Group/GroupMember`, `GroupMemberHistorical`, `GroupRequirement*`, `GroupSync`, `Rock.Blocks/Group/GroupMemberList.cs`, `GroupPlacement.cs`, `GroupRequirementTypeDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S7` — Ministry Serving Scheduler & RSVPs
+#### `W2-S7` — Ministry Serving Scheduler & RSVPs ✅ *(Completed)*
 * **Scope:** `GroupMemberScheduleTemplate`, `GroupLocationScheduleConfig` (min/desired/max volunteer thresholds), `GroupMemberAssignment`, `PersonScheduleExclusion` (blackout dates), `GroupScheduleExclusion`, interactive Coordinator Schedule Grid + Volunteer Schedule Toolbox & Decline/Accept RSVP links (`Rsvp`).
 * **`refs/Rock` Reference:** `Rock/Model/Group/GroupMemberScheduleTemplate`, `GroupLocationScheduleConfig`, `GroupMemberAssignment`, `PersonScheduleExclusion`, `Rock.Blocks/Group/Scheduling/*`, `Rock.Blocks/Rsvp/*`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S8` — Attendance Occurrences & Group Attendance Entry
+#### `W2-S8` — Attendance Occurrences & Group Attendance Entry ✅ *(Completed)*
 * **Scope:** `AttendanceOccurrence` (Group + Location + Schedule + OccurrenceDate, `DidNotOccur`), `Attendance` records, fast mobile/tablet-friendly Group Roster Attendance checklist UI, Campus/Service metric summary hooks, and `PersonAttendedIntegrationEvent`.
 * **`refs/Rock` Reference:** `Rock/Model/Event/AttendanceOccurrence`, `Attendance`, `Rock.Blocks/Group/GroupAttendanceList.cs`, `GroupAttendanceDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.

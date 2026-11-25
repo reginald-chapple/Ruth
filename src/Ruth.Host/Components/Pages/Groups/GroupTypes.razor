@@ -1,0 +1,209 @@
+@page "/admin/groups/types"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Group Types — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Group Types &amp; Roles</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Group Type</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Name" Required="true" Placeholder="Small Group" />
+                <FluentTextInput @bind-Value="_groupTerm" Label="Group Term" Placeholder="Group" />
+                <FluentTextInput @bind-Value="_memberTerm" Label="Member Term" Placeholder="Member" />
+                <FluentSelect TOption="GroupCapacityRule"
+                              TValue="GroupCapacityRule"
+                              Label="Capacity Rule"
+                              Items="@_capacityRules"
+                              @bind-Value="_capacityRule"
+                              OptionText="@(static x => x.ToString())"
+                              OptionValue="@(static x => x)" />
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <FluentCheckbox @bind-Value="_takesAttendance" Label="Takes Attendance" />
+                <FluentCheckbox @bind-Value="_countsAsWeekend" Label="Weekend Service" />
+                <FluentCheckbox @bind-Value="_isSchedulingEnabled" Label="Serving Scheduler" />
+                <FluentCheckbox @bind-Value="_enableHistory" Label="Track History" />
+                <FluentCheckbox @bind-Value="_allowMultipleLocations" Label="Multiple Locations" />
+                <FluentCheckbox @bind-Value="_groupsRequireCampus" Label="Require Campus" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateGroupTypeAsync">
+                    Create Group Type
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_groupTypes.AsQueryable()">
+        <PropertyColumn Property="@(static gt => gt.Name)" Title="Name" />
+        <PropertyColumn Property="@(static gt => gt.GroupTerm)" Title="Group Term" />
+        <PropertyColumn Property="@(static gt => gt.GroupCapacityRule)" Title="Capacity" />
+        <PropertyColumn Property="@(static gt => gt.TakesAttendance)" Title="Attendance" />
+        <PropertyColumn Property="@(static gt => gt.IsSchedulingEnabled)" Title="Scheduling" />
+        <PropertyColumn Property="@(static gt => gt.RoleCount)" Title="Roles" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small" OnClick="@(() => SelectGroupTypeAsync(context.Id))">
+                Inspect Roles
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+
+    @if (_selectedDetail is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>@_selectedDetail.Name — Roles &amp; Exclusions</h2>
+                <ul>
+                    @foreach (var role in _selectedDetail.Roles)
+                    {
+                        <li @key="role.Id">
+                            <strong>@role.Name</strong>
+                            @(role.IsLeader ? " [Leader]" : "")
+                            @(_selectedDetail.DefaultGroupRoleId == role.Id ? " [Default]" : "")
+                            @if (role.MaxCount.HasValue)
+                            {
+                                <span> · Max: @role.MaxCount</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentTextInput @bind-Value="_newRoleName" Label="New Role Name" Placeholder="Leader" />
+                    <FluentCheckbox @bind-Value="_newRoleIsLeader" Label="Leader Role" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddRoleAsync">
+                        Add Role
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>
+
+@code {
+    private static readonly GroupCapacityRule[] _capacityRules = Enum.GetValues<GroupCapacityRule>();
+
+    private List<GroupTypeSummaryResponse> _groupTypes = [];
+    private GroupTypeDetailResponse? _selectedDetail;
+    private string _name = string.Empty;
+    private string _groupTerm = "Group";
+    private string _memberTerm = "Member";
+    private GroupCapacityRule _capacityRule = GroupCapacityRule.Soft;
+    private bool _takesAttendance = true;
+    private bool _countsAsWeekend;
+    private bool _isSchedulingEnabled;
+    private bool _enableHistory = true;
+    private bool _allowMultipleLocations;
+    private bool _groupsRequireCampus;
+    private string _newRoleName = string.Empty;
+    private bool _newRoleIsLeader;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            GetGroupTypesQuery,
+            IReadOnlyList<GroupTypeSummaryResponse>
+        >(new GetGroupTypesQuery());
+        if (result.IsSuccess)
+        {
+            _groupTypes = [.. result.Value];
+        }
+    }
+
+    private async Task CreateGroupTypeAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateGroupTypeCommand, GroupTypeDetailResponse>(
+            new CreateGroupTypeCommand(
+                _name,
+                GroupTerm: _groupTerm,
+                GroupMemberTerm: _memberTerm,
+                AllowMultipleLocations: _allowMultipleLocations,
+                IsMeetingStyleEnabled: true,
+                GroupsRequireCampus: _groupsRequireCampus,
+                EnableGroupHistory: _enableHistory,
+                TakesAttendance: _takesAttendance,
+                AttendanceCountsAsWeekendService: _countsAsWeekend,
+                GroupCapacityRule: _capacityRule,
+                IsSchedulingEnabled: _isSchedulingEnabled
+            )
+        );
+
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _selectedDetail = result.Value;
+            _statusMessage = $"Created Group Type '{result.Value.Name}'.";
+            await LoadAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+
+    private async Task SelectGroupTypeAsync(Guid id)
+    {
+        var result = await QueryDispatcher.QueryAsync<GetGroupTypeByIdQuery, GroupTypeDetailResponse>(
+            new GetGroupTypeByIdQuery(id)
+        );
+        if (result.IsSuccess)
+        {
+            _selectedDetail = result.Value;
+        }
+    }
+
+    private async Task AddRoleAsync()
+    {
+        if (_selectedDetail is null)
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<AddGroupTypeRoleCommand, GroupTypeDetailResponse>(
+            new AddGroupTypeRoleCommand(
+                _selectedDetail.Id,
+                new GroupTypeRoleInputDto(
+                    _newRoleName,
+                    IsLeader: _newRoleIsLeader,
+                    CanEdit: _newRoleIsLeader,
+                    CanManageMembers: _newRoleIsLeader,
+                    CanTakeAttendance: _newRoleIsLeader
+                )
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _newRoleName = string.Empty;
+            _selectedDetail = result.Value;
+            _statusMessage = "Role added.";
+            _isError = false;
+            await LoadAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

@@ -1,0 +1,149 @@
+@page "/groups"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>Groups Explorer — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Group Tree &amp; Explorer</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentSelect TOption="GroupTypeSummaryResponse"
+                          TValue="Guid"
+                          Label="Group Type"
+                          Items="@_groupTypes"
+                          @bind-Value="_selectedGroupTypeId"
+                          OptionText="@(static gt => gt.Name)"
+                          OptionValue="@(static gt => gt.Id)" />
+            <FluentTextInput @bind-Value="_newGroupName" Label="New Group Name" Placeholder="Downtown Small Group" />
+            <FluentCheckbox @bind-Value="_includeInactive" Label="Include Inactive" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateGroupAsync">
+                Create Group
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LoadTreeAsync">
+                Refresh Tree
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <h2>Group Hierarchy</h2>
+        @if (_flatTree.Count == 0)
+        {
+            <p>No groups found. Create a Group Type first, then create your first group above.</p>
+        }
+        else
+        {
+            <FluentDataGrid Items="@_flatTree.AsQueryable()">
+                <TemplateColumn Title="Group">
+                    <span style="@($"padding-left: {context.Depth * 20}px;")">
+                        <a href="@($"/groups/{context.Node.Id:D}")">@context.Node.Name</a>
+                    </span>
+                </TemplateColumn>
+                <PropertyColumn Property="@(static x => x.Node.GroupTypeName)" Title="Type" />
+                <PropertyColumn Property="@(static x => x.Node.ActiveMemberCount)" Title="Active Members" />
+                <PropertyColumn Property="@(static x => x.Node.GroupCapacity)" Title="Capacity" />
+                <PropertyColumn Property="@(static x => x.Node.IsPublic)" Title="Public" />
+                <TemplateColumn Title="Links">
+                    <a href="@($"/groups/{context.Node.Id:D}/attendance")">Attendance</a>
+                </TemplateColumn>
+            </FluentDataGrid>
+        }
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private sealed record FlatTreeRow(GroupTreeNodeResponse Node, int Depth);
+
+    private List<GroupTypeSummaryResponse> _groupTypes = [];
+    private List<FlatTreeRow> _flatTree = [];
+    private Guid _selectedGroupTypeId;
+    private string _newGroupName = string.Empty;
+    private bool _includeInactive;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var typesResult = await QueryDispatcher.QueryAsync<
+            GetGroupTypesQuery,
+            IReadOnlyList<GroupTypeSummaryResponse>
+        >(new GetGroupTypesQuery());
+        if (typesResult.IsSuccess)
+        {
+            _groupTypes = [.. typesResult.Value];
+            if (_groupTypes.Count > 0)
+            {
+                _selectedGroupTypeId = _groupTypes[0].Id;
+            }
+        }
+
+        await LoadTreeAsync();
+    }
+
+    private async Task LoadTreeAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            GetGroupTreeQuery,
+            IReadOnlyList<GroupTreeNodeResponse>
+        >(new GetGroupTreeQuery(IncludeInactive: _includeInactive));
+        if (result.IsSuccess)
+        {
+            var rows = new List<FlatTreeRow>();
+            Flatten(result.Value, 0, rows);
+            _flatTree = rows;
+        }
+    }
+
+    private static void Flatten(
+        IReadOnlyList<GroupTreeNodeResponse> nodes,
+        int depth,
+        List<FlatTreeRow> output
+    )
+    {
+        foreach (var node in nodes)
+        {
+            output.Add(new FlatTreeRow(node, depth));
+            if (node.Children.Count > 0)
+            {
+                Flatten(node.Children, depth + 1, output);
+            }
+        }
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (_selectedGroupTypeId == Guid.Empty)
+        {
+            _isError = true;
+            _statusMessage = "Please create or select a Group Type first.";
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<CreateGroupCommand, GroupDetailResponse>(
+            new CreateGroupCommand(_selectedGroupTypeId, _newGroupName)
+        );
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo($"/groups/{result.Value.Id:D}");
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

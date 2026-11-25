@@ -1,0 +1,84 @@
+@page "/groups/placement"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Group Placement Board — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Group Placement Board</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentTextInput @bind-Value="_sourceGroupIdText" Label="Source Group ID (optional)" Placeholder="GUID" />
+            <FluentTextInput @bind-Value="_destinationGroupIdsText" Label="Destination Group IDs (comma-separated)" Placeholder="GUID, GUID" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@LoadBoardAsync">
+                Load Board
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_board is not null)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true">
+            @foreach (var col in _board.DestinationGroups)
+            {
+                <FluentCard @key="col.GroupId" Padding="@Padding.All4">
+                    <h3>@col.GroupName</h3>
+                    <small>Active: @col.ActiveMemberCount @(col.GroupCapacity.HasValue ? $"/ {col.GroupCapacity}" : "")</small>
+                    <ul>
+                        @foreach (var member in col.Members)
+                        {
+                            <li @key="member.Id">@member.PersonId (@member.GroupRoleName)</li>
+                        }
+                    </ul>
+                </FluentCard>
+            }
+        </FluentStack>
+    }
+</FluentStack>
+
+@code {
+    private GroupPlacementBoardResponse? _board;
+    private string _sourceGroupIdText = string.Empty;
+    private string _destinationGroupIdsText = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    private async Task LoadBoardAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        Guid? sourceId = Guid.TryParse(_sourceGroupIdText.Trim(), out var src) ? src : null;
+        var destIds = new List<Guid>();
+        foreach (var token in _destinationGroupIdsText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Guid.TryParse(token, out var gid))
+            {
+                destIds.Add(gid);
+            }
+        }
+
+        var result = await QueryDispatcher.QueryAsync<
+            GetGroupPlacementBoardQuery,
+            GroupPlacementBoardResponse
+        >(new GetGroupPlacementBoardQuery(destIds, sourceId));
+        if (result.IsSuccess)
+        {
+            _board = result.Value;
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

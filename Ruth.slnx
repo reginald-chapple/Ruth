@@ -12,6 +12,10 @@
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm.Contracts/Ruth.Modules.Crm.Contracts.csproj" />
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm/Ruth.Modules.Crm.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Groups/">
+    <Project Path="src/Modules/Groups/Ruth.Modules.Groups.Contracts/Ruth.Modules.Groups.Contracts.csproj" />
+    <Project Path="src/Modules/Groups/Ruth.Modules.Groups/Ruth.Modules.Groups.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity.Contracts/Ruth.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity/Ruth.Modules.Identity.csproj" />
@@ -26,6 +30,7 @@
     <Project Path="tests/Ruth.Host.IntegrationTests/Ruth.Host.IntegrationTests.csproj" />
     <Project Path="tests/Ruth.Modules.Core.Tests/Ruth.Modules.Core.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Crm.Tests/Ruth.Modules.Crm.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Groups.Tests/Ruth.Modules.Groups.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Identity.Tests/Ruth.Modules.Identity.Tests.csproj" />
     <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />
     <Project Path="tests/Ruth.SharedKernel.Tests/Ruth.SharedKernel.Tests.csproj" />

@@ -28,6 +28,8 @@
     <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core\Ruth.Modules.Core.csproj" />
     <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm\Ruth.Modules.Crm.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ruth.Modules.Groups.Contracts\Ruth.Modules.Groups.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ruth.Modules.Groups\Ruth.Modules.Groups.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Host\Ruth.Host.csproj" />

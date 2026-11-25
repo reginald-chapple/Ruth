@@ -1,0 +1,58 @@
+@host = https://localhost:5001
+@token = replace-with-jwt-access-token
+
+### List Group Types
+GET {{host}}/api/groups/types
+Authorization: Bearer {{token}}
+
+### Create Small Group Type
+POST {{host}}/api/groups/types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Small Group",
+  "groupTerm": "Small Group",
+  "groupMemberTerm": "Member",
+  "allowMultipleLocations": false,
+  "isMeetingStyleEnabled": true,
+  "enableGroupHistory": true,
+  "takesAttendance": true,
+  "groupCapacityRule": "Soft",
+  "isSchedulingEnabled": false,
+  "initialRoles": [
+    { "name": "Leader", "isLeader": true, "canEdit": true, "canManageMembers": true, "canTakeAttendance": true },
+    { "name": "Member", "isLeader": false, "canView": true }
+  ]
+}
+
+### Get Group Hierarchy Tree
+GET {{host}}/api/groups/tree?includeInactive=false
+Authorization: Bearer {{token}}
+
+### PostGIS Group Finder Search (10 mile radius around Denver)
+POST {{host}}/api/groups/finder
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "latitude": 39.7392,
+  "longitude": -104.9903,
+  "radiusMeters": 16093.44,
+  "publicOnly": true,
+  "activeOnly": true,
+  "hasOpenCapacityOnly": true
+}
+
+### Run GroupSync Reconciliation
+POST {{host}}/api/groups/sync/run
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "forceRun": true
+}
+
+### Attendance Metrics Summary
+GET {{host}}/api/groups/attendance/metrics?startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{token}}

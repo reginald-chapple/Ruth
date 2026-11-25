@@ -1,0 +1,155 @@
+@page "/groups/{GroupId:guid}/attendance"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Group Roster Attendance — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Group Roster Attendance</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>@(_group?.Name ?? "Group") — @_occurrenceDate.ToString("yyyy-MM-dd")</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <FluentCheckbox @bind-Value="_didNotOccur" Label="Group Did Not Meet" />
+                <FluentTextInput @bind-Value="_notes" Label="Occurrence Notes" Placeholder="Meeting notes..." />
+            </FluentStack>
+
+            @if (!_didNotOccur)
+            {
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                    @foreach (var row in _roster)
+                    {
+                        <div @key="row.PersonId">
+                            <FluentCheckbox @bind-Value="row.DidAttend"
+                                            Label="@($"{row.PersonId} ({row.RoleName})")" />
+                        </div>
+                    }
+                </FluentStack>
+            }
+
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveAttendanceAsync">
+                    Save Attendance
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <h2>Recent Occurrences</h2>
+        <FluentDataGrid Items="@_occurrences.AsQueryable()">
+            <PropertyColumn Property="@(static o => o.OccurrenceDate)" Title="Date" />
+            <PropertyColumn Property="@(static o => o.SundayDate)" Title="Sunday" />
+            <PropertyColumn Property="@(static o => o.DidNotOccur)" Title="Did Not Meet" />
+            <PropertyColumn Property="@(static o => o.PresentCount)" Title="Present" />
+            <PropertyColumn Property="@(static o => o.FirstTimeCount)" Title="First Time" />
+            <PropertyColumn Property="@(static o => o.Notes)" Title="Notes" />
+        </FluentDataGrid>
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private sealed class RosterRow
+    {
+        public Guid PersonId { get; init; }
+        public string RoleName { get; init; } = string.Empty;
+        public bool DidAttend { get; set; }
+    }
+
+    [Parameter]
+    public Guid GroupId { get; set; }
+
+    private GroupDetailResponse? _group;
+    private List<RosterRow> _roster = [];
+    private List<AttendanceOccurrenceSummaryResponse> _occurrences = [];
+    private DateOnly _occurrenceDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private bool _didNotOccur;
+    private string _notes = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var groupRes = await QueryDispatcher.QueryAsync<GetGroupByIdQuery, GroupDetailResponse>(
+            new GetGroupByIdQuery(GroupId)
+        );
+        if (groupRes.IsSuccess)
+        {
+            _group = groupRes.Value;
+        }
+
+        var membersRes = await QueryDispatcher.QueryAsync<
+            GetGroupMembersQuery,
+            IReadOnlyList<GroupMemberResponse>
+        >(new GetGroupMembersQuery(GroupId, Status: GroupMemberStatus.Active));
+        if (membersRes.IsSuccess)
+        {
+            _roster =
+            [
+                .. membersRes.Value.Select(static m => new RosterRow
+                {
+                    PersonId = m.PersonId,
+                    RoleName = m.GroupRoleName,
+                    DidAttend = false,
+                }),
+            ];
+        }
+
+        var occRes = await QueryDispatcher.QueryAsync<
+            GetGroupAttendanceOccurrencesQuery,
+            IReadOnlyList<AttendanceOccurrenceSummaryResponse>
+        >(new GetGroupAttendanceOccurrencesQuery(GroupId));
+        if (occRes.IsSuccess)
+        {
+            _occurrences = [.. occRes.Value];
+        }
+    }
+
+    private async Task SaveAttendanceAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        GroupAttendanceEntryInputDto[] entries =
+        [
+            .. _roster.Select(static r => new GroupAttendanceEntryInputDto(r.PersonId, r.DidAttend)),
+        ];
+
+        var result = await CommandDispatcher.SendAsync<
+            RecordGroupAttendanceCommand,
+            AttendanceOccurrenceDetailResponse
+        >(
+            new RecordGroupAttendanceCommand(
+                GroupId,
+                _occurrenceDate,
+                DidNotOccur: _didNotOccur,
+                Notes: string.IsNullOrWhiteSpace(_notes) ? null : _notes,
+                Entries: entries
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = $"Saved attendance ({result.Value.PresentCount} present).";
+            await LoadAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

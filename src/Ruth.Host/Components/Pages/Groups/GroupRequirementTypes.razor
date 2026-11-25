@@ -1,0 +1,110 @@
+@page "/admin/groups/requirement-types"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Group Requirement Types — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Group Requirement Types</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Add Requirement Type</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Name" Required="true" Placeholder="Clear Background Check" />
+                <FluentSelect TOption="RequirementCheckType"
+                              TValue="RequirementCheckType"
+                              Label="Check Type"
+                              Items="@_checkTypes"
+                              @bind-Value="_checkType"
+                              OptionText="@(static x => x.ToString())"
+                              OptionValue="@(static x => x)" />
+                <FluentTextInput @bind-Value="_ruleKey" Label="Rule Key" Placeholder="standard-volunteer / AttributeKey / GroupId" />
+                <FluentTextInput @bind-Value="_ruleValue" Label="Expected Value" />
+                <FluentCheckbox @bind-Value="_canExpire" Label="Can Expire" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Create Requirement Type
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_types.AsQueryable()">
+        <PropertyColumn Property="@(static t => t.Name)" Title="Name" />
+        <PropertyColumn Property="@(static t => t.CheckType)" Title="Check Type" />
+        <PropertyColumn Property="@(static t => t.RuleKey)" Title="Rule Key" />
+        <PropertyColumn Property="@(static t => t.CanExpire)" Title="Expires" />
+        <PropertyColumn Property="@(static t => t.ExpireInDays)" Title="Expire Days" />
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private static readonly RequirementCheckType[] _checkTypes = Enum.GetValues<RequirementCheckType>();
+
+    private List<GroupRequirementTypeResponse> _types = [];
+    private string _name = string.Empty;
+    private RequirementCheckType _checkType = RequirementCheckType.Manual;
+    private string _ruleKey = string.Empty;
+    private string _ruleValue = string.Empty;
+    private bool _canExpire;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            GetGroupRequirementTypesQuery,
+            IReadOnlyList<GroupRequirementTypeResponse>
+        >(new GetGroupRequirementTypesQuery());
+        if (result.IsSuccess)
+        {
+            _types = [.. result.Value];
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<
+            CreateGroupRequirementTypeCommand,
+            GroupRequirementTypeResponse
+        >(
+            new CreateGroupRequirementTypeCommand(
+                _name,
+                _checkType,
+                RuleKey: string.IsNullOrWhiteSpace(_ruleKey) ? null : _ruleKey,
+                RuleValue: string.IsNullOrWhiteSpace(_ruleValue) ? null : _ruleValue,
+                CanExpire: _canExpire,
+                ExpireInDays: _canExpire ? 730 : null
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _statusMessage = $"Created requirement type '{result.Value.Name}'.";
+            await LoadAsync();
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}
