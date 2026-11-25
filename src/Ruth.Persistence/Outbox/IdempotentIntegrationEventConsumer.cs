@@ -61,10 +61,9 @@ public sealed class IdempotentIntegrationEventConsumer<TEvent, TConsumer, TDbCon
     )
     {
         var existingTransaction = _dbContext.Database.CurrentTransaction;
-        await using var ownedTransaction =
-            existingTransaction is null
-                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
-                : null;
+        await using var ownedTransaction = existingTransaction is null
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
         var activeTransaction = ownedTransaction ?? existingTransaction!;
         var savepointName = await CreateSavepointIfJoinedAsync(
             activeTransaction,

@@ -1,0 +1,116 @@
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+        @foreach (var tag in _appliedTags)
+        {
+            <FluentButton @key="tag.Id"
+                          Size="ButtonSize.Small"
+                          Appearance="ButtonAppearance.Outline"
+                          OnClick="@(() => UntagAsync(tag.Id))">
+                @tag.Name &times;
+            </FluentButton>
+        }
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+        <FluentTextInput @bind-Value="_searchText" Label="Add Tag" Placeholder="Search or type tag..." />
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SearchTagsAsync">
+            Search
+        </FluentButton>
+    </FluentStack>
+
+    @if (_suggestions.Count > 0)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+            @foreach (var suggestion in _suggestions)
+            {
+                <FluentButton @key="suggestion.Id"
+                              Size="ButtonSize.Small"
+                              Appearance="ButtonAppearance.Primary"
+                              OnClick="@(() => ApplyTagAsync(suggestion.Id))">
+                    + @suggestion.Name
+                </FluentButton>
+            }
+        </FluentStack>
+    }
+</FluentStack>
+
+@code {
+    private List<TagResponse> _appliedTags = [];
+    private List<TagResponse> _suggestions = [];
+    private string _searchText = string.Empty;
+
+    /// <summary>Gets or sets the target entity type descriptor identifier.</summary>
+    [Parameter]
+    public Guid EntityTypeId { get; set; }
+
+    /// <summary>Gets or sets the target entity identifier.</summary>
+    [Parameter]
+    public Guid EntityId { get; set; }
+
+    /// <summary>Gets or sets the optional viewer user identifier for personal tags.</summary>
+    [Parameter]
+    public Guid? ViewerUserId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAppliedAsync();
+    }
+
+    private async Task LoadAppliedAsync()
+    {
+        if (EntityTypeId == Guid.Empty || EntityId == Guid.Empty)
+        {
+            return;
+        }
+
+        var result = await QueryDispatcher.QueryAsync<GetEntityTagsQuery, IReadOnlyList<TagResponse>>(
+            new GetEntityTagsQuery(EntityTypeId, EntityId, ViewerUserId)
+        );
+        if (result.IsSuccess)
+        {
+            _appliedTags = [.. result.Value];
+        }
+    }
+
+    private async Task SearchTagsAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetTagsQuery, IReadOnlyList<TagResponse>>(
+            new GetTagsQuery(
+                EntityTypeId == Guid.Empty ? null : EntityTypeId,
+                ViewerUserId,
+                string.IsNullOrWhiteSpace(_searchText) ? null : _searchText
+            )
+        );
+        if (result.IsSuccess)
+        {
+            var appliedIds = _appliedTags.Select(static t => t.Id).ToHashSet();
+            _suggestions = [.. result.Value.Where(t => !appliedIds.Contains(t.Id))];
+        }
+    }
+
+    private async Task ApplyTagAsync(Guid tagId)
+    {
+        var result = await CommandDispatcher.SendAsync<TagEntityCommand, bool>(
+            new TagEntityCommand(tagId, EntityTypeId, EntityId, ViewerUserId)
+        );
+        if (result.IsSuccess)
+        {
+            await LoadAppliedAsync();
+            await SearchTagsAsync();
+        }
+    }
+
+    private async Task UntagAsync(Guid tagId)
+    {
+        var result = await CommandDispatcher.SendAsync<UntagEntityCommand, bool>(
+            new UntagEntityCommand(tagId, EntityTypeId, EntityId, ViewerUserId)
+        );
+        if (result.IsSuccess)
+        {
+            await LoadAppliedAsync();
+        }
+    }
+}

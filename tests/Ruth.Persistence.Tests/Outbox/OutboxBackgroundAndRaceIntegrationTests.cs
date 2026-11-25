@@ -74,7 +74,9 @@ public sealed class OutboxBackgroundAndRaceIntegrationTests(Postgres18ContainerF
             {
                 await using var scope = provider.CreateAsyncScope();
                 var db = scope.ServiceProvider.GetRequiredService<AlphaModuleDbContext>();
-                var inner = new SlowCountingConsumer(() => Interlocked.Increment(ref invocationCount));
+                var inner = new SlowCountingConsumer(() =>
+                    Interlocked.Increment(ref invocationCount)
+                );
                 var wrapper = new IdempotentIntegrationEventConsumer<
                     TestWidgetIntegrationEvent,
                     SlowCountingConsumer,

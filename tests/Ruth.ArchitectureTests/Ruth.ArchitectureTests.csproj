@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core\Ruth.Modules.Core.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm\Ruth.Modules.Crm.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Host\Ruth.Host.csproj" />

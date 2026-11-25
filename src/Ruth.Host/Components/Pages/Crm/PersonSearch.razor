@@ -1,0 +1,158 @@
+@page "/crm/people"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>People Directory — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>People Directory</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentTextInput @bind-Value="_searchQuery"
+                             Label="Instant Person Search"
+                             Placeholder="Name, nickname, phonetic, email, phone, or barcode..." />
+            <FluentCheckbox @bind-Value="_includeDeceased" Label="Include Deceased" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SearchAsync">
+                Search
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ToggleAddForm">
+                @(_showAddForm ? "Hide Add Person" : "Add Person")
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_showAddForm)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Add Person</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_firstName" Label="First Name" Required="true" />
+                    <FluentTextInput @bind-Value="_nickName" Label="Nickname" />
+                    <FluentTextInput @bind-Value="_lastName" Label="Last Name" Required="true" />
+                    <FluentTextInput @bind-Value="_email" Label="Email" TextInputType="TextInputType.Email" />
+                    <FluentTextInput @bind-Value="_mobilePhone" Label="Mobile Phone" TextInputType="TextInputType.Telephone" />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentSelect TOption="Gender"
+                                  TValue="Gender"
+                                  Label="Gender"
+                                  Items="@_genders"
+                                  @bind-Value="_gender"
+                                  OptionText="@(static g => g.ToString())"
+                                  OptionValue="@(static g => g)" />
+                    <FluentSelect TOption="PersonConnectionStatus"
+                                  TValue="PersonConnectionStatus"
+                                  Label="Connection Status"
+                                  Items="@_connectionStatuses"
+                                  @bind-Value="_connectionStatus"
+                                  OptionText="@(static s => s.ToString())"
+                                  OptionValue="@(static s => s)" />
+                </FluentStack>
+                <div>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePersonAsync">
+                        Create Person
+                    </FluentButton>
+                </div>
+            </FluentStack>
+        </FluentCard>
+    }
+
+    <FluentDataGrid Items="@_results.AsQueryable()">
+        <TemplateColumn Title="Name">
+            <a href="@($"/crm/people/{context.Id:D}")">@context.FullName</a>
+        </TemplateColumn>
+        <PropertyColumn Property="@(static p => p.ConnectionStatus)" Title="Connection" />
+        <PropertyColumn Property="@(static p => p.RecordStatus)" Title="Status" />
+        <PropertyColumn Property="@(static p => p.Email)" Title="Email" />
+        <PropertyColumn Property="@(static p => p.PrimaryPhoneFormatted)" Title="Phone" />
+        <PropertyColumn Property="@(static p => p.Age)" Title="Age" />
+        <PropertyColumn Property="@(static p => p.MatchReason)" Title="Match" />
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private static readonly Gender[] _genders = Enum.GetValues<Gender>();
+    private static readonly PersonConnectionStatus[] _connectionStatuses =
+        Enum.GetValues<PersonConnectionStatus>();
+
+    private List<PersonSummaryResponse> _results = [];
+    private string _searchQuery = string.Empty;
+    private bool _includeDeceased;
+    private bool _showAddForm;
+    private string _firstName = string.Empty;
+    private string _nickName = string.Empty;
+    private string _lastName = string.Empty;
+    private string _email = string.Empty;
+    private string _mobilePhone = string.Empty;
+    private Gender _gender = Gender.Unknown;
+    private PersonConnectionStatus _connectionStatus = PersonConnectionStatus.Visitor;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SearchAsync();
+    }
+
+    private void ToggleAddForm()
+    {
+        _showAddForm = !_showAddForm;
+    }
+
+    private async Task SearchAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            SearchPeopleQuery,
+            IReadOnlyList<PersonSummaryResponse>
+        >(new SearchPeopleQuery(_searchQuery, IncludeDeceased: _includeDeceased, MaxResults: 50));
+
+        if (result.IsSuccess)
+        {
+            _results = [.. result.Value];
+        }
+    }
+
+    private async Task CreatePersonAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+
+        IReadOnlyList<PhoneNumberInputDto>? phones = string.IsNullOrWhiteSpace(_mobilePhone)
+            ? null
+            : [new PhoneNumberInputDto(PhoneNumberType.Mobile, _mobilePhone, IsMessagingEnabled: true)];
+
+        var result = await CommandDispatcher.SendAsync<CreatePersonCommand, PersonDetailResponse>(
+            new CreatePersonCommand(
+                _firstName,
+                _lastName,
+                NickName: string.IsNullOrWhiteSpace(_nickName) ? null : _nickName,
+                ConnectionStatus: _connectionStatus,
+                Gender: _gender,
+                Email: string.IsNullOrWhiteSpace(_email) ? null : _email,
+                PhoneNumbers: phones
+            )
+        );
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo($"/crm/people/{result.Value.Id:D}");
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

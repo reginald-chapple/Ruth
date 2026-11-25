@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Ruth.SharedKernel.Results;
 using DomainResult = Ruth.SharedKernel.Results.Result;
-using HttpIResult = Microsoft.AspNetCore.Http.IResult;
-using HttpResults = Microsoft.AspNetCore.Http.Results;
 
 namespace Ruth.Host.Middleware;
 
@@ -43,13 +41,6 @@ internal static class ProblemDetailsMapper
         }
 
         return problem;
-    }
-
-    public static HttpIResult ToHttpResult(DomainResult result, HttpContext httpContext)
-    {
-        ArgumentNullException.ThrowIfNull(httpContext);
-        var problem = ToProblemDetails(result, httpContext.Request.Path);
-        return HttpResults.Problem(problem);
     }
 
     public static ExceptionProblemMapping MapException(Exception exception, bool isDevelopment)

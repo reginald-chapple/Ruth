@@ -1,0 +1,215 @@
+@baseUrl = http://localhost:5000
+@accessToken = replace-with-jwt-access-token
+@personId = 00000000-0000-0000-0000-000000000000
+@person2Id = 00000000-0000-0000-0000-000000000000
+@householdId = 00000000-0000-0000-0000-000000000000
+@signalTypeId = 00000000-0000-0000-0000-000000000000
+@assessmentTypeId = 00000000-0000-0000-0000-000000000000
+
+### --- W2-S1: Person, Phones, Search Keys, Metaphones & Fast Search ---
+
+### Create a person with normalized E.164 phone
+POST {{baseUrl}}/api/crm/people
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Robert",
+  "nickName": "Bob",
+  "lastName": "Decker",
+  "gender": "Male",
+  "maritalStatus": "Married",
+  "birthYear": 1984,
+  "birthMonth": 4,
+  "birthDay": 15,
+  "email": "bob.decker@example.org",
+  "connectionStatus": "Member",
+  "phoneNumbers": [
+    {
+      "numberType": "Mobile",
+      "number": "(602) 555-0199",
+      "isMessagingEnabled": true
+    }
+  ]
+}
+
+### Search people (pg_trgm, phonetic, nickname, phone suffix, search key)
+GET {{baseUrl}}/api/crm/people/search?query=Rob%20Decker&maxResults=25
+Authorization: Bearer {{accessToken}}
+
+### Get Person 360 profile (automatically follows merge redirects)
+GET {{baseUrl}}/api/crm/people/{{personId}}?followRedirects=true
+Authorization: Bearer {{accessToken}}
+
+### Inspect meta first-name gender prediction, nicknames & Double Metaphone keys
+GET {{baseUrl}}/api/crm/people/meta/name-insights?firstName=Elizabeth
+Authorization: Bearer {{accessToken}}
+
+### Add alternate search key (barcode)
+POST {{baseUrl}}/api/crm/people/{{personId}}/search-keys
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "keyType": "Barcode",
+  "searchValue": "CHK-88421"
+}
+
+### --- W2-S2: Households & Apache AGE Relationship Graph ---
+
+### Create a household with members
+POST {{baseUrl}}/api/crm/households
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Decker Family",
+  "combineGivingByDefault": true,
+  "members": [
+    {
+      "personId": "{{personId}}",
+      "role": "Adult",
+      "householdOrder": 0,
+      "isCombinedGivingMember": true
+    }
+  ]
+}
+
+### List households for a person
+GET {{baseUrl}}/api/crm/households/by-person/{{personId}}
+Authorization: Bearer {{accessToken}}
+
+### Add a known relationship (creates reciprocal inverse + syncs Apache AGE)
+POST {{baseUrl}}/api/crm/relationships/known
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "ownerPersonId": "{{personId}}",
+  "relatedPersonId": "{{person2Id}}",
+  "relationshipType": "CanCheckIn",
+  "notes": "Authorized family friend"
+}
+
+### Upsert a peer-network edge
+POST {{baseUrl}}/api/crm/relationships/peer-network
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sourcePersonId": "{{personId}}",
+  "targetPersonId": "{{person2Id}}",
+  "relationshipType": "Following",
+  "strength": "Casual",
+  "caption": "Following",
+  "relationshipStartDate": "2026-01-01"
+}
+
+### Traverse Apache AGE crm_graph (multi-hop)
+GET {{baseUrl}}/api/crm/relationships/graph/{{personId}}?maxHops=2
+Authorization: Bearer {{accessToken}}
+
+### --- W2-S3: Duplicate Detection, Redirects & Person Merge ---
+
+### Trigger duplicate scan
+POST {{baseUrl}}/api/crm/duplicates/scan
+Authorization: Bearer {{accessToken}}
+
+### List candidate duplicates
+GET {{baseUrl}}/api/crm/duplicates?minConfidenceScore=40
+Authorization: Bearer {{accessToken}}
+
+### Merge retired person into surviving person
+POST {{baseUrl}}/api/crm/duplicates/merge
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "survivingPersonId": "{{personId}}",
+  "retiredPersonId": "{{person2Id}}",
+  "hasElevatedMergeAuthorization": true
+}
+
+### Resolve canonical PersonId via PersonRedirectLedger
+GET {{baseUrl}}/api/crm/duplicates/redirects/{{person2Id}}
+Authorization: Bearer {{accessToken}}
+
+### --- W2-S4: Signals, Badges, Assessments, Background Checks & Verification ---
+
+### Create a SignalType
+POST {{baseUrl}}/api/crm/signals/types
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Allergy Alert",
+  "signalColor": "#D13438",
+  "signalIcon": "warning",
+  "order": 1
+}
+
+### Attach a signal to a person (recalculates TopSignal)
+POST {{baseUrl}}/api/crm/signals/person
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "signalTypeId": "{{signalTypeId}}",
+  "ownerPersonId": "{{personId}}",
+  "note": "Severe peanut allergy"
+}
+
+### Evaluate modular badges for a person
+GET {{baseUrl}}/api/crm/badges/person/{{personId}}
+Authorization: Bearer {{accessToken}}
+
+### List assessment types
+GET {{baseUrl}}/api/crm/assessments/types?activeOnly=true
+Authorization: Bearer {{accessToken}}
+
+### Request an assessment
+POST {{baseUrl}}/api/crm/assessments/request
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "assessmentTypeId": "{{assessmentTypeId}}"
+}
+
+### List background check provider packages
+GET {{baseUrl}}/api/crm/background-checks/packages
+Authorization: Bearer {{accessToken}}
+
+### Request a background check
+POST {{baseUrl}}/api/crm/background-checks/request
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "providerKey": "in-memory",
+  "packageName": "standard-volunteer"
+}
+
+### Issue an identity verification challenge
+POST {{baseUrl}}/api/crm/identity-verifications/issue
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "referenceNumber": "+16025550199",
+  "requestIpAddress": "127.0.0.1"
+}
+
+### Record a PersonViewed audit entry
+POST {{baseUrl}}/api/crm/person-viewed
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetPersonId": "{{personId}}",
+  "source": "Ruth.Host"
+}

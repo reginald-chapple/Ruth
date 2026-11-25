@@ -8,6 +8,15 @@
             <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="Ruth RMS" />
             <a href="/" class="ruth-brand">Ruth RMS</a>
             <div class="ruth-header-spacer"></div>
+            @if (_isAuthenticated)
+            {
+                <span class="ruth-user-badge">@_authenticatedUserName</span>
+                <a href="/change-password" class="ruth-header-link">Account</a>
+            }
+            else
+            {
+                <a href="/login" class="ruth-header-link">Sign In</a>
+            }
             <FluentButton Appearance="ButtonAppearance.Transparent"
                           IconOnly="true"
                           Title="Toggle light or dark theme"
@@ -31,6 +40,42 @@
                            IconActive="@(new Icons.Filled.Size20.Home())">
                 Home
             </FluentNavItem>
+
+            <FluentNavCategory Title="CRM"
+                               IconRest="@(new Icons.Regular.Size20.People())"
+                               IconActive="@(new Icons.Filled.Size20.People())">
+                <FluentNavItem Href="/crm/people">People Directory</FluentNavItem>
+                <FluentNavItem Href="/crm/duplicates">Duplicate Queue</FluentNavItem>
+                <FluentNavItem Href="/crm/merge">Person Merge</FluentNavItem>
+                <FluentNavItem Href="/admin/crm/settings">CRM Settings</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Security"
+                               IconRest="@(new Icons.Regular.Size20.Shield())"
+                               IconActive="@(new Icons.Filled.Size20.Shield())">
+                <FluentNavItem Href="/login">Sign In</FluentNavItem>
+                <FluentNavItem Href="/change-password">Change Password</FluentNavItem>
+                <FluentNavItem Href="/security/login-history">Login History</FluentNavItem>
+                <FluentNavItem Href="/admin/security/roles">Security Roles</FluentNavItem>
+                <FluentNavItem Href="/admin/security/api-keys">REST API Keys</FluentNavItem>
+                <FluentNavItem Href="/admin/security/verify">Verify Security</FluentNavItem>
+                <FluentNavItem Href="/admin/security/audit-log">Security Audit Log</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Core Setup"
+                               IconRest="@(new Icons.Regular.Size20.Settings())"
+                               IconActive="@(new Icons.Filled.Size20.Settings())">
+                <FluentNavItem Href="/admin/core/defined-types">Defined Types</FluentNavItem>
+                <FluentNavItem Href="/admin/core/categories">Categories</FluentNavItem>
+                <FluentNavItem Href="/admin/core/attributes">Attributes</FluentNavItem>
+                <FluentNavItem Href="/admin/core/attribute-matrices">Attribute Matrices</FluentNavItem>
+                <FluentNavItem Href="/admin/core/campuses">Campuses</FluentNavItem>
+                <FluentNavItem Href="/admin/core/locations">Locations</FluentNavItem>
+                <FluentNavItem Href="/admin/core/devices">Devices</FluentNavItem>
+                <FluentNavItem Href="/admin/core/schedules">Schedules</FluentNavItem>
+                <FluentNavItem Href="/admin/core/files-signatures">Files &amp; Signatures</FluentNavItem>
+                <FluentNavItem Href="/admin/core/collaboration">Notes, Tags &amp; History</FluentNavItem>
+            </FluentNavCategory>
         </FluentNav>
     </FluentLayoutItem>
 

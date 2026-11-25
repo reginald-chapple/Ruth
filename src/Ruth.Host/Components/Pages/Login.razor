@@ -1,0 +1,137 @@
+@page "/login"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Sign In — Ruth RMS</PageTitle>
+
+<div class="ruth-onboarding-container">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <h1>Sign In to Ruth RMS</h1>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div role="alert">
+                <FluentMessageBar Intent="MessageBarIntent.Error" Title="Sign-in failed" AllowDismiss="false">
+                    @_errorMessage
+                </FluentMessageBar>
+            </div>
+        }
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentTextInput Id="login-identifier"
+                                 @bind-Value="_userNameOrEmail"
+                                 Label="Username or Email"
+                                 AutoComplete="username"
+                                 Required="true"
+                                 Width="100%" />
+
+                <FluentTextInput Id="login-password"
+                                 @bind-Value="_password"
+                                 TextInputType="TextInputType.Password"
+                                 Label="Password"
+                                 AutoComplete="current-password"
+                                 Required="true"
+                                 Width="100%" />
+
+                <FluentCheckbox @bind-Value="_rememberMe" Label="Keep me signed in" />
+
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Disabled="@_isSubmitting"
+                              Loading="@_isSubmitting"
+                              OnClick="@SubmitAsync">
+                    Sign In
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        @if (_oidcProviders.Count > 0)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <h2>External Identity Providers</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        @foreach (var provider in _oidcProviders)
+                        {
+                            <FluentButton @key="provider.Id"
+                                          Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => StartOidcAsync(provider.ProviderKey))">
+                                Continue with @provider.DisplayName
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+</div>
+
+@code {
+    private string _userNameOrEmail = string.Empty;
+    private string _password = string.Empty;
+    private bool _rememberMe;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private List<ExternalAuthProviderResponse> _oidcProviders = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetExternalAuthProvidersQuery, IReadOnlyList<ExternalAuthProviderResponse>>(
+            new GetExternalAuthProvidersQuery(EnabledOnly: true)
+        );
+        if (result.IsSuccess)
+        {
+            _oidcProviders = [.. result.Value];
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            await using var module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/ruth-auth.js"
+            );
+            var response = await module.InvokeAsync<CookieLoginJsResult>(
+                "cookieLogin",
+                _userNameOrEmail,
+                _password,
+                _rememberMe
+            );
+            if (!response.Ok)
+            {
+                _errorMessage = response.Error ?? "Invalid username or password.";
+                return;
+            }
+
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private sealed record CookieLoginJsResult(bool Ok, string? Error);
+
+    private async Task StartOidcAsync(string providerKey)
+    {
+        _errorMessage = null;
+        var result = await CommandDispatcher.SendAsync<StartOidcLoginCommand, StartOidcLoginResponse>(
+            new StartOidcLoginCommand(providerKey, "/")
+        );
+        if (result.IsFailure)
+        {
+            _errorMessage = result.PrimaryError.Description;
+            return;
+        }
+
+        NavigationManager.NavigateTo(result.Value.AuthorizationUrl, forceLoad: true);
+    }
+}

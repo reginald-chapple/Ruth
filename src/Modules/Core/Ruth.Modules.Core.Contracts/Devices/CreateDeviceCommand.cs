@@ -1,0 +1,21 @@
+using Ruth.SharedKernel.Messaging;
+
+namespace Ruth.Modules.Core.Contracts.Devices;
+
+/// <summary>Registers a new physical device (kiosk, printer, tablet, or print proxy).</summary>
+public sealed record CreateDeviceCommand(
+    string Name,
+    Guid DeviceTypeValueId,
+    string? Description = null,
+    string? IpAddress = null,
+    bool IsActive = true,
+    Guid? LocationId = null,
+    DevicePrintFrom PrintFrom = DevicePrintFrom.Client,
+    DevicePrintToOverride PrintToOverride = DevicePrintToOverride.Default,
+    Guid? PrinterDeviceId = null,
+    Guid? ProxyDeviceId = null,
+    bool HasCamera = false,
+    CameraBarcodeConfiguration? CameraBarcodeConfigurationType = null,
+    KioskType? KioskType = null,
+    IReadOnlyList<Guid>? AssignedLocationIds = null
+) : ICommand<DeviceResponse>;

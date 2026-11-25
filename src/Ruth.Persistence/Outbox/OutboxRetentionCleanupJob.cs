@@ -43,8 +43,7 @@ public sealed class OutboxRetentionCleanupJob(
 
         var nowUtc = _clock.UtcNow;
         var maxSubtractable = nowUtc - DateTimeOffset.MinValue;
-        var cutoffUtc =
-            retention >= maxSubtractable ? DateTimeOffset.MinValue : nowUtc - retention;
+        var cutoffUtc = retention >= maxSubtractable ? DateTimeOffset.MinValue : nowUtc - retention;
         var totalDeleted = 0;
 
         foreach (var processor in _processors)

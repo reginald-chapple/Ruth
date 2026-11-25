@@ -1,0 +1,138 @@
+@page "/admin/core/attribute-matrices"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Attribute Matrices — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Attribute Matrix Templates</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            <h2>New Matrix Template</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Template Name" Placeholder="e.g., Emergency Contacts" />
+                <FluentTextInput @bind-Value="_description" Label="Description" />
+                <FluentTextInput @bind-Value="_colKey" Label="Initial Column Key" Placeholder="e.g., fullName" />
+                <FluentTextInput @bind-Value="_colName" Label="Initial Column Name" Placeholder="e.g., Full Name" />
+                <FluentSelect TOption="FieldTypeResponse"
+                              TValue="string"
+                              Label="Column Field Type"
+                              Items="@_fieldTypes"
+                              OptionText="@(static f => f.Name)"
+                              OptionValue="@(static f => f.Key)"
+                              @bind-Value="_colFieldType" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Create Matrix Template
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_templates.AsQueryable()">
+        <PropertyColumn Property="@(static t => t.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static t => t.Description)" Title="Description" />
+        <PropertyColumn Property="@(static t => t.Columns.Count)" Title="Columns" />
+        <PropertyColumn Property="@(static t => t.IsActive)" Title="Active" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small" OnClick="@(() => DeleteAsync(context.Id))">
+                Delete
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<AttributeMatrixTemplateResponse> _templates = [];
+    private List<FieldTypeResponse> _fieldTypes = [];
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+    private string _colKey = "label";
+    private string _colName = "Label";
+    private string _colFieldType = "text";
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ftResult = await QueryDispatcher.QueryAsync<GetFieldTypesQuery, IReadOnlyList<FieldTypeResponse>>(
+            new GetFieldTypesQuery()
+        );
+        if (ftResult.IsSuccess)
+        {
+            _fieldTypes = [.. ftResult.Value.Where(static f => !string.Equals(f.Key, "matrix", StringComparison.OrdinalIgnoreCase))];
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetAttributeMatrixTemplatesQuery, IReadOnlyList<AttributeMatrixTemplateResponse>>(
+            new GetAttributeMatrixTemplatesQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _templates = [.. result.Value];
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateAttributeMatrixTemplateCommand, AttributeMatrixTemplateResponse>(
+            new CreateAttributeMatrixTemplateCommand(
+                _name,
+                _description,
+                MinimumRows: 0,
+                MaximumRows: null,
+                FormattedTemplate: null,
+                [new MatrixColumnDefinitionDto(_colKey, _colName, _colFieldType, IsRequired: true, Order: 0)]
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _description = string.Empty;
+            _statusMessage = $"Created matrix template '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteAttributeMatrixTemplateCommand, bool>(
+            new DeleteAttributeMatrixTemplateCommand(id)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Matrix template deleted.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}

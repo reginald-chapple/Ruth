@@ -58,7 +58,28 @@ internal sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAc
     private static void ConfigureAuditProperties(EntityTypeBuilder<UserAccount> builder)
     {
         _ = builder.Property(x => x.IsConfirmed).HasColumnName("is_confirmed").IsRequired();
+        _ = builder
+            .Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .HasDefaultValue(value: true)
+            .IsRequired();
         _ = builder.Property(x => x.IsLockedOut).HasColumnName("is_locked_out").IsRequired();
+        _ = builder
+            .Property(x => x.IsPasswordChangeRequired)
+            .HasColumnName("is_password_change_required")
+            .HasDefaultValue(value: false)
+            .IsRequired();
+        _ = builder.Property(x => x.LockedOutUntilOnUtc).HasColumnName("locked_out_until_on_utc");
+        _ = builder
+            .Property(x => x.FailedPasswordAttemptCount)
+            .HasColumnName("failed_password_attempt_count")
+            .HasDefaultValue(0)
+            .IsRequired();
+        _ = builder
+            .Property(x => x.FailedPasswordAttemptWindowStartOnUtc)
+            .HasColumnName("failed_password_attempt_window_start_on_utc");
+        _ = builder.Property(x => x.LastLoginOnUtc).HasColumnName("last_login_on_utc");
+        _ = builder.Property(x => x.LastActivityOnUtc).HasColumnName("last_activity_on_utc");
         _ = builder
             .Property(x => x.LastPasswordChangedOnUtc)
             .HasColumnName("last_password_changed_on_utc");

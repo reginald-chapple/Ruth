@@ -1,0 +1,177 @@
+@page "/admin/core/attributes"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Attributes — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Attribute Definitions</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            <h2>New Attribute Definition</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="ScopeOption"
+                              TValue="string"
+                              Label="Entity Scope"
+                              Items="@_scopeOptions"
+                              OptionText="@(static o => o.Label)"
+                              OptionValue="@(static o => o.Value)"
+                              @bind-Value="_selectedScope" />
+
+                <FluentTextInput @bind-Value="_key" Label="Key" Placeholder="e.g., organizationWebsite" />
+                <FluentTextInput @bind-Value="_name" Label="Name" Placeholder="e.g., Organization Website" />
+
+                <FluentSelect TOption="FieldTypeResponse"
+                              TValue="string"
+                              Label="Field Type"
+                              Items="@_fieldTypes"
+                              OptionText="@(static f => f.Name)"
+                              OptionValue="@(static f => f.Key)"
+                              @bind-Value="_fieldTypeKey" />
+
+                <FluentTextInput @bind-Value="_defaultValue" Label="Default Value" />
+                <FluentCheckbox @bind-Value="_isRequired" Label="Required" />
+                <FluentCheckbox @bind-Value="_isGridColumn" Label="Show in Grid" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Create Attribute
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_attributes.AsQueryable()">
+        <PropertyColumn Property="@(static a => a.Key)" Title="Key" Sortable="true" />
+        <PropertyColumn Property="@(static a => a.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static a => a.EntityTypeKey ?? "Global")" Title="Scope" />
+        <PropertyColumn Property="@(static a => a.FieldTypeKey)" Title="Field Type" />
+        <PropertyColumn Property="@(static a => a.IsRequired)" Title="Required" />
+        <PropertyColumn Property="@(static a => a.DefaultValue)" Title="Default" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small"
+                          Disabled="@context.IsSystem"
+                          OnClick="@(() => DeleteAsync(context.Id))">
+                Delete
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<AttributeDefinitionResponse> _attributes = [];
+    private List<FieldTypeResponse> _fieldTypes = [];
+    private List<ScopeOption> _scopeOptions = [new(string.Empty, "Global Attribute")];
+    private string _selectedScope = string.Empty;
+    private string _key = string.Empty;
+    private string _name = string.Empty;
+    private string _fieldTypeKey = "text";
+    private string _defaultValue = string.Empty;
+    private bool _isRequired;
+    private bool _isGridColumn;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ftResult = await QueryDispatcher.QueryAsync<GetFieldTypesQuery, IReadOnlyList<FieldTypeResponse>>(
+            new GetFieldTypesQuery()
+        );
+        if (ftResult.IsSuccess)
+        {
+            _fieldTypes = [.. ftResult.Value];
+        }
+
+        var typesResult = await QueryDispatcher.QueryAsync<GetEntityTypesQuery, IReadOnlyList<EntityTypeResponse>>(
+            new GetEntityTypesQuery(OnlySupportingAttributes: true)
+        );
+        if (typesResult.IsSuccess)
+        {
+            _scopeOptions =
+            [
+                new(string.Empty, "Global Attribute"),
+                .. typesResult.Value.Select(static t => new ScopeOption(t.Id.ToString("D"), $"{t.FriendlyName} ({t.Key})")),
+            ];
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetAttributeDefinitionsQuery, IReadOnlyList<AttributeDefinitionResponse>>(
+            new GetAttributeDefinitionsQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _attributes = [.. result.Value];
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        Guid? entityTypeId = Guid.TryParse(_selectedScope, out var parsed) ? parsed : null;
+
+        var result = await CommandDispatcher.SendAsync<CreateAttributeDefinitionCommand, AttributeDefinitionResponse>(
+            new CreateAttributeDefinitionCommand(
+                entityTypeId,
+                null,
+                null,
+                _key,
+                _name,
+                null,
+                _fieldTypeKey,
+                _isRequired,
+                _isGridColumn,
+                DefaultValue: string.IsNullOrWhiteSpace(_defaultValue) ? null : _defaultValue
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _key = string.Empty;
+            _name = string.Empty;
+            _defaultValue = string.Empty;
+            _statusMessage = $"Created attribute '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteAttributeDefinitionCommand, bool>(
+            new DeleteAttributeDefinitionCommand(id)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Attribute deleted.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private sealed record ScopeOption(string Value, string Label);
+}

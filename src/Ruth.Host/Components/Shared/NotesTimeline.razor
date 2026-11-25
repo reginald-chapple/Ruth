@@ -1,0 +1,160 @@
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <FluentCard Padding="@Padding.All3">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <strong>Add Note</strong>
+            <FluentTextInput @bind-Value="_caption" Label="Caption (Optional)" />
+            <FluentTextArea @bind-Value="_text" Label="Note Text" Placeholder="Enter note..." />
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentCheckbox @bind-Value="_isAlert" Label="Alert" />
+                <FluentCheckbox @bind-Value="_isPinned" Label="Pinned" />
+                <FluentCheckbox @bind-Value="_isPrivate" Label="Private (Personal)" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@AddRootNoteAsync">
+                    Post Note
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                          AllowDismiss="true">
+            @_statusMessage
+        </FluentMessageBar>
+    }
+
+    @if (_notes.Count == 0)
+    {
+        <p>No notes recorded for this item yet.</p>
+    }
+    else
+    {
+        @foreach (var note in _notes)
+        {
+            <FluentCard @key="note.Id" Padding="@Padding.All3">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <strong>@(note.Caption ?? "Note")</strong>
+                        @if (note.IsAlert)
+                        {
+                            <span>[ALERT]</span>
+                        }
+                        @if (note.IsPinned)
+                        {
+                            <span>[PINNED]</span>
+                        }
+                        @if (note.IsPrivateNote)
+                        {
+                            <span>[PRIVATE]</span>
+                        }
+                        <span>(@note.ApprovalStatus)</span>
+                    </FluentStack>
+                    <p>@note.Text</p>
+                    <small>@note.CreatedOnUtc.ToString("u")</small>
+
+                    @if (note.Replies.Count > 0)
+                    {
+                        <div style="margin-left: 16px; border-left: 2px solid var(--colorNeutralStroke1); padding-left: 12px;">
+                            @foreach (var reply in note.Replies)
+                            {
+                                <div @key="reply.Id">
+                                    <strong>@(reply.Caption ?? "Reply")</strong>: @reply.Text
+                                </div>
+                            }
+                        </div>
+                    }
+                </FluentStack>
+            </FluentCard>
+        }
+    }
+</FluentStack>
+
+@code {
+    private List<NoteResponse> _notes = [];
+    private string _caption = string.Empty;
+    private string _text = string.Empty;
+    private bool _isAlert;
+    private bool _isPinned;
+    private bool _isPrivate;
+    private string? _statusMessage;
+    private bool _isError;
+
+    /// <summary>Gets or sets the note type identifier used when posting new notes.</summary>
+    [Parameter]
+    public Guid NoteTypeId { get; set; }
+
+    /// <summary>Gets or sets the target entity identifier.</summary>
+    [Parameter]
+    public Guid EntityId { get; set; }
+
+    /// <summary>Gets or sets the optional viewer user identifier.</summary>
+    [Parameter]
+    public Guid? ViewerUserId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (EntityId == Guid.Empty)
+        {
+            return;
+        }
+
+        var result = await QueryDispatcher.QueryAsync<GetNotesTimelineQuery, IReadOnlyList<NoteResponse>>(
+            new GetNotesTimelineQuery(EntityId, NoteTypeId == Guid.Empty ? null : NoteTypeId, ViewerUserId)
+        );
+        if (result.IsSuccess)
+        {
+            _notes = [.. result.Value];
+        }
+    }
+
+    private async Task AddRootNoteAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (NoteTypeId == Guid.Empty || EntityId == Guid.Empty)
+        {
+            _isError = true;
+            _statusMessage = "Select a Note Type and target Entity before posting.";
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<CreateNoteCommand, NoteResponse>(
+            new CreateNoteCommand(
+                NoteTypeId,
+                EntityId,
+                _text,
+                string.IsNullOrWhiteSpace(_caption) ? null : _caption,
+                ParentNoteId: null,
+                IsAlert: _isAlert,
+                IsPinned: _isPinned,
+                IsPrivateNote: _isPrivate,
+                AuthorUserId: ViewerUserId
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _caption = string.Empty;
+            _text = string.Empty;
+            _isAlert = false;
+            _isPinned = false;
+            _isPrivate = false;
+            _statusMessage = "Note posted.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}

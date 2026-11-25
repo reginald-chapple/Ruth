@@ -1,0 +1,310 @@
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject AuthenticationStateProvider AuthStateProvider
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <p>
+        Configure ordered Allow/Deny permissions for <strong>@EntityDisplayName</strong>
+        (<code>@EntityTypeKey</code>). First matching rule wins.
+    </p>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                          AllowDismiss="true">
+            @_statusMessage
+        </FluentMessageBar>
+    }
+
+    <FluentSelect TOption="string"
+                  TValue="string"
+                  Label="Action"
+                  Items="@_actions"
+                  OptionText="@(static a => a)"
+                  OptionValue="@(static a => a)"
+                  Value="@_selectedAction"
+                  ValueChanged="@OnActionChangedAsync"
+                  Width="100%" />
+
+    <FluentCard Padding="@Padding.All3">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <strong>Add Rule</strong>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="AclRuleDecision"
+                              TValue="AclRuleDecision"
+                              Label="Decision"
+                              Items="@_decisions"
+                              OptionText="@(static d => d.ToString())"
+                              OptionValue="@(static d => d)"
+                              @bind-Value="_newDecision" />
+
+                <FluentSelect TOption="SpecialRoleType"
+                              TValue="SpecialRoleType"
+                              Label="Special Role"
+                              Items="@_specialRoles"
+                              OptionText="@(static s => s.ToString())"
+                              OptionValue="@(static s => s)"
+                              @bind-Value="_newSpecialRole" />
+
+                @if (_newSpecialRole == SpecialRoleType.None)
+                {
+                    <FluentSelect TOption="SecurityRoleResponse"
+                                  TValue="string"
+                                  Label="Security Role"
+                                  Items="@_roles"
+                                  OptionText="@(static r => r.Name)"
+                                  OptionValue="@(static r => r.Id.ToString("D"))"
+                                  @bind-Value="_selectedRoleId" />
+                }
+
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddDraftRule">
+                    Add Rule
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_draftRules.Count == 0)
+    {
+        <p>No local rules configured for this action (inherits parent authority / default).</p>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+            @for (var i = 0; i < _draftRules.Count; i++)
+            {
+                var index = i;
+                var rule = _draftRules[index];
+                <FluentCard @key="rule.Key" Padding="@Padding.All2">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <span>#@(index + 1)</span>
+                        <strong>@rule.Decision</strong>
+                        <span>@rule.Label</span>
+                        <FluentButton Size="ButtonSize.Small"
+                                      Disabled="@(index == 0)"
+                                      OnClick="@(() => MoveRule(index, -1))">
+                            Up
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      Disabled="@(index == _draftRules.Count - 1)"
+                                      OnClick="@(() => MoveRule(index, 1))">
+                            Down
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      OnClick="@(() => RemoveRule(index))">
+                            Remove
+                        </FluentButton>
+                    </FluentStack>
+                </FluentCard>
+            }
+        </FluentStack>
+    }
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+        <FluentButton Appearance="ButtonAppearance.Primary"
+                      Disabled="@_isSaving"
+                      Loading="@_isSaving"
+                      OnClick="@SaveAsync">
+            Save Rules
+        </FluentButton>
+        <FluentButton OnClick="@CancelAsync">Close</FluentButton>
+    </FluentStack>
+</FluentStack>
+
+@code {
+    private static readonly AclRuleDecision[] _decisions = [AclRuleDecision.Allow, AclRuleDecision.Deny];
+    private static readonly SpecialRoleType[] _specialRoles =
+    [
+        SpecialRoleType.None,
+        SpecialRoleType.AllUsers,
+        SpecialRoleType.AllAuthenticatedUsers,
+        SpecialRoleType.AllUnauthenticatedUsers,
+    ];
+
+    private List<string> _actions = [AuthorizationActions.View, AuthorizationActions.Edit, AuthorizationActions.Administrate];
+    private List<SecurityRoleResponse> _roles = [];
+    private List<DraftAclRule> _draftRules = [];
+    private string _selectedAction = AuthorizationActions.View;
+    private AclRuleDecision _newDecision = AclRuleDecision.Allow;
+    private SpecialRoleType _newSpecialRole = SpecialRoleType.AllAuthenticatedUsers;
+    private string _selectedRoleId = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+    private bool _isSaving;
+
+    /// <summary>Gets or sets the Fluent UI v5 dialog instance.</summary>
+    [CascadingParameter]
+    public IDialogInstance? Dialog { get; set; }
+
+    /// <summary>Gets or sets the canonical entity type key being secured.</summary>
+    [Parameter]
+    public string EntityTypeKey { get; set; } = GlobalDefaultSecured.TypeKey;
+
+    /// <summary>Gets or sets the entity instance identifier.</summary>
+    [Parameter]
+    public Guid EntityId { get; set; }
+
+    /// <summary>Gets or sets the human-readable entity display name.</summary>
+    [Parameter]
+    public string EntityDisplayName { get; set; } = "Entity";
+
+    /// <summary>Gets or sets the supported authorization actions.</summary>
+    [Parameter]
+    public IReadOnlyList<string>? SupportedActions { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SupportedActions is { Count: > 0 })
+        {
+            _actions = [.. SupportedActions];
+            _selectedAction = _actions[0];
+        }
+
+        var rolesResult = await QueryDispatcher.QueryAsync<GetSecurityRolesQuery, IReadOnlyList<SecurityRoleResponse>>(
+            new GetSecurityRolesQuery(ActiveOnly: true)
+        );
+        if (rolesResult.IsSuccess)
+        {
+            _roles = [.. rolesResult.Value];
+            _selectedRoleId = _roles.FirstOrDefault()?.Id.ToString("D") ?? string.Empty;
+        }
+
+        await LoadRulesAsync();
+    }
+
+    private async Task OnActionChangedAsync(string action)
+    {
+        _selectedAction = action;
+        _statusMessage = null;
+        await LoadRulesAsync();
+    }
+
+    private async Task LoadRulesAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetEntityAclRulesQuery, IReadOnlyList<EntityAclRuleResponse>>(
+            new GetEntityAclRulesQuery(EntityTypeKey, EntityId, _selectedAction)
+        );
+        if (result.IsSuccess)
+        {
+            _draftRules =
+            [
+                .. result.Value.Select(static r => new DraftAclRule(
+                    Guid.CreateVersion7(),
+                    r.Decision,
+                    r.SpecialRole,
+                    r.SecurityRoleId,
+                    r.UserAccountId,
+                    r.SpecialRole != SpecialRoleType.None
+                        ? r.SpecialRole.ToString()
+                        : r.SecurityRoleName ?? r.UserDisplayName ?? "Principal"
+                )),
+            ];
+        }
+    }
+
+    private void AddDraftRule()
+    {
+        if (_newSpecialRole != SpecialRoleType.None)
+        {
+            _draftRules.Add(
+                new DraftAclRule(
+                    Guid.CreateVersion7(),
+                    _newDecision,
+                    _newSpecialRole,
+                    null,
+                    null,
+                    _newSpecialRole.ToString()
+                )
+            );
+            return;
+        }
+
+        if (Guid.TryParse(_selectedRoleId, out var roleId))
+        {
+            var roleName = _roles.Find(r => r.Id == roleId)?.Name ?? roleId.ToString("D");
+            _draftRules.Add(
+                new DraftAclRule(
+                    Guid.CreateVersion7(),
+                    _newDecision,
+                    SpecialRoleType.None,
+                    roleId,
+                    null,
+                    $"Role: {roleName}"
+                )
+            );
+        }
+    }
+
+    private void MoveRule(int index, int delta)
+    {
+        var target = index + delta;
+        if (target < 0 || target >= _draftRules.Count)
+        {
+            return;
+        }
+
+        (_draftRules[index], _draftRules[target]) = (_draftRules[target], _draftRules[index]);
+    }
+
+    private void RemoveRule(int index)
+    {
+        if (index >= 0 && index < _draftRules.Count)
+        {
+            _draftRules.RemoveAt(index);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+        _statusMessage = null;
+        _isError = false;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var rawSub = authState.User.FindFirst("sub")?.Value
+                ?? authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid? actorId = Guid.TryParse(rawSub, out var parsed) ? parsed : null;
+
+            var inputs = _draftRules
+                .Select(static r => new AclRuleInput(r.Decision, r.SpecialRole, r.SecurityRoleId, r.UserAccountId))
+                .ToList();
+
+            var result = await CommandDispatcher.SendAsync<SaveEntityAclRulesCommand, IReadOnlyList<EntityAclRuleResponse>>(
+                new SaveEntityAclRulesCommand(EntityTypeKey, EntityId, _selectedAction, inputs, actorId)
+            );
+
+            if (result.IsSuccess)
+            {
+                _statusMessage = $"Saved {result.Value.Count} ACL rule(s) for '{_selectedAction}'.";
+            }
+            else
+            {
+                _isError = true;
+                _statusMessage = result.PrimaryError.Description;
+            }
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (Dialog is not null)
+        {
+            await Dialog.CloseAsync(DialogResult.Ok(true));
+        }
+    }
+
+    private sealed record DraftAclRule(
+        Guid Key,
+        AclRuleDecision Decision,
+        SpecialRoleType SpecialRole,
+        Guid? SecurityRoleId,
+        Guid? UserAccountId,
+        string Label
+    );
+}

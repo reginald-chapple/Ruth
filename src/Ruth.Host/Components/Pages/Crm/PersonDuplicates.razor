@@ -1,0 +1,129 @@
+@page "/crm/duplicates"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>Person Duplicates — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Person Duplicates</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RunScanAsync">
+                Run Duplicate Scan Now
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LoadAsync">
+                Refresh Queue
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_duplicates.AsQueryable()">
+        <PropertyColumn Property="@(static d => d.ConfidenceScore)" Title="Confidence %" Sortable="true" />
+        <PropertyColumn Property="@(static d => d.Person1FullName)" Title="Person 1" />
+        <PropertyColumn Property="@(static d => d.Person2FullName)" Title="Person 2" />
+        <PropertyColumn Property="@(static d => d.ScoreDetail)" Title="Match Signals" />
+        <TemplateColumn Title="Actions">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6">
+                <FluentButton Size="ButtonSize.Small"
+                              Appearance="ButtonAppearance.Primary"
+                              OnClick="@(() => OpenMerge(context.Person1Id, context.Person2Id))">
+                    Merge
+                </FluentButton>
+                <FluentButton Size="ButtonSize.Small"
+                              OnClick="@(() => MarkNotDuplicateAsync(context.Id))">
+                    Not Duplicate
+                </FluentButton>
+                <FluentButton Size="ButtonSize.Small"
+                              OnClick="@(() => IgnoreAsync(context.Id))">
+                    Ignore
+                </FluentButton>
+            </FluentStack>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<PersonDuplicateResponse> _duplicates = [];
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            GetPersonDuplicatesQuery,
+            IReadOnlyList<PersonDuplicateResponse>
+        >(new GetPersonDuplicatesQuery(MinConfidenceScore: 20m));
+        if (result.IsSuccess)
+        {
+            _duplicates = [.. result.Value];
+        }
+    }
+
+    private async Task RunScanAsync()
+    {
+        var result = await CommandDispatcher.SendAsync<
+            RunPersonDuplicateScanCommand,
+            DuplicateScanSummaryResponse
+        >(new RunPersonDuplicateScanCommand());
+        if (result.IsSuccess)
+        {
+            _isError = false;
+            _statusMessage =
+                $"Scanned {result.Value.PeopleScanned} people: {result.Value.PairsCreated} new, {result.Value.PairsUpdated} updated.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task MarkNotDuplicateAsync(Guid duplicateId)
+    {
+        var result = await CommandDispatcher.SendAsync<MarkDuplicateStatusCommand, PersonDuplicateResponse>(
+            new MarkDuplicateStatusCommand(duplicateId, IsConfirmedAsNotDuplicate: true, IgnoreUntilScoreChanges: false)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Marked pair as confirmed not-duplicate.";
+            _isError = false;
+            await LoadAsync();
+        }
+    }
+
+    private async Task IgnoreAsync(Guid duplicateId)
+    {
+        var result = await CommandDispatcher.SendAsync<MarkDuplicateStatusCommand, PersonDuplicateResponse>(
+            new MarkDuplicateStatusCommand(duplicateId, IsConfirmedAsNotDuplicate: false, IgnoreUntilScoreChanges: true)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Ignored pair until confidence score changes.";
+            _isError = false;
+            await LoadAsync();
+        }
+    }
+
+    private void OpenMerge(Guid person1Id, Guid person2Id)
+    {
+        Navigation.NavigateTo($"/crm/merge/{person1Id:D}/{person2Id:D}");
+    }
+}

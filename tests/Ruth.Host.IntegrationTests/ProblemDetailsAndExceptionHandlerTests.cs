@@ -138,6 +138,124 @@ public sealed class ProblemDetailsAndExceptionHandlerTests
         }
     }
 
+    [Fact]
+    public async Task ApiPipeline_AcceptTextHtml_FallsBackToProblemJsonFor503And400()
+    {
+        await using var factory = HostWebApplicationFactory.CreateWithOfflineDependencies(
+            environment: "Production",
+            assumeOnboarded: false,
+            configureServices: static services =>
+                _ = services.Replace(
+                    ServiceDescriptor.Singleton<IOnboardingStateReader>(
+                        new CompletedOnboardingStateReaderStub(isOnboardingRequired: true)
+                    )
+                )
+        );
+        using var client = factory.CreateNoRedirectClient();
+
+        using var gatedReq = new HttpRequestMessage(
+            HttpMethod.Get,
+            new Uri("/api/unknown", UriKind.Relative)
+        );
+        gatedReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+        using var gatedResp = await client.SendAsync(gatedReq);
+        var gatedBody = await gatedResp.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, gatedResp.StatusCode);
+        Assert.Contains(
+            "application/problem+json",
+            gatedResp.Content.Headers.ContentType?.MediaType,
+            StringComparison.OrdinalIgnoreCase
+        );
+        using (var gatedDoc = JsonDocument.Parse(gatedBody))
+        {
+            Assert.Equal(503, gatedDoc.RootElement.GetProperty("status").GetInt32());
+            Assert.Equal(
+                "Onboarding.Required",
+                gatedDoc.RootElement.GetProperty("errorCode").GetString()
+            );
+        }
+
+        using var badJsonReq = new HttpRequestMessage(
+            HttpMethod.Post,
+            new Uri("/api/onboarding", UriKind.Relative)
+        )
+        {
+            Content = new StringContent("{ bad json", Encoding.UTF8, "application/json"),
+        };
+        badJsonReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+        using var badJsonResp = await client.SendAsync(badJsonReq);
+        var badJsonBody = await badJsonResp.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, badJsonResp.StatusCode);
+        Assert.Contains(
+            "application/problem+json",
+            badJsonResp.Content.Headers.ContentType?.MediaType,
+            StringComparison.OrdinalIgnoreCase
+        );
+        using var badJsonDoc = JsonDocument.Parse(badJsonBody);
+        Assert.Equal(400, badJsonDoc.RootElement.GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task ApiPipeline_ReturnsProblemDetails_For415_405_And_404Responses()
+    {
+        await using var factory = HostWebApplicationFactory.CreateWithOfflineDependencies(
+            environment: "Production",
+            assumeOnboarded: true
+        );
+        using var client = factory.CreateNoRedirectClient();
+
+        using var unsupportedMediaResp = await client.PostAsync(
+            new Uri("/api/onboarding", UriKind.Relative),
+            new StringContent("plain text", Encoding.UTF8, "text/plain")
+        );
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, unsupportedMediaResp.StatusCode);
+        Assert.Contains(
+            "application/problem+json",
+            unsupportedMediaResp.Content.Headers.ContentType?.MediaType,
+            StringComparison.OrdinalIgnoreCase
+        );
+        using (
+            var doc415 = JsonDocument.Parse(await unsupportedMediaResp.Content.ReadAsStringAsync())
+        )
+        {
+            Assert.Equal(415, doc415.RootElement.GetProperty("status").GetInt32());
+        }
+
+        using var methodNotAllowedResp = await client.PutAsync(
+            new Uri("/api/onboarding", UriKind.Relative),
+            new StringContent("{}", Encoding.UTF8, "application/json")
+        );
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, methodNotAllowedResp.StatusCode);
+        Assert.Contains(
+            "application/problem+json",
+            methodNotAllowedResp.Content.Headers.ContentType?.MediaType,
+            StringComparison.OrdinalIgnoreCase
+        );
+        using (
+            var doc405 = JsonDocument.Parse(await methodNotAllowedResp.Content.ReadAsStringAsync())
+        )
+        {
+            Assert.Equal(405, doc405.RootElement.GetProperty("status").GetInt32());
+        }
+
+        using var unknownPostResp = await client.PostAsync(
+            new Uri("/api/unknown", UriKind.Relative),
+            new StringContent("{}", Encoding.UTF8, "application/json")
+        );
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, unknownPostResp.StatusCode);
+        Assert.Contains(
+            "application/problem+json",
+            unknownPostResp.Content.Headers.ContentType?.MediaType,
+            StringComparison.OrdinalIgnoreCase
+        );
+        using var docUnknownPost = JsonDocument.Parse(
+            await unknownPostResp.Content.ReadAsStringAsync()
+        );
+        Assert.Equal(405, docUnknownPost.RootElement.GetProperty("status").GetInt32());
+    }
+
     private static HostWebApplicationFactory CreateExceptionTestFactory(string environment)
     {
         return HostWebApplicationFactory.CreateWithOfflineDependencies(

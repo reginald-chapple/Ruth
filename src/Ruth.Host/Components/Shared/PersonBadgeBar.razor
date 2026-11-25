@@ -1,0 +1,20 @@
+@if (Badges.Count > 0)
+{
+    <div class="ruth-badge-bar" role="region" aria-label="Person profile badges">
+        @foreach (var badge in Badges.OrderBy(static b => b.Order))
+        {
+            <span @key="badge.BadgeDefinitionId"
+                  class="ruth-person-badge"
+                  title="@badge.Tooltip"
+                  style="@($"border-left: 4px solid {badge.ColorHex}; background: var(--colorNeutralBackground2); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem;")">
+                <strong>@badge.Label:</strong> @badge.Value
+            </span>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Gets or sets the evaluated modular person badges to render.</summary>
+    [Parameter]
+    public IReadOnlyList<EvaluatedPersonBadgeResponse> Badges { get; set; } = [];
+}

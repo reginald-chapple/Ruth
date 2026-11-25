@@ -1,6 +1,10 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Ruth.Host;
+using Ruth.Modules.Core;
+using Ruth.Modules.Core.Contracts;
+using Ruth.Modules.Crm;
+using Ruth.Modules.Crm.Contracts;
 using Ruth.Modules.Identity;
 using Ruth.Modules.Identity.Contracts;
 using Ruth.Persistence;
@@ -13,7 +17,12 @@ public sealed class ModularMonolithArchitectureTests
 {
     private static Assembly[] GetModuleAssemblies()
     {
-        Assembly[] knownModules = [IdentityModuleAssembly.Instance];
+        Assembly[] knownModules =
+        [
+            IdentityModuleAssembly.Instance,
+            CoreModuleAssembly.Instance,
+            CrmModuleAssembly.Instance,
+        ];
 
         return
         [
@@ -31,7 +40,12 @@ public sealed class ModularMonolithArchitectureTests
 
     private static Assembly[] GetModuleContractsAssemblies()
     {
-        Assembly[] knownContracts = [IdentityContractsAssembly.Instance];
+        Assembly[] knownContracts =
+        [
+            IdentityContractsAssembly.Instance,
+            CoreContractsAssembly.Instance,
+            CrmContractsAssembly.Instance,
+        ];
 
         return
         [
@@ -185,7 +199,13 @@ public sealed class ModularMonolithArchitectureTests
                     "Ruth.Persistence",
                     "Ruth.Modules.Identity.Domain",
                     "Ruth.Modules.Identity.Infrastructure",
-                    "Ruth.Modules.Identity.Slices"
+                    "Ruth.Modules.Identity.Slices",
+                    "Ruth.Modules.Core.Domain",
+                    "Ruth.Modules.Core.Infrastructure",
+                    "Ruth.Modules.Core.Slices",
+                    "Ruth.Modules.Crm.Domain",
+                    "Ruth.Modules.Crm.Infrastructure",
+                    "Ruth.Modules.Crm.Slices"
                 )
                 .GetResult();
 
@@ -210,7 +230,13 @@ public sealed class ModularMonolithArchitectureTests
             .HaveDependencyOnAny(
                 "Ruth.Modules.Identity.Domain",
                 "Ruth.Modules.Identity.Infrastructure",
-                "Ruth.Modules.Identity.Slices"
+                "Ruth.Modules.Identity.Slices",
+                "Ruth.Modules.Core.Domain",
+                "Ruth.Modules.Core.Infrastructure",
+                "Ruth.Modules.Core.Slices",
+                "Ruth.Modules.Crm.Domain",
+                "Ruth.Modules.Crm.Infrastructure",
+                "Ruth.Modules.Crm.Slices"
             )
             .GetResult();
 

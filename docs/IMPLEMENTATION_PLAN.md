@@ -165,19 +165,19 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W0-S3` — Module Persistence Base, Transactional Outbox & Scheduled Job Engine
+#### `W0-S3` — Module Persistence Base, Transactional Outbox & Scheduled Job Engine ✅ *(Completed)*
 * **Scope:** Abstract `ModuleDbContext` (Npgsql 18 with `postgis`, `pgvector`, `age` readiness), audit timestamp/concurrency `SaveChangesInterceptor`, per-schema `OutboxMessage` + `InboxMessage` tables, `BackgroundService` Outbox dispatcher, and Postgres-advisory-locked cron `IScheduledJob` engine (replacing Quartz `ServiceJob` / `ServiceJobHistory`).
 * **`refs/Rock` Reference:** `Rock/Model/Core/ServiceJob`, `ServiceJobHistory`, `ServiceLog`, `Rock/Transactions`, `Rock/Bus`.
 * **Authoring Skills:** `entity-framework-core`, `architecture`, `aspnet-core`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W0-S4` — `Ruth.Host` Pipeline, Observability & Fluent UI Blazor v5 App Shell
+#### `W0-S4` — `Ruth.Host` Pipeline, Observability & Fluent UI Blazor v5 App Shell ✅ *(Completed)*
 * **Scope:** `Program.cs` middleware pipeline (`ApiExceptionHandler` -> HTTPS -> `MapStaticAssets` -> Routing -> Auth -> RateLimiter -> OutputCache -> Endpoints), built-in `AddOpenApi()`, `/health` checks (Postgres, Redis, RustFS), OpenTelemetry logging/metrics/tracing, `<FluentProviders />`, `MainLayout.razor` (`FluentLayout`, `FluentNav`, light/dark theme toggle via `Blazor.theme`, `<ErrorBoundary>`).
 * **`refs/Rock` Reference:** `Rock.WebStartup`, `Rock/Observability`, `Rock/Model/Core/ExceptionLog`.
 * **Authoring Skills:** `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`, `stylelint`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `webhint` (against local host shell).
 
-#### `W0-S5` — Zero-Seed First-Run `/onboarding` & Production Startup Guards
+#### `W0-S5` — Zero-Seed First-Run `/onboarding` & Production Startup Guards ✅ *(Completed)*
 * **Scope:** Production fail-fast validator if `Authentication:Jwt:SigningKey` uses dev default; onboarding state gate middleware redirecting all routes to `/onboarding` when zero admin users exist; one-time Administrator + Organization setup wizard that permanently locks self-registration upon completion (matching [.env.example](file:///Users/reginaldchapple/Developer/Ruth/.env.example)).
 * **`refs/Rock` Reference:** Modernizes Rock's first-run installer/admin setup flow.
 * **Authoring Skills:** `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `modern-csharp`.
@@ -188,49 +188,49 @@ flowchart TD
 ### Wave 1 — Identity, Security & Core Foundation
 *Goal: Deliver Rock's authentication, hierarchical Allow/Deny entity security, extensible `jsonb` attributes/FieldTypes, PostGIS locations, iCal schedules, and RustFS storage.*
 
-#### `W1-S1` — Authentication, User Logins & OIDC/JWT Providers
+#### `W1-S1` — Authentication, User Logins & OIDC/JWT Providers ✅ *(Completed)*
 * **Scope:** `Identity` module (`identity` schema): `UserAccount` (`UserLogin`), Argon2id/ASP.NET Core password hashing, Cookie auth for Blazor Server, JWT Bearer + Refresh Tokens for APIs/Mobile, external OIDC provider abstraction, password reset & account confirmation flows, login history, `Auth.http`.
 * **`refs/Rock` Reference:** `Rock/Model/CRM/UserLogin`, `PersonToken`, `RemoteAuthenticationSession`, `Rock.Oidc`, `Rock.Blocks/Security/Login.cs`, `AccountEntry.cs`, `ChangePassword.cs`, `LoginHistory.cs`.
 * **Authoring Skills:** `aspnet-core`, `architecture`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W1-S2` — Security Roles & Hierarchical `ISecured` ACL Engine
+#### `W1-S2` — Security Roles & Hierarchical `ISecured` ACL Engine ✅ *(Completed)*
 * **Scope:** `SecurityRole` (extracted cleanly out of legacy `Group`), special roles (`AllUsers`, `AllAuthenticatedUsers`), `EntityAclRule` (`Auth`: ordered `Allow`/`Deny` per action `View`, `Edit`, `Administrate`, etc. with parent-entity hierarchy inheritance), `AuthAuditLog`, `RestApiKey` (`RestKeyDetail`), `AuthClient`/`AuthScope`, Redis-backed `FrozenDictionary` ACL evaluator + ASP.NET Core `IAuthorizationHandler` + reusable Blazor `<SecurityDialog />`.
 * **`refs/Rock` Reference:** `Rock/Security/Authorization.cs`, `ISecured.cs`, `Rock/Model/Core/Auth`, `AuthAuditLog`, `AuthClient`, `AuthScope`, `Rock.Blocks/Security/VerifySecurity.cs`, `SecurityChangeAuditList.cs`, `RestKeyList.cs`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `blazing-fast-dotnet`, `entity-framework-core`, `fluentui-blazor-usage`, `blazor`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (critical security engine: mandatory near-100% branch coverage).
 
-#### `W1-S3` — Entity Registry, DefinedTypes & Hierarchical Categories
+#### `W1-S3` — Entity Registry, DefinedTypes & Hierarchical Categories ✅ *(Completed)*
 * **Scope:** `Core` module (`core` schema): `EntityTypeDescriptor` (compile-time discovered modular entity registry + `SystemGuid` constants), `DefinedType` + `DefinedValue` aggregate, recursive `Category` tree aggregate, Redis/memory read caches, Admin UI screens (`DefinedTypeList`, `DefinedTypeDetail`, `CategoryTreeView`).
 * **`refs/Rock` Reference:** `Rock/Model/Core/EntityType`, `DefinedType`, `DefinedValue`, `Category`, `Rock/SystemGuid`, `Rock.Blocks/Core/DefinedTypeList.cs`, `DefinedTypeDetail.cs`, `CategoryDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W1-S4` — Typed `jsonb` Attribute Engine, Attribute Matrices & Core FieldTypes
+#### `W1-S4` — Typed `jsonb` Attribute Engine, Attribute Matrices & Core FieldTypes ✅ *(Completed)*
 * **Scope:** `AttributeDefinition` (global, entity-type, or entity-qualifier scoped), `AttributeMatrixTemplate` (repeatable structured sub-rows in `jsonb`), `IHasAttributes` `jsonb` column convention + GIN index helper, and modular `IFieldTypePlugin` registry (starting with the ~25 foundational FieldTypes: Text, Memo, Boolean, Integer, Decimal, Currency, Date, DateTime, DateRange, SingleSelect, MultiSelect, DefinedValue, Category, KeyValueList, Json/Code, Color, Url, Email, Phone, Rating, Matrix) + dynamic `<AttributeValuesEditor />` and `<AttributeValuesSummary />` Blazor components.
 * **`refs/Rock` Reference:** `Rock/Model/Core/Attribute`, `AttributeQualifier`, `AttributeValue`, `AttributeMatrix*`, `FieldType`, `Rock/Field/Types/*`, `Rock.Blocks/Core/Attributes.cs`, `AttributeMatrixTemplateDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W1-S5` — Campuses, PostGIS Locations & Physical Devices
+#### `W1-S5` — Campuses, PostGIS Locations & Physical Devices ✅ *(Completed)*
 * **Scope:** `Campus` (`CampusSchedule`, `CampusTopic`), `Location` hierarchy (buildings, rooms, named locations, street addresses) with `NetTopologySuite` **PostGIS** `geography(Point, 4326)` & `geography(Polygon, 4326)` geofences, `IAddressVerificationProvider` / geocoding hook, `Device` (kiosks, label printers, check-in tablets, IP/Geo matching).
 * **`refs/Rock` Reference:** `Rock/Model/Core/Campus*`, `Location`, `Device`, `NcoaHistory`, `Rock/Address`, `Rock.Blocks/Core/CampusList.cs`, `LocationTree.cs`, `LocationDetail.cs`, `DeviceDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W1-S6` — Schedules & iCalendar Recurrence Engine
+#### `W1-S6` — Schedules & iCalendar Recurrence Engine ✅ *(Completed)*
 * **Scope:** `Schedule` aggregate (`iCalendarContent` RFC 5545 RRULEs, check-in start/end offsets, `ScheduleDate` materialized horizon table for fast SQL range joins, `ScheduleCategoryExclusion`), friendly schedule text formatter, `<ScheduleBuilderDialog />` Blazor component.
 * **`refs/Rock` Reference:** `Rock/Model/Core/Schedule`, `ScheduleDate`, `ScheduleCategoryExclusion`, `Rock.Blocks/Core/ScheduleList.cs`, `ScheduleDetail.cs`, `ScheduleCategoryExclusionList.cs`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (recurrence & timezone math must have exhaustive DST/leap-year tests).
 
-#### `W1-S7` — BinaryFiles, Documents, Electronic Signatures & RustFS Storage
+#### `W1-S7` — BinaryFiles, Documents, Electronic Signatures & RustFS Storage ✅ *(Completed)*
 * **Scope:** `IStorageProvider` + `RustFsStorageProvider` (S3 presigned URLs & streaming uploads), `BinaryFileType`, `BinaryFile`, image crop/avatar processor, `DocumentType`/`Document`, `SignatureDocumentTemplate`/`SignatureDocument` electronic signature capture, `<FileUploader />` & `<ImageEditor />` Blazor components.
 * **`refs/Rock` Reference:** `Rock/Model/Core/AssetStorageProvider`, `BinaryFile*`, `Document*`, `SignatureDocument*`, `Rock/Storage`, `Rock.Blocks/Core/BinaryFileDetail.cs`, `SignatureDocumentTemplateDetail.cs`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W1-S8` — Audit History, Notes, Tags, EntitySets & User Preferences
+#### `W1-S8` — Audit History, Notes, Tags, EntitySets & User Preferences ✅ *(Completed)*
 * **Scope:** Structured `HistoryLog` (`History` / `Audit` domain change timeline), `NoteType`/`Note`/`NoteAttachment`/`NoteWatch` threaded notes timeline component, personal & organizational `Tag`/`TaggedItem` autocomplete pill bar, ephemeral/saved `EntitySet` bulk selection sets, `PersonPreference` key-value store.
 * **`refs/Rock` Reference:** `Rock/Model/Core/Audit*`, `History`, `Note*`, `Tag`, `TaggedItem`, `EntitySet*`, `PersonPreference`, `Rock.Blocks/Core/NoteTypeList.cs`, `TagList.cs`, `HistoryLog.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
@@ -241,25 +241,25 @@ flowchart TD
 ### Wave 2 — CRM & Groups (The Heart of the RMS)
 *Goal: Deliver Rock's complete Person 360 profile, Household/Relationship graph, deduplication/merge, ministry groups, serving schedules, and attendance.*
 
-#### `W2-S1` — Person Aggregate, Contact Info, Metaphones & Fast Person Search
+#### `W2-S1` — Person Aggregate, Contact Info, Metaphones & Fast Person Search ✅ *(Completed)*
 * **Scope:** `Crm` module (`crm` schema): `Person` aggregate (record type Person/Business/RestUser, connection status, record status, marital status, BirthDate, graduation/grade calculation, deceased handling, photo), `PhoneNumber` (E.164 normalization, SMS opt-in), `PersonPreviousName`, `PersonSearchKey` (alternate emails/barcodes/legacy IDs), `Metaphone` / `MetaFirstNameGenderLookup` / `MetaNickNameLookup`, PostgreSQL `pg_trgm` + phonetic instant search bar & Person Profile header.
 * **`refs/Rock` Reference:** `Rock/Model/CRM/Person`, `PhoneNumber`, `PersonPreviousName`, `PersonSearchKey`, `Rock/Model/Meta/*`, `Rock.Blocks/Crm/PersonDetail`, `PersonSearch.cs`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S2` — Households (Families) & Apache AGE Relationship Graph
+#### `W2-S2` — Households (Families) & Apache AGE Relationship Graph ✅ *(Completed)*
 * **Scope:** First-class `Household` aggregate (replacing overloaded Family `Group`s: Adult/Child roles, Primary Campus, Mapped Mailing/Home `Location`s, Combined Giving Unit flag, multi-household membership for blended families) + `KnownRelationship` & `PeerNetwork` graph synchronized to **PostgreSQL Apache AGE** (`crm_graph`) for multi-hop family/influence/relationship traversal, plus Household UI cards on Person Profile.
 * **`refs/Rock` Reference:** Family logic in `Rock/Model/CRM/Person`, `Rock/Model/Group/PeerNetwork`, `Rock.Blocks/Crm/PersonDetail/EditFamily.cs`, `Relationships.cs`, `FamilyPreRegistration.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S3` — Person Duplicate Detection, Alias Redirects & Cross-Module Merge
+#### `W2-S3` — Person Duplicate Detection, Alias Redirects & Cross-Module Merge ✅ *(Completed)*
 * **Scope:** Scheduled `PersonDuplicateScannerJob` (`PersonDuplicate` confidence scoring across name/nicknames/phone/email/address/DOB), `PersonRedirectLedger` (maps retired `PersonId`s and legacy `PersonAlias` GUIDs to surviving `PersonId`), side-by-side Blazor `<PersonMergePage />`, and `PersonMergedIntegrationEvent` via Outbox so every downstream module (`Groups`, `Finance`, `CheckIn`, etc.) re-points `PersonId` cleanly.
 * **`refs/Rock` Reference:** `Rock/Model/CRM/PersonDuplicate`, `PersonAlias`, `Rock/Jobs/PersonDuplicateFinder.cs`, `Rock.Blocks/Crm/PersonDuplicateList.cs`, `PersonMerge.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (high-risk data mutation: thorough Testcontainers merge tests).
 
-#### `W2-S4` — Signals, Extensible Badges, Assessments & Background Checks
+#### `W2-S4` — Signals, Extensible Badges, Assessments & Background Checks ✅ *(Completed)*
 * **Scope:** `SignalType` / `PersonSignal` (top-of-profile safety/VIP banners), modular `IPersonBadge` Blazor component bar (`Badge`), `AssessmentType` / `Assessment` (Spiritual Gifts, DISC, Conflict, Motivators, Emotional Intelligence), `BackgroundCheck` + `IBackgroundCheckProvider` (including modular Checkr webhook adapter), `IdentityVerification`, and `PersonViewed` audit log.
 * **`refs/Rock` Reference:** `Rock/Model/Core/PersonSignal`, `SignalType`, `Rock/Model/CRM/Badge`, `Assessment*`, `BackgroundCheck`, `IdentityVerification*`, `PersonViewed`, `Rock.Checkr`, `Rock.Blocks/Crm/Assessment*`, `BadgeDetail.cs`, `Rock.Blocks/Security/BackgroundCheck/*`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.

@@ -1,0 +1,129 @@
+@page "/admin/security/roles"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject IDialogService DialogService
+
+<PageTitle>Security Roles — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Security Roles</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@OpenGlobalSecurityAsync">
+        Global Default ACLs
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentTextInput @bind-Value="_newRoleName" Label="Role Name" Placeholder="e.g., Finance Staff" />
+            <FluentTextInput @bind-Value="_newRoleDescription" Label="Description" Placeholder="Optional description" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateRoleAsync">
+                Create Role
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_roles.AsQueryable()">
+        <PropertyColumn Property="@(static r => r.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static r => r.Description)" Title="Description" />
+        <PropertyColumn Property="@(static r => r.IsSystem)" Title="System" />
+        <PropertyColumn Property="@(static r => r.IsActive)" Title="Active" />
+        <PropertyColumn Property="@(static r => r.MemberCount)" Title="Members" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small"
+                          Disabled="@context.IsSystem"
+                          OnClick="@(() => DeleteRoleAsync(context.Id))">
+                Delete
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<SecurityRoleResponse> _roles = [];
+    private string _newRoleName = string.Empty;
+    private string _newRoleDescription = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetSecurityRolesQuery, IReadOnlyList<SecurityRoleResponse>>(
+            new GetSecurityRolesQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _roles = [.. result.Value];
+        }
+    }
+
+    private async Task CreateRoleAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateSecurityRoleCommand, SecurityRoleResponse>(
+            new CreateSecurityRoleCommand(_newRoleName, _newRoleDescription)
+        );
+        if (result.IsSuccess)
+        {
+            _newRoleName = string.Empty;
+            _newRoleDescription = string.Empty;
+            _statusMessage = $"Created role '{result.Value.Name}'.";
+            await LoadRolesAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteRoleAsync(Guid roleId)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteSecurityRoleCommand, bool>(
+            new DeleteSecurityRoleCommand(roleId)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Role deleted.";
+            await LoadRolesAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task OpenGlobalSecurityAsync()
+    {
+        var options = new DialogOptions
+        {
+            Header = { Title = "Global Default Security" },
+            Size = DialogSize.Medium,
+            Modal = true,
+            Parameters = new Dictionary<string, object?>
+            {
+                [nameof(SecurityDialog.EntityTypeKey)] = GlobalDefaultSecured.TypeKey,
+                [nameof(SecurityDialog.EntityId)] = Guid.Empty,
+                [nameof(SecurityDialog.EntityDisplayName)] = "Global Default",
+            },
+        };
+        _ = await DialogService.ShowDialogAsync<SecurityDialog>(options);
+    }
+}

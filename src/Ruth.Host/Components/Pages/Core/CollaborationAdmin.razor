@@ -1,0 +1,153 @@
+@page "/admin/core/collaboration"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Notes, Tags &amp; History — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Notes, Tags, Entity Sets &amp; History Log</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Note Types</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_noteTypeName" Label="Note Type Name" Placeholder="Pastoral Care" />
+                <FluentCheckbox @bind-Value="_requiresApprovals" Label="Requires Approvals" />
+                <FluentCheckbox @bind-Value="_allowsReplies" Label="Allows Replies" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateNoteTypeAsync">
+                    Add Note Type
+                </FluentButton>
+            </FluentStack>
+            <FluentDataGrid Items="@_noteTypes.AsQueryable()">
+                <PropertyColumn Property="@(static n => n.Name)" Title="Name" Sortable="true" />
+                <PropertyColumn Property="@(static n => n.RequiresApprovals)" Title="Approvals" />
+                <PropertyColumn Property="@(static n => n.AllowsReplies)" Title="Replies" />
+                <PropertyColumn Property="@(static n => n.AllowsWatching)" Title="Watchable" />
+            </FluentDataGrid>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Organizational Tags</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_tagName" Label="Tag Name" Placeholder="Volunteer Leader" />
+                <FluentTextInput @bind-Value="_tagColor" Label="Badge Color" Placeholder="#2563EB" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateTagAsync">
+                    Create Tag
+                </FluentButton>
+            </FluentStack>
+            <FluentDataGrid Items="@_tags.AsQueryable()">
+                <PropertyColumn Property="@(static t => t.Name)" Title="Name" Sortable="true" />
+                <PropertyColumn Property="@(static t => t.IsPersonal)" Title="Personal" />
+                <PropertyColumn Property="@(static t => t.ItemCount)" Title="Tagged Items" />
+            </FluentDataGrid>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <h2>Recent History Log</h2>
+        <HistoryLogView MaxResults="25" />
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private List<EntityTypeResponse> _entityTypes = [];
+    private List<NoteTypeResponse> _noteTypes = [];
+    private List<TagResponse> _tags = [];
+    private string _noteTypeName = string.Empty;
+    private bool _requiresApprovals;
+    private bool _allowsReplies = true;
+    private string _tagName = string.Empty;
+    private string _tagColor = "#F4F5F7";
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var etResult = await QueryDispatcher.QueryAsync<GetEntityTypesQuery, IReadOnlyList<EntityTypeResponse>>(
+            new GetEntityTypesQuery()
+        );
+        if (etResult.IsSuccess)
+        {
+            _entityTypes = [.. etResult.Value];
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var ntResult = await QueryDispatcher.QueryAsync<GetNoteTypesQuery, IReadOnlyList<NoteTypeResponse>>(
+            new GetNoteTypesQuery()
+        );
+        if (ntResult.IsSuccess)
+        {
+            _noteTypes = [.. ntResult.Value];
+        }
+
+        var tagResult = await QueryDispatcher.QueryAsync<GetTagsQuery, IReadOnlyList<TagResponse>>(
+            new GetTagsQuery()
+        );
+        if (tagResult.IsSuccess)
+        {
+            _tags = [.. tagResult.Value];
+        }
+    }
+
+    private async Task CreateNoteTypeAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var entityTypeId = _entityTypes.FirstOrDefault()?.Id ?? Guid.Empty;
+        var result = await CommandDispatcher.SendAsync<CreateNoteTypeCommand, NoteTypeResponse>(
+            new CreateNoteTypeCommand(
+                entityTypeId,
+                _noteTypeName,
+                RequiresApprovals: _requiresApprovals,
+                AllowsReplies: _allowsReplies
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _noteTypeName = string.Empty;
+            _statusMessage = $"Created note type '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task CreateTagAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateTagCommand, TagResponse>(
+            new CreateTagCommand(_tagName, BackgroundColor: _tagColor)
+        );
+        if (result.IsSuccess)
+        {
+            _tagName = string.Empty;
+            _statusMessage = $"Created tag '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}

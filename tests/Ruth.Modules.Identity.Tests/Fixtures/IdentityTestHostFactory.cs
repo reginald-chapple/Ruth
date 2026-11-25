@@ -14,7 +14,8 @@ internal static class IdentityTestHostFactory
     public static ServiceProvider BuildServiceProvider(
         string connectionString,
         bool autoMigrate,
-        RecordingOnboardedConsumer? consumer = null
+        RecordingOnboardedConsumer? consumer = null,
+        Action<IServiceCollection>? configureServices = null
     )
     {
         var configuration = new ConfigurationBuilder()
@@ -44,6 +45,7 @@ internal static class IdentityTestHostFactory
             >();
         }
 
+        configureServices?.Invoke(services);
         return services.BuildServiceProvider();
     }
 

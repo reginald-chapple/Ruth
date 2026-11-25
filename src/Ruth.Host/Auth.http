@@ -1,0 +1,110 @@
+@baseUrl = http://localhost:5000
+@accessToken = replace-with-jwt-access-token
+@refreshToken = replace-with-refresh-token
+
+### Login with username/email and password (JWT + Refresh Token)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userNameOrEmail": "admin",
+  "password": "ChangeMe123!@#"
+}
+
+### Refresh access token (rotating refresh token)
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Get current authenticated user
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Change password
+POST {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "ChangeMe123!@#",
+  "newPassword": "NewStrongPassword456!@#"
+}
+
+### Request password reset
+POST {{baseUrl}}/api/auth/password-reset/request
+Content-Type: application/json
+
+{
+  "emailOrUserName": "admin@example.org"
+}
+
+### Confirm password reset
+POST {{baseUrl}}/api/auth/password-reset/confirm
+Content-Type: application/json
+
+{
+  "token": "replace-with-reset-token",
+  "newPassword": "ResetStrongPassword789!@#"
+}
+
+### Confirm account
+POST {{baseUrl}}/api/auth/confirm-account
+Content-Type: application/json
+
+{
+  "token": "replace-with-confirmation-token"
+}
+
+### Get login history
+GET {{baseUrl}}/api/auth/login-history?maxCount=50
+Authorization: Bearer {{accessToken}}
+
+### List users (Administrators)
+GET {{baseUrl}}/api/auth/users
+Authorization: Bearer {{accessToken}}
+
+### Provision a new user account (Administrators)
+POST {{baseUrl}}/api/auth/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userName": "staff1",
+  "email": "staff1@example.org",
+  "displayName": "Staff Member",
+  "password": "StaffPassword123!@#",
+  "isConfirmed": true
+}
+
+### List enabled external OIDC providers
+GET {{baseUrl}}/api/auth/oidc/providers?enabledOnly=true
+
+### Upsert external OIDC provider (Administrators)
+PUT {{baseUrl}}/api/auth/oidc/providers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "providerKey": "microsoft",
+  "displayName": "Microsoft Entra ID",
+  "authority": "https://login.microsoftonline.com/common/v2.0",
+  "clientId": "00000000-0000-0000-0000-000000000000",
+  "scopes": "openid profile email",
+  "isEnabled": true,
+  "autoLinkByEmail": true,
+  "callbackPath": "https://localhost:5001/signin-oidc"
+}
+
+### Start external OIDC login
+POST {{baseUrl}}/api/auth/oidc/microsoft/start?returnUrl=/
+
+### Logout (revoke refresh token)
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

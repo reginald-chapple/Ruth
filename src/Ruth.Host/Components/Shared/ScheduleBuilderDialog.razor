@@ -1,0 +1,145 @@
+@using System.Globalization
+@using System.Text
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <p>Build an RFC 5545 recurring iCalendar definition for check-in, services, or group meetings.</p>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+        <FluentTextInput @bind-Value="_startDate" Label="Start Date (YYYY-MM-DD)" Placeholder="2026-11-29" />
+        <FluentTextInput @bind-Value="_startTime" Label="Start Time (HH:mm)" Placeholder="09:00" />
+        <FluentTextInput @bind-Value="_durationMinutes" Label="Duration (Minutes)" Placeholder="60" />
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+        <FluentSelect TOption="string"
+                      TValue="string"
+                      Label="Frequency"
+                      Items="@_frequencies"
+                      OptionText="@(static f => f)"
+                      OptionValue="@(static f => f)"
+                      @bind-Value="_frequency" />
+
+        <FluentTextInput @bind-Value="_interval" Label="Repeat Every" Placeholder="1" />
+        <FluentTextInput @bind-Value="_byDay" Label="Weekdays (e.g., SU,WE or 1SU)" Placeholder="SU" />
+        <FluentTextInput @bind-Value="_count" Label="Occurrences Count (Optional)" Placeholder="" />
+        <FluentTextInput @bind-Value="_timeZoneId" Label="Time Zone (Optional)" Placeholder="America/Denver" />
+    </FluentStack>
+
+    <FluentCard Padding="@Padding.All3">
+        <strong>Generated RFC 5545 Preview</strong>
+        <pre>@BuildICalendar()</pre>
+    </FluentCard>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ConfirmAsync">
+            Apply Schedule
+        </FluentButton>
+        <FluentButton OnClick="@CancelAsync">Cancel</FluentButton>
+    </FluentStack>
+</FluentStack>
+
+@code {
+    private static readonly string[] _frequencies = ["ONCE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"];
+
+    private string _startDate = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    private string _startTime = "09:00";
+    private string _durationMinutes = "60";
+    private string _frequency = "WEEKLY";
+    private string _interval = "1";
+    private string _byDay = "SU";
+    private string _count = string.Empty;
+    private string _timeZoneId = string.Empty;
+
+    /// <summary>Gets or sets the Fluent UI v5 dialog instance.</summary>
+    [CascadingParameter]
+    public IDialogInstance? Dialog { get; set; }
+
+    /// <summary>Gets or sets an optional initial timezone identifier.</summary>
+    [Parameter]
+    public string? InitialTimeZoneId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(InitialTimeZoneId))
+        {
+            _timeZoneId = InitialTimeZoneId;
+        }
+    }
+
+    private string BuildICalendar()
+    {
+        if (!DateOnly.TryParse(_startDate, CultureInfo.InvariantCulture, out var date))
+        {
+            date = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        if (!TimeOnly.TryParse(_startTime, CultureInfo.InvariantCulture, out var time))
+        {
+            time = new TimeOnly(9, 0);
+        }
+
+        if (!int.TryParse(_durationMinutes, NumberStyles.Integer, CultureInfo.InvariantCulture, out var mins) || mins < 0)
+        {
+            mins = 60;
+        }
+
+        var start = date.ToDateTime(time);
+        var end = start.AddMinutes(mins);
+        var tzSuffix = string.IsNullOrWhiteSpace(_timeZoneId) ? string.Empty : $";TZID={_timeZoneId.Trim()}";
+
+        var sb = new StringBuilder();
+        _ = sb.AppendLine("BEGIN:VCALENDAR");
+        _ = sb.AppendLine("VERSION:2.0");
+        _ = sb.AppendLine("PRODID:-//Ruth RMS//Schedule Builder//EN");
+        _ = sb.AppendLine("BEGIN:VEVENT");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DTSTART{tzSuffix}:{start:yyyyMMdd'T'HHmmss}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DTEND{tzSuffix}:{end:yyyyMMdd'T'HHmmss}");
+
+        if (!string.Equals(_frequency, "ONCE", StringComparison.OrdinalIgnoreCase))
+        {
+            var rrule = BuildRRule();
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RRULE:{rrule}");
+        }
+
+        _ = sb.AppendLine("END:VEVENT");
+        _ = sb.AppendLine("END:VCALENDAR");
+        return sb.ToString();
+    }
+
+    private string BuildRRule()
+    {
+        var parts = new List<string> { $"FREQ={_frequency}" };
+        if (int.TryParse(_interval, NumberStyles.Integer, CultureInfo.InvariantCulture, out var interval) && interval > 1)
+        {
+            parts.Add(string.Create(CultureInfo.InvariantCulture, $"INTERVAL={interval}"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_byDay) && _frequency is "WEEKLY" or "MONTHLY")
+        {
+            parts.Add($"BYDAY={_byDay.Trim().ToUpperInvariant()}");
+        }
+
+        if (int.TryParse(_count, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) && count > 0)
+        {
+            parts.Add(string.Create(CultureInfo.InvariantCulture, $"COUNT={count}"));
+        }
+
+        return string.Join(';', parts);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (Dialog is not null)
+        {
+            await Dialog.CloseAsync(DialogResult.Ok(BuildICalendar()));
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (Dialog is not null)
+        {
+            await Dialog.CloseAsync(DialogResult.Cancel());
+        }
+    }
+}

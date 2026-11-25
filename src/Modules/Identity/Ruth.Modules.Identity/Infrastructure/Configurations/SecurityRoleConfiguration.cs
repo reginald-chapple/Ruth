@@ -24,7 +24,16 @@ internal sealed class SecurityRoleConfiguration : IEntityTypeConfiguration<Secur
             .IsRequired();
         _ = builder.HasIndex(x => x.NormalizedName).IsUnique();
 
+        _ = builder
+            .Property(x => x.Description)
+            .HasColumnName("description")
+            .HasMaxLength(SecurityRole.DescriptionMaxLength);
         _ = builder.Property(x => x.IsSystem).HasColumnName("is_system").IsRequired();
+        _ = builder
+            .Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .HasDefaultValue(value: true)
+            .IsRequired();
         _ = builder.Property(x => x.CreatedOnUtc).HasColumnName("created_on_utc").IsRequired();
         _ = builder.Property(x => x.ModifiedOnUtc).HasColumnName("modified_on_utc");
         _ = builder

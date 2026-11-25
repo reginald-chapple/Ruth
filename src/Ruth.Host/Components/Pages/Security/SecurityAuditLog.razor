@@ -1,0 +1,39 @@
+@page "/admin/security/audit-log"
+@inject IQueryDispatcher QueryDispatcher
+
+<PageTitle>Security Audit Log — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Security Change Audit Log</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LoadAsync">Refresh</FluentButton>
+</div>
+
+<FluentDataGrid Items="@_logs.AsQueryable()">
+    <PropertyColumn Property="@(static l => l.ChangedOnUtc)" Title="Changed (UTC)" Sortable="true" />
+    <PropertyColumn Property="@(static l => l.EntityTypeKey)" Title="Entity Type" Sortable="true" />
+    <PropertyColumn Property="@(static l => l.Action)" Title="Action" />
+    <PropertyColumn Property="@(static l => l.ChangeType)" Title="Change" />
+    <PropertyColumn Property="@(static l => l.PreDecision)" Title="Before" />
+    <PropertyColumn Property="@(static l => l.PostDecision)" Title="After" />
+    <PropertyColumn Property="@(static l => l.SpecialRole)" Title="Special Role" />
+</FluentDataGrid>
+
+@code {
+    private List<AuthAuditLogResponse> _logs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetAuthAuditLogsQuery, IReadOnlyList<AuthAuditLogResponse>>(
+            new GetAuthAuditLogsQuery(MaxCount: 100)
+        );
+        if (result.IsSuccess)
+        {
+            _logs = [.. result.Value];
+        }
+    }
+}

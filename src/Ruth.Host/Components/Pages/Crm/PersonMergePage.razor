@@ -1,0 +1,202 @@
+@page "/crm/merge"
+@page "/crm/merge/{Person1Id:guid}/{Person2Id:guid}"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>Person Merge — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Side-by-Side Person Merge</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_surviving is null || _retired is null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentTextInput @bind-Value="_survivingIdInput" Label="Surviving Person ID" />
+            <FluentTextInput @bind-Value="_retiredIdInput" Label="Retired Person ID" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@LoadFromInputsAsync">
+                Load Pair
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <div><strong>Surviving Record:</strong> @_surviving.FullName (@_surviving.Id)</div>
+                <div><strong>Retired Record:</strong> @_retired.FullName (@_retired.Id)</div>
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SwapSurviving">
+                    Swap Surviving / Retired
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 6px;">Field</th>
+                        <th style="text-align: left; padding: 6px;">Surviving (@_surviving.FullName)</th>
+                        <th style="text-align: left; padding: 6px;">Retired (@_retired.FullName)</th>
+                        <th style="text-align: left; padding: 6px;">Winner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 6px;">First Name</td>
+                        <td style="padding: 6px;">@_surviving.FirstName</td>
+                        <td style="padding: 6px;">@_retired.FirstName</td>
+                        <td style="padding: 6px;">
+                            <FluentSelect TOption="PersonMergeFieldChoice" TValue="PersonMergeFieldChoice" Items="@_choices" @bind-Value="_firstNameChoice" OptionText="@(static c => c.ToString())" OptionValue="@(static c => c)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px;">Last Name</td>
+                        <td style="padding: 6px;">@_surviving.LastName</td>
+                        <td style="padding: 6px;">@_retired.LastName</td>
+                        <td style="padding: 6px;">
+                            <FluentSelect TOption="PersonMergeFieldChoice" TValue="PersonMergeFieldChoice" Items="@_choices" @bind-Value="_lastNameChoice" OptionText="@(static c => c.ToString())" OptionValue="@(static c => c)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px;">Email</td>
+                        <td style="padding: 6px;">@(_surviving.Email ?? "(none)")</td>
+                        <td style="padding: 6px;">@(_retired.Email ?? "(none)")</td>
+                        <td style="padding: 6px;">
+                            <FluentSelect TOption="PersonMergeFieldChoice" TValue="PersonMergeFieldChoice" Items="@_choices" @bind-Value="_emailChoice" OptionText="@(static c => c.ToString())" OptionValue="@(static c => c)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px;">Birth Date</td>
+                        <td style="padding: 6px;">@(_surviving.BirthDate?.ToString("yyyy-MM-dd") ?? "(none)")</td>
+                        <td style="padding: 6px;">@(_retired.BirthDate?.ToString("yyyy-MM-dd") ?? "(none)")</td>
+                        <td style="padding: 6px;">
+                            <FluentSelect TOption="PersonMergeFieldChoice" TValue="PersonMergeFieldChoice" Items="@_choices" @bind-Value="_birthDateChoice" OptionText="@(static c => c.ToString())" OptionValue="@(static c => c)" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Margin="@Margin.Top4">
+                <FluentCheckbox @bind-Value="_hasElevatedAuth" Label="Confirm elevated merge authorization (High/Extreme protection)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ExecuteMergeAsync">
+                    Execute Merge
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+}
+
+@code {
+    private static readonly PersonMergeFieldChoice[] _choices =
+        Enum.GetValues<PersonMergeFieldChoice>();
+
+    /// <summary>Gets or sets the first person identifier.</summary>
+    [Parameter]
+    public Guid? Person1Id { get; set; }
+
+    /// <summary>Gets or sets the second person identifier.</summary>
+    [Parameter]
+    public Guid? Person2Id { get; set; }
+
+    private string _survivingIdInput = string.Empty;
+    private string _retiredIdInput = string.Empty;
+    private PersonDetailResponse? _surviving;
+    private PersonDetailResponse? _retired;
+    private PersonMergeFieldChoice _firstNameChoice = PersonMergeFieldChoice.Surviving;
+    private PersonMergeFieldChoice _lastNameChoice = PersonMergeFieldChoice.Surviving;
+    private PersonMergeFieldChoice _emailChoice = PersonMergeFieldChoice.Surviving;
+    private PersonMergeFieldChoice _birthDateChoice = PersonMergeFieldChoice.Surviving;
+    private bool _hasElevatedAuth;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Person1Id.HasValue && Person2Id.HasValue)
+        {
+            await LoadPairAsync(Person1Id.Value, Person2Id.Value);
+        }
+    }
+
+    private async Task LoadFromInputsAsync()
+    {
+        if (Guid.TryParse(_survivingIdInput, out var id1) && Guid.TryParse(_retiredIdInput, out var id2))
+        {
+            await LoadPairAsync(id1, id2);
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = "Enter two valid Person GUIDs.";
+        }
+    }
+
+    private async Task LoadPairAsync(Guid id1, Guid id2)
+    {
+        var r1 = await QueryDispatcher.QueryAsync<GetPersonByIdQuery, PersonDetailResponse>(
+            new GetPersonByIdQuery(id1, FollowRedirects: false)
+        );
+        var r2 = await QueryDispatcher.QueryAsync<GetPersonByIdQuery, PersonDetailResponse>(
+            new GetPersonByIdQuery(id2, FollowRedirects: false)
+        );
+        if (r1.IsSuccess && r2.IsSuccess)
+        {
+            _surviving = r1.Value;
+            _retired = r2.Value;
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = "One or both person records could not be found.";
+        }
+    }
+
+    private void SwapSurviving()
+    {
+        (_surviving, _retired) = (_retired, _surviving);
+    }
+
+    private async Task ExecuteMergeAsync()
+    {
+        if (_surviving is null || _retired is null)
+        {
+            return;
+        }
+
+        var selections = new PersonMergeFieldSelections(
+            FirstName: _firstNameChoice,
+            LastName: _lastNameChoice,
+            Email: _emailChoice,
+            BirthDate: _birthDateChoice
+        );
+        var result = await CommandDispatcher.SendAsync<MergePeopleCommand, PersonMergeResponse>(
+            new MergePeopleCommand(
+                _surviving.Id,
+                _retired.Id,
+                selections,
+                HasElevatedMergeAuthorization: _hasElevatedAuth
+            )
+        );
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo($"/crm/people/{result.Value.SurvivingPersonId:D}");
+            return;
+        }
+
+        _isError = true;
+        _statusMessage = result.PrimaryError.Description;
+    }
+}

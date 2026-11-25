@@ -1,0 +1,27 @@
+{
+  "extends": ["web-recommended"],
+  "connector": {
+    "name": "jsdom",
+    "options": {
+      "waitFor": 1000
+    }
+  },
+  "ignoredUrls": [
+    {
+      "domain": ".*/_content/Microsoft\\.FluentUI\\.AspNetCore\\.Components/.*",
+      "hints": ["compat-api/css", "detect-css-reflows/composite", "detect-css-reflows/paint", "content-type"]
+    },
+    {
+      "domain": ".*/_framework/.*",
+      "hints": ["content-type"]
+    },
+    {
+      "domain": ".*/_blazor/.*",
+      "hints": ["content-type"]
+    }
+  ],
+  "hints": {
+    "validate-set-cookie-header": "warning"
+  },
+  "formatters": ["stylish"]
+}

@@ -1,0 +1,115 @@
+@page "/admin/security/api-keys"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>REST API Keys — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>REST API Keys</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_createdSecret))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Success" Title="Copy your new API key now" AllowDismiss="true">
+        This plaintext key will never be displayed again: <code>@_createdSecret</code>
+    </FluentMessageBar>
+}
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" AllowDismiss="true">@_errorMessage</FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentTextInput @bind-Value="_keyName" Label="Key Name" Placeholder="e.g., Check-In Sync" />
+            <FluentTextInput @bind-Value="_keyDescription" Label="Description" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateKeyAsync">
+                Generate API Key
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_keys.AsQueryable()">
+        <PropertyColumn Property="@(static k => k.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static k => k.KeyPrefix)" Title="Prefix" />
+        <PropertyColumn Property="@(static k => k.UserName)" Title="User" />
+        <PropertyColumn Property="@(static k => k.IsActive)" Title="Active" />
+        <PropertyColumn Property="@(static k => k.LastUsedOnUtc)" Title="Last Used (UTC)" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small"
+                          Disabled="@(!context.IsActive)"
+                          OnClick="@(() => RevokeKeyAsync(context.Id))">
+                Revoke
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<RestApiKeyResponse> _keys = [];
+    private string _keyName = string.Empty;
+    private string _keyDescription = string.Empty;
+    private string? _createdSecret;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadKeysAsync();
+    }
+
+    private async Task LoadKeysAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetRestApiKeysQuery, IReadOnlyList<RestApiKeyResponse>>(
+            new GetRestApiKeysQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _keys = [.. result.Value];
+        }
+    }
+
+    private async Task CreateKeyAsync()
+    {
+        _createdSecret = null;
+        _errorMessage = null;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var rawSub = authState.User.FindFirst("sub")?.Value
+            ?? authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var ownerId = Guid.TryParse(rawSub, out var parsed) ? parsed : Guid.Empty;
+
+        var result = await CommandDispatcher.SendAsync<CreateRestApiKeyCommand, CreateRestApiKeyResponse>(
+            new CreateRestApiKeyCommand(_keyName, _keyDescription, ownerId)
+        );
+        if (result.IsSuccess)
+        {
+            _createdSecret = result.Value.PlaintextApiKey;
+            _keyName = string.Empty;
+            _keyDescription = string.Empty;
+            await LoadKeysAsync();
+        }
+        else
+        {
+            _errorMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task RevokeKeyAsync(Guid keyId)
+    {
+        _errorMessage = null;
+        var result = await CommandDispatcher.SendAsync<RevokeRestApiKeyCommand, bool>(
+            new RevokeRestApiKeyCommand(keyId)
+        );
+        if (result.IsSuccess)
+        {
+            await LoadKeysAsync();
+        }
+        else
+        {
+            _errorMessage = result.PrimaryError.Description;
+        }
+    }
+}

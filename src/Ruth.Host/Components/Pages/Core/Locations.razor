@@ -1,0 +1,147 @@
+@page "/admin/core/locations"
+@using System.Globalization
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Locations — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Locations &amp; PostGIS Geofences</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Add Named Location or Room</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Name" Placeholder="Building A / Room 101" />
+                <FluentTextInput @bind-Value="_street1" Label="Street 1" />
+                <FluentTextInput @bind-Value="_city" Label="City" />
+                <FluentTextInput @bind-Value="_state" Label="State" />
+                <FluentTextInput @bind-Value="_postalCode" Label="Postal Code" />
+                <FluentTextInput @bind-Value="_latitude" Label="Latitude" Placeholder="33.4484" />
+                <FluentTextInput @bind-Value="_longitude" Label="Longitude" Placeholder="-112.0740" />
+                <FluentTextInput @bind-Value="_softCap" Label="Soft Capacity" />
+                <FluentTextInput @bind-Value="_firmCap" Label="Firm Capacity" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Add Location
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <h2>Location Hierarchy</h2>
+        @if (_tree.Count == 0)
+        {
+            <p>No named locations configured yet.</p>
+        }
+        else
+        {
+            @RenderNodes(_tree, 0)
+        }
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private List<LocationTreeNodeResponse> _tree = [];
+    private string _name = string.Empty;
+    private string _street1 = string.Empty;
+    private string _city = string.Empty;
+    private string _state = string.Empty;
+    private string _postalCode = string.Empty;
+    private string _latitude = string.Empty;
+    private string _longitude = string.Empty;
+    private string _softCap = string.Empty;
+    private string _firmCap = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetLocationTreeQuery, IReadOnlyList<LocationTreeNodeResponse>>(
+            new GetLocationTreeQuery(NamedOnly: true)
+        );
+        if (result.IsSuccess)
+        {
+            _tree = [.. result.Value];
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+
+        GeoPointDto? point = null;
+        if (
+            double.TryParse(_latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)
+            && double.TryParse(_longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lng)
+        )
+        {
+            point = new GeoPointDto(lat, lng);
+        }
+
+        int? soft = int.TryParse(_softCap, NumberStyles.Integer, CultureInfo.InvariantCulture, out var s) ? s : null;
+        int? firm = int.TryParse(_firmCap, NumberStyles.Integer, CultureInfo.InvariantCulture, out var f) ? f : null;
+
+        var result = await CommandDispatcher.SendAsync<CreateLocationCommand, LocationResponse>(
+            new CreateLocationCommand(
+                Name: string.IsNullOrWhiteSpace(_name) ? null : _name,
+                Address: new LocationAddressDto(_street1, null, _city, null, _state, _postalCode, null),
+                GeoPoint: point,
+                SoftRoomThreshold: soft,
+                FirmRoomThreshold: firm
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _street1 = string.Empty;
+            _statusMessage = $"Created location '{result.Value.DisplayName}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private RenderFragment RenderNodes(IReadOnlyList<LocationTreeNodeResponse> nodes, int depth) => __builder =>
+    {
+        foreach (var node in nodes)
+        {
+            <div @key="node.Location.Id" style="@($"margin-left: {depth * 20}px; padding: 4px 0;")">
+                <strong>@node.Location.DisplayName</strong>
+                @if (node.Location.GeoPoint is not null)
+                {
+                    <span> (@node.Location.GeoPoint.Latitude.ToString("F4", CultureInfo.InvariantCulture), @node.Location.GeoPoint.Longitude.ToString("F4", CultureInfo.InvariantCulture))</span>
+                }
+                @if (node.Location.FirmRoomThreshold.HasValue)
+                {
+                    <span> [Cap: @node.Location.SoftRoomThreshold / @node.Location.FirmRoomThreshold]</span>
+                }
+            </div>
+            @if (node.Children.Count > 0)
+            {
+                @RenderNodes(node.Children, depth + 1)
+            }
+        }
+    };
+}

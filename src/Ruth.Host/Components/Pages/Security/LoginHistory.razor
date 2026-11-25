@@ -1,0 +1,39 @@
+@page "/security/login-history"
+@inject IQueryDispatcher QueryDispatcher
+
+<PageTitle>Login History — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Login History</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LoadAsync">Refresh</FluentButton>
+</div>
+
+<FluentDataGrid Items="@_entries.AsQueryable()">
+    <PropertyColumn Property="@(static e => e.OccurredOnUtc)" Title="Timestamp (UTC)" Sortable="true" />
+    <PropertyColumn Property="@(static e => e.UserNameAttempted)" Title="Username / Email" Sortable="true" />
+    <PropertyColumn Property="@(static e => e.AuthMethod)" Title="Method" />
+    <PropertyColumn Property="@(static e => e.ProviderKey)" Title="Provider" />
+    <PropertyColumn Property="@(static e => e.Succeeded)" Title="Succeeded" />
+    <PropertyColumn Property="@(static e => e.FailureReason)" Title="Failure Reason" />
+    <PropertyColumn Property="@(static e => e.IpAddress)" Title="IP Address" />
+</FluentDataGrid>
+
+@code {
+    private List<LoginHistoryItemResponse> _entries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetLoginHistoryQuery, IReadOnlyList<LoginHistoryItemResponse>>(
+            new GetLoginHistoryQuery(MaxCount: 100)
+        );
+        if (result.IsSuccess)
+        {
+            _entries = [.. result.Value];
+        }
+    }
+}

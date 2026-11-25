@@ -10,8 +10,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Modules\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Core\Ruth.Modules.Core\Ruth.Modules.Core.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Ruth.Modules.Crm\Ruth.Modules.Crm.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Providers\Ruth.Providers.Checkr\Ruth.Providers.Checkr.csproj" />
+    <ProjectReference Include="..\Providers\Ruth.Providers.RustFsStorage\Ruth.Providers.RustFsStorage.csproj" />
     <ProjectReference Include="..\Ruth.Persistence\Ruth.Persistence.csproj" />
     <ProjectReference Include="..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
   </ItemGroup>

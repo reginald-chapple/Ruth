@@ -1,0 +1,183 @@
+@page "/admin/core/files-signatures"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Files &amp; Signatures — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Binary Files, Documents &amp; Electronic Signatures</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Binary File Types</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_newFileTypeName" Label="Name" Placeholder="Person Avatars" />
+                <FluentTextInput @bind-Value="_allowedExtensions" Label="Allowed Extensions" Placeholder=".png,.jpg,.pdf" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateFileTypeAsync">
+                    Add File Type
+                </FluentButton>
+            </FluentStack>
+            @if (_fileTypes.Count > 0)
+            {
+                <FluentSelect TOption="BinaryFileTypeResponse"
+                              TValue="string"
+                              Label="Active Upload Type"
+                              Items="@_fileTypes"
+                              OptionText="@(static t => t.Name)"
+                              OptionValue="@(static t => t.Id.ToString("D"))"
+                              @bind-Value="_selectedFileTypeId" />
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (Guid.TryParse(_selectedFileTypeId, out var parsedFileTypeId))
+    {
+        <FileUploader BinaryFileTypeId="@parsedFileTypeId"
+                      Label="Upload File to RustFS Storage"
+                      OnUploaded="@OnFileUploadedAsync" />
+    }
+
+    @if (_selectedImageFileId != Guid.Empty)
+    {
+        <ImageEditor BinaryFileId="@_selectedImageFileId" OnCropped="@OnFileUploadedAsync" />
+    }
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Electronic Signature Templates</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_templateName" Label="Template Name" Placeholder="Youth Liability Waiver" />
+                <FluentSelect TOption="ElectronicSignatureType"
+                              TValue="ElectronicSignatureType"
+                              Label="Signature Type"
+                              Items="@_signatureTypes"
+                              OptionText="@(static s => s.ToString())"
+                              OptionValue="@(static s => s)"
+                              @bind-Value="_signatureType" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateSignatureTemplateAsync">
+                    Create Template
+                </FluentButton>
+            </FluentStack>
+            <FluentDataGrid Items="@_signatureTemplates.AsQueryable()">
+                <PropertyColumn Property="@(static t => t.Name)" Title="Template" Sortable="true" />
+                <PropertyColumn Property="@(static t => t.SignatureType)" Title="Signature Type" />
+                <PropertyColumn Property="@(static t => t.IsActive)" Title="Active" />
+            </FluentDataGrid>
+        </FluentStack>
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private static readonly ElectronicSignatureType[] _signatureTypes =
+    [
+        ElectronicSignatureType.Typed,
+        ElectronicSignatureType.Drawn,
+    ];
+
+    private List<BinaryFileTypeResponse> _fileTypes = [];
+    private List<SignatureDocumentTemplateResponse> _signatureTemplates = [];
+    private string _selectedFileTypeId = string.Empty;
+    private Guid _selectedImageFileId;
+    private string _newFileTypeName = string.Empty;
+    private string _allowedExtensions = string.Empty;
+    private string _templateName = string.Empty;
+    private ElectronicSignatureType _signatureType = ElectronicSignatureType.Typed;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var typesResult = await QueryDispatcher.QueryAsync<GetBinaryFileTypesQuery, IReadOnlyList<BinaryFileTypeResponse>>(
+            new GetBinaryFileTypesQuery()
+        );
+        if (typesResult.IsSuccess)
+        {
+            _fileTypes = [.. typesResult.Value];
+            if (string.IsNullOrWhiteSpace(_selectedFileTypeId) && _fileTypes.Count > 0)
+            {
+                _selectedFileTypeId = _fileTypes[0].Id.ToString("D");
+            }
+        }
+
+        var templatesResult = await QueryDispatcher.QueryAsync<GetSignatureDocumentTemplatesQuery, IReadOnlyList<SignatureDocumentTemplateResponse>>(
+            new GetSignatureDocumentTemplatesQuery()
+        );
+        if (templatesResult.IsSuccess)
+        {
+            _signatureTemplates = [.. templatesResult.Value];
+        }
+    }
+
+    private async Task CreateFileTypeAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateBinaryFileTypeCommand, BinaryFileTypeResponse>(
+            new CreateBinaryFileTypeCommand(
+                _newFileTypeName,
+                AllowedExtensions: string.IsNullOrWhiteSpace(_allowedExtensions) ? null : _allowedExtensions
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _newFileTypeName = string.Empty;
+            _allowedExtensions = string.Empty;
+            _selectedFileTypeId = result.Value.Id.ToString("D");
+            _statusMessage = $"Created binary file type '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private Task OnFileUploadedAsync(BinaryFileResponse uploaded)
+    {
+        if (uploaded.MimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            _selectedImageFileId = uploaded.Id;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CreateSignatureTemplateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateSignatureDocumentTemplateCommand, SignatureDocumentTemplateResponse>(
+            new CreateSignatureDocumentTemplateCommand(
+                _templateName,
+                SignatureType: _signatureType
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _templateName = string.Empty;
+            _statusMessage = $"Created signature template '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}

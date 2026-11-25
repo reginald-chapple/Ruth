@@ -118,7 +118,6 @@ internal static class OutboxBatchClaimer
             $"RETURNING o.{OutboxSqlConstants.ColumnId},",
             $"          o.{OutboxSqlConstants.ColumnEventType},",
             $"          o.{OutboxSqlConstants.ColumnPayload},",
-            $"          o.{OutboxSqlConstants.ColumnOccurredOnUtc},",
             $"          o.{OutboxSqlConstants.ColumnRetryCount},",
             $"          o.{OutboxSqlConstants.ColumnLockToken};"
         );
@@ -130,9 +129,8 @@ internal static class OutboxBatchClaimer
             reader.GetGuid(0),
             reader.GetString(1),
             reader.GetString(2),
-            reader.GetFieldValue<DateTimeOffset>(3).ToUniversalTime(),
-            reader.GetInt32(4),
-            reader.GetGuid(5)
+            reader.GetInt32(3),
+            reader.GetGuid(4)
         );
     }
 }

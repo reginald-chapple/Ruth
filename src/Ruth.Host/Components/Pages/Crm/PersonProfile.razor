@@ -1,0 +1,464 @@
+@page "/crm/people/{Id:guid}"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>@(_person?.FullName ?? "Person Profile") — Ruth RMS</PageTitle>
+
+@if (_loading)
+{
+    <FluentProgressBar />
+}
+else if (_person is null)
+{
+    <FluentMessageBar Intent="MessageBarIntent.Error" AllowDismiss="false">
+        Person record not found.
+    </FluentMessageBar>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        @if (_person.TopSignalId.HasValue)
+        {
+            var topSignal = _signals.FirstOrDefault(s => s.Id == _person.TopSignalId.Value);
+            <div role="status"
+                 style="@($"background: {_person.TopSignalColor ?? "#D13438"}; color: #FFFFFF; padding: 10px 16px; border-radius: 6px; font-weight: 600;")">
+                Signal Alert: @(topSignal?.SignalTypeName ?? "Active Signal")
+                @if (!string.IsNullOrWhiteSpace(topSignal?.Note))
+                {
+                    <span> — @topSignal.Note</span>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                              AllowDismiss="true">
+                @_statusMessage
+            </FluentMessageBar>
+        }
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" Wrap="true" VerticalAlignment="VerticalAlignment.Center">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--colorBrandBackground); color: var(--colorNeutralForegroundOnBrand); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
+                    @_person.Initials
+                </div>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                    <h1 style="margin: 0;">@_person.FullName</h1>
+                    <small>
+                        @_person.ConnectionStatus · @_person.RecordStatus · @_person.Gender · @_person.AgeClassification
+                        @if (!string.IsNullOrWhiteSpace(_person.AgeFormatted))
+                        {
+                            <span> · @_person.AgeFormatted</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_person.GradeFormatted))
+                        {
+                            <span> · @_person.GradeFormatted</span>
+                        }
+                        <span> · Views: @_person.ViewedCount</span>
+                    </small>
+                    <PersonBadgeBar Badges="@_badges" />
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Contact, Phones &amp; Search Keys</h2>
+                <div>
+                    <strong>Email:</strong> @(_person.Email ?? "None")
+                    (@_person.EmailPreference)
+                </div>
+
+                <h3>Phone Numbers</h3>
+                @if (_person.PhoneNumbers.Count == 0)
+                {
+                    <p>No phone numbers recorded.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var phone in _person.PhoneNumbers)
+                        {
+                            <li @key="phone.Id">
+                                <strong>@phone.NumberType:</strong> @phone.NumberFormatted (@phone.E164Number)
+                                @(phone.IsMessagingEnabled ? "[SMS Enabled]" : "")
+                                @(phone.IsUnlisted ? "[Unlisted]" : "")
+                                <FluentButton Size="ButtonSize.Small" OnClick="@(() => RemovePhoneAsync(phone.Id))">Remove</FluentButton>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentTextInput @bind-Value="_newPhone" Label="Add Mobile Phone" Placeholder="(555) 123-4567" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddPhoneAsync">Add Phone</FluentButton>
+                </FluentStack>
+
+                @if (_person.PreviousNames.Count > 0)
+                {
+                    <div>
+                        <strong>Previous Last Names:</strong>
+                        @string.Join(", ", _person.PreviousNames.Select(static n => n.LastName))
+                    </div>
+                }
+
+                <div>
+                    <strong>Search Keys:</strong>
+                    @string.Join(" · ", _person.SearchKeys.Where(static k => !k.IsValuePrivate).Select(static k => $"{k.KeyType}: {k.SearchValue}"))
+                </div>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Households</h2>
+                @if (_households.Count == 0)
+                {
+                    <p>Not assigned to a household yet.</p>
+                }
+                else
+                {
+                    @foreach (var hh in _households)
+                    {
+                        <FluentCard @key="hh.Id" Padding="@Padding.All3">
+                            <strong>@hh.Name</strong> — <em>@hh.SalutationFull</em>
+                            <ul>
+                                @foreach (var member in hh.Members)
+                                {
+                                    <li @key="member.Id">
+                                        <a href="@($"/crm/people/{member.PersonId:D}")">@member.FullName</a> (@member.Role)
+                                    </li>
+                                }
+                            </ul>
+                        </FluentCard>
+                    }
+                }
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    <FluentTextInput @bind-Value="_newHouseholdName" Label="New Household Name" Placeholder="@($"{_person.LastName} Family")" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CreateHouseholdAsync">Create Household</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Known Relationships &amp; Apache AGE Graph</h2>
+                @if (_relationships.Count == 0)
+                {
+                    <p>No known relationships recorded.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var rel in _relationships)
+                        {
+                            <li @key="rel.Id">
+                                <strong>@rel.RelationshipType:</strong>
+                                <a href="@($"/crm/people/{rel.RelatedPersonId:D}")">@rel.RelatedPersonFullName</a>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (_graph is not null)
+                {
+                    <small>
+                        Apache AGE Graph (@(_graph.PoweredByApacheAge ? "Active" : "Fallback")):
+                        @_graph.Nodes.Count node(s), @_graph.Edges.Count edge(s) within @_graph.MaxHops hops.
+                    </small>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Signals, Assessments &amp; Background Checks</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom">
+                    @if (_signalTypes.Count > 0)
+                    {
+                        <FluentSelect TOption="SignalTypeResponse"
+                                      TValue="Guid"
+                                      Label="Add Signal"
+                                      Items="@_signalTypes"
+                                      @bind-Value="_selectedSignalTypeId"
+                                      OptionText="@(static s => s.Name)"
+                                      OptionValue="@(static s => s.Id)" />
+                        <FluentTextInput @bind-Value="_signalNote" Label="Signal Note" />
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddSignalAsync">Attach Signal</FluentButton>
+                    }
+                </FluentStack>
+
+                <h3>Assessments (@_assessments.Count)</h3>
+                <ul>
+                    @foreach (var assessment in _assessments)
+                    {
+                        <li @key="assessment.Id">
+                            <strong>@assessment.AssessmentTypeTitle</strong> — @assessment.Status
+                            @if (!string.IsNullOrWhiteSpace(assessment.SummaryText))
+                            {
+                                <span> (@assessment.SummaryText)</span>
+                            }
+                        </li>
+                    }
+                </ul>
+
+                <h3>Background Checks (@_checks.Count)</h3>
+                <ul>
+                    @foreach (var check in _checks)
+                    {
+                        <li @key="check.Id">
+                            <strong>@check.ProviderKey / @check.PackageName</strong> — @check.Recommendation (@check.Status)
+                        </li>
+                    }
+                </ul>
+                <div>
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RequestSimulatedCheckAsync">
+                        Request Standard Background Check
+                    </FluentButton>
+                </div>
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+}
+
+@code {
+    /// <summary>Gets or sets the route PersonId.</summary>
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private PersonDetailResponse? _person;
+    private List<EvaluatedPersonBadgeResponse> _badges = [];
+    private List<HouseholdResponse> _households = [];
+    private List<KnownRelationshipResponse> _relationships = [];
+    private PersonRelationshipGraphResponse? _graph;
+    private List<PersonSignalResponse> _signals = [];
+    private List<SignalTypeResponse> _signalTypes = [];
+    private List<AssessmentResponse> _assessments = [];
+    private List<BackgroundCheckResponse> _checks = [];
+    private string _newPhone = string.Empty;
+    private string _newHouseholdName = string.Empty;
+    private Guid _selectedSignalTypeId;
+    private string _signalNote = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAllAsync(recordView: true);
+    }
+
+    private async Task LoadAllAsync(bool recordView)
+    {
+        _loading = true;
+        var personResult = await QueryDispatcher.QueryAsync<GetPersonByIdQuery, PersonDetailResponse>(
+            new GetPersonByIdQuery(Id, FollowRedirects: true)
+        );
+        if (personResult.IsFailure)
+        {
+            _person = null;
+            _loading = false;
+            return;
+        }
+
+        _person = personResult.Value;
+        if (_person.Id != Id)
+        {
+            Navigation.NavigateTo($"/crm/people/{_person.Id:D}", replace: true);
+            return;
+        }
+
+        if (recordView)
+        {
+            _ = await CommandDispatcher.SendAsync<RecordPersonViewedCommand, PersonViewedResponse>(
+                new RecordPersonViewedCommand(_person.Id, Source: "Ruth.Host.PersonProfile")
+            );
+        }
+
+        await LoadRelatedSectionsAsync(_person.Id);
+        _loading = false;
+    }
+
+    private async Task LoadRelatedSectionsAsync(Guid personId)
+    {
+        var badges = await QueryDispatcher.QueryAsync<GetEvaluatedPersonBadgesQuery, IReadOnlyList<EvaluatedPersonBadgeResponse>>(
+            new GetEvaluatedPersonBadgesQuery(personId)
+        );
+        if (badges.IsSuccess)
+        {
+            _badges = [.. badges.Value];
+        }
+
+        var households = await QueryDispatcher.QueryAsync<GetPersonHouseholdsQuery, IReadOnlyList<HouseholdResponse>>(
+            new GetPersonHouseholdsQuery(personId)
+        );
+        if (households.IsSuccess)
+        {
+            _households = [.. households.Value];
+        }
+
+        var rels = await QueryDispatcher.QueryAsync<GetPersonKnownRelationshipsQuery, IReadOnlyList<KnownRelationshipResponse>>(
+            new GetPersonKnownRelationshipsQuery(personId)
+        );
+        if (rels.IsSuccess)
+        {
+            _relationships = [.. rels.Value];
+        }
+
+        var graph = await QueryDispatcher.QueryAsync<GetPersonRelationshipGraphQuery, PersonRelationshipGraphResponse>(
+            new GetPersonRelationshipGraphQuery(personId, MaxHops: 2)
+        );
+        if (graph.IsSuccess)
+        {
+            _graph = graph.Value;
+        }
+
+        var signals = await QueryDispatcher.QueryAsync<GetPersonSignalsQuery, IReadOnlyList<PersonSignalResponse>>(
+            new GetPersonSignalsQuery(personId)
+        );
+        if (signals.IsSuccess)
+        {
+            _signals = [.. signals.Value];
+        }
+
+        var signalTypes = await QueryDispatcher.QueryAsync<GetSignalTypesQuery, IReadOnlyList<SignalTypeResponse>>(
+            new GetSignalTypesQuery()
+        );
+        if (signalTypes.IsSuccess)
+        {
+            _signalTypes = [.. signalTypes.Value];
+            if (_selectedSignalTypeId == Guid.Empty && _signalTypes.Count > 0)
+            {
+                _selectedSignalTypeId = _signalTypes[0].Id;
+            }
+        }
+
+        var assessments = await QueryDispatcher.QueryAsync<GetPersonAssessmentsQuery, IReadOnlyList<AssessmentResponse>>(
+            new GetPersonAssessmentsQuery(personId)
+        );
+        if (assessments.IsSuccess)
+        {
+            _assessments = [.. assessments.Value];
+        }
+
+        var checks = await QueryDispatcher.QueryAsync<GetPersonBackgroundChecksQuery, IReadOnlyList<BackgroundCheckResponse>>(
+            new GetPersonBackgroundChecksQuery(personId)
+        );
+        if (checks.IsSuccess)
+        {
+            _checks = [.. checks.Value];
+        }
+    }
+
+    private async Task AddPhoneAsync()
+    {
+        if (_person is null || string.IsNullOrWhiteSpace(_newPhone))
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<UpsertPhoneNumberCommand, PersonDetailResponse>(
+            new UpsertPhoneNumberCommand(
+                _person.Id,
+                PhoneNumberId: null,
+                new PhoneNumberInputDto(PhoneNumberType.Mobile, _newPhone, IsMessagingEnabled: true)
+            )
+        );
+        ApplyMutationOutcome(result, "Phone number added.");
+        if (result.IsSuccess)
+        {
+            _newPhone = string.Empty;
+            await LoadAllAsync(recordView: false);
+        }
+    }
+
+    private async Task RemovePhoneAsync(Guid phoneId)
+    {
+        if (_person is null)
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<RemovePhoneNumberCommand, PersonDetailResponse>(
+            new RemovePhoneNumberCommand(_person.Id, phoneId)
+        );
+        ApplyMutationOutcome(result, "Phone number removed.");
+        if (result.IsSuccess)
+        {
+            await LoadAllAsync(recordView: false);
+        }
+    }
+
+    private async Task CreateHouseholdAsync()
+    {
+        if (_person is null)
+        {
+            return;
+        }
+
+        var name = string.IsNullOrWhiteSpace(_newHouseholdName)
+            ? $"{_person.LastName} Family"
+            : _newHouseholdName;
+        var result = await CommandDispatcher.SendAsync<CreateHouseholdCommand, HouseholdResponse>(
+            new CreateHouseholdCommand(
+                name,
+                _person.PrimaryCampusId,
+                Members: [new HouseholdMemberInputDto(_person.Id, HouseholdRole.Adult)]
+            )
+        );
+        ApplyMutationOutcome(result, $"Created household '{name}'.");
+        if (result.IsSuccess)
+        {
+            _newHouseholdName = string.Empty;
+            await LoadAllAsync(recordView: false);
+        }
+    }
+
+    private async Task AddSignalAsync()
+    {
+        if (_person is null || _selectedSignalTypeId == Guid.Empty)
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<AddPersonSignalCommand, PersonSignalResponse>(
+            new AddPersonSignalCommand(
+                _person.Id,
+                _selectedSignalTypeId,
+                _person.Id,
+                string.IsNullOrWhiteSpace(_signalNote) ? null : _signalNote
+            )
+        );
+        ApplyMutationOutcome(result, "Signal attached.");
+        if (result.IsSuccess)
+        {
+            _signalNote = string.Empty;
+            await LoadAllAsync(recordView: false);
+        }
+    }
+
+    private async Task RequestSimulatedCheckAsync()
+    {
+        if (_person is null)
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<RequestBackgroundCheckCommand, BackgroundCheckResponse>(
+            new RequestBackgroundCheckCommand(_person.Id, "in-memory", "standard-volunteer")
+        );
+        ApplyMutationOutcome(result, "Background check requested.");
+        if (result.IsSuccess)
+        {
+            await LoadAllAsync(recordView: false);
+        }
+    }
+
+    private void ApplyMutationOutcome(Ruth.SharedKernel.Results.IResult result, string successMessage)
+    {
+        _isError = result.IsFailure;
+        _statusMessage = result.IsSuccess ? successMessage : result.PrimaryError.Description;
+    }
+}

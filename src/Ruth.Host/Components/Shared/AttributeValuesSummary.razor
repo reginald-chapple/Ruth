@@ -1,0 +1,50 @@
+@if (Definitions.Count == 0 && Values.Count == 0)
+{
+    <span>—</span>
+}
+else
+{
+    <div class="ruth-attr-summary-grid">
+        @foreach (var item in BuildDisplayEntries())
+        {
+            <FluentCard @key="item.Key" Padding="@Padding.All2">
+                <div style="font-size: 0.75rem; opacity: 0.8;">@item.Label</div>
+                <div><strong>@(string.IsNullOrWhiteSpace(item.DisplayValue) ? "—" : item.DisplayValue)</strong></div>
+            </FluentCard>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Gets or sets the attribute definitions governing display labels and order.</summary>
+    [Parameter]
+    public IReadOnlyList<AttributeDefinitionResponse> Definitions { get; set; } = [];
+
+    /// <summary>Gets or sets the stored or formatted attribute values.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<string, string?> Values { get; set; } =
+        new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+    private List<(string Key, string Label, string? DisplayValue)> BuildDisplayEntries()
+    {
+        var entries = new List<(string Key, string Label, string? DisplayValue)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var def in Definitions.OrderBy(static d => d.Order))
+        {
+            _ = seen.Add(def.Key);
+            var val = Values.TryGetValue(def.Key, out var stored) ? stored : def.DefaultValue;
+            entries.Add((def.Key, def.Name, val));
+        }
+
+        foreach (var pair in Values)
+        {
+            if (seen.Add(pair.Key))
+            {
+                entries.Add((pair.Key, pair.Key, pair.Value));
+            }
+        }
+
+        return entries;
+    }
+}

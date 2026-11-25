@@ -1,0 +1,205 @@
+@page "/admin/core/defined-types/{Id:guid}"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject IDialogService DialogService
+
+<PageTitle>Defined Type Detail — Ruth RMS</PageTitle>
+
+@if (_detail is null)
+{
+    <p>Loading defined type...</p>
+}
+else
+{
+    <div class="ruth-page-header">
+        <div>
+            <h1>@_detail.Name</h1>
+            @if (!string.IsNullOrWhiteSpace(_detail.Description))
+            {
+                <p>@_detail.Description</p>
+            }
+        </div>
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@OpenSecurityAsync">
+            Security ACLs
+        </FluentButton>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                          AllowDismiss="true">
+            @_statusMessage
+        </FluentMessageBar>
+    }
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>Add Defined Value</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_newValue" Label="Value" Required="true" />
+                    <FluentTextInput @bind-Value="_newValueDescription" Label="Description" />
+                </FluentStack>
+
+                @if (_valueAttributes.Count > 0)
+                {
+                    <AttributeValuesEditor Definitions="@_valueAttributes"
+                                           FieldTypes="@_fieldTypes"
+                                           @bind-Values="_newAttributeValues"
+                                           FieldErrors="@_attributeErrors" />
+                }
+
+                <div>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@AddValueAsync">
+                        Add Value
+                    </FluentButton>
+                </div>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentDataGrid Items="@_detail.Values.AsQueryable()">
+            <PropertyColumn Property="@(static v => v.Order)" Title="Order" />
+            <PropertyColumn Property="@(static v => v.Value)" Title="Value" Sortable="true" />
+            <PropertyColumn Property="@(static v => v.Description)" Title="Description" />
+            <TemplateColumn Title="Attributes">
+                <AttributeValuesSummary Definitions="@_valueAttributes" Values="@context.Attributes" />
+            </TemplateColumn>
+            <TemplateColumn Title="Actions">
+                <FluentButton Size="ButtonSize.Small"
+                              Disabled="@context.IsSystem"
+                              OnClick="@(() => DeleteValueAsync(context.Id))">
+                    Delete
+                </FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    </FluentStack>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DefinedTypeDetailResponse? _detail;
+    private List<AttributeDefinitionResponse> _valueAttributes = [];
+    private List<FieldTypeResponse> _fieldTypes = [];
+    private Dictionary<string, string?> _newAttributeValues = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyDictionary<string, string>? _attributeErrors;
+    private string _newValue = string.Empty;
+    private string _newValueDescription = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var detailResult = await QueryDispatcher.QueryAsync<GetDefinedTypeDetailQuery, DefinedTypeDetailResponse>(
+            new GetDefinedTypeDetailQuery(Id)
+        );
+        if (detailResult.IsSuccess)
+        {
+            _detail = detailResult.Value;
+        }
+
+        var ftResult = await QueryDispatcher.QueryAsync<GetFieldTypesQuery, IReadOnlyList<FieldTypeResponse>>(
+            new GetFieldTypesQuery()
+        );
+        if (ftResult.IsSuccess)
+        {
+            _fieldTypes = [.. ftResult.Value];
+        }
+
+        var attrsResult = await QueryDispatcher.QueryAsync<GetAttributeDefinitionsQuery, IReadOnlyList<AttributeDefinitionResponse>>(
+            new GetAttributeDefinitionsQuery(EntityTypeKey: "Ruth.Core.DefinedValue", ActiveOnly: true)
+        );
+        if (attrsResult.IsSuccess)
+        {
+            _valueAttributes = [.. attrsResult.Value];
+        }
+    }
+
+    private async Task AddValueAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        _attributeErrors = null;
+
+        IReadOnlyDictionary<string, string?>? normalizedAttrs = null;
+        if (_valueAttributes.Count > 0)
+        {
+            var validation = await CommandDispatcher.SendAsync<ValidateAttributeValuesCommand, AttributeValidationResponse>(
+                new ValidateAttributeValuesCommand("Ruth.Core.DefinedValue", null, null, _newAttributeValues)
+            );
+            if (validation.IsSuccess && !validation.Value.IsValid)
+            {
+                _attributeErrors = validation.Value.FieldErrors;
+                _isError = true;
+                _statusMessage = "Fix attribute validation errors before saving.";
+                return;
+            }
+
+            normalizedAttrs = validation.IsSuccess ? validation.Value.NormalizedValues : _newAttributeValues;
+        }
+
+        var result = await CommandDispatcher.SendAsync<AddDefinedValueCommand, DefinedValueResponse>(
+            new AddDefinedValueCommand(Id, _newValue, _newValueDescription, Attributes: normalizedAttrs)
+        );
+        if (result.IsSuccess)
+        {
+            _newValue = string.Empty;
+            _newValueDescription = string.Empty;
+            _newAttributeValues = new(StringComparer.OrdinalIgnoreCase);
+            _statusMessage = $"Added value '{result.Value.Value}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteValueAsync(Guid valueId)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteDefinedValueCommand, bool>(
+            new DeleteDefinedValueCommand(Id, valueId)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Value deleted.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task OpenSecurityAsync()
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+
+        var options = new DialogOptions
+        {
+            Header = { Title = $"Security — {_detail.Name}" },
+            Size = DialogSize.Medium,
+            Modal = true,
+            Parameters = new Dictionary<string, object?>
+            {
+                [nameof(SecurityDialog.EntityTypeKey)] = "Ruth.Core.DefinedType",
+                [nameof(SecurityDialog.EntityId)] = _detail.Id,
+                [nameof(SecurityDialog.EntityDisplayName)] = _detail.Name,
+            },
+        };
+        _ = await DialogService.ShowDialogAsync<SecurityDialog>(options);
+    }
+}

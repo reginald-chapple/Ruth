@@ -1,0 +1,148 @@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    @if (Definitions.Count == 0)
+    {
+        <p>No extensible attributes are configured for this entity scope.</p>
+    }
+    else
+    {
+        @foreach (var definition in Definitions.OrderBy(static d => d.Order))
+        {
+            var currentValue = GetValue(definition);
+            var editorKind = ResolveEditorKind(definition.FieldTypeKey);
+
+            <div @key="definition.Id">
+                @if (editorKind == FieldEditorKind.Boolean)
+                {
+                    <FluentCheckbox Label="@definition.Name"
+                                    Value="@IsTrue(currentValue)"
+                                    ValueChanged="@(v => SetValueAsync(definition.Key, v ? "true" : "false"))" />
+                }
+                else if (editorKind is FieldEditorKind.MultilineText or FieldEditorKind.Json or FieldEditorKind.Code or FieldEditorKind.KeyValueList or FieldEditorKind.Matrix)
+                {
+                    <FluentTextArea Label="@FormatLabel(definition)"
+                                    Value="@currentValue"
+                                    ValueChanged="@(v => SetValueAsync(definition.Key, v))"
+                                    Rows="4"
+                                    Width="100%" />
+                }
+                else if (editorKind == FieldEditorKind.SingleSelect)
+                {
+                    var options = ParseOptions(definition.Qualifiers);
+                    <FluentSelect TOption="SelectOptionItem"
+                                  TValue="string"
+                                  Label="@FormatLabel(definition)"
+                                  Items="@options"
+                                  OptionText="@(static o => o.Label)"
+                                  OptionValue="@(static o => o.Value)"
+                                  Value="@currentValue"
+                                  ValueChanged="@(v => SetValueAsync(definition.Key, v))"
+                                  Width="100%" />
+                }
+                else
+                {
+                    <FluentTextInput Label="@FormatLabel(definition)"
+                                     TextInputType="@MapTextInputType(editorKind)"
+                                     Value="@currentValue"
+                                     ValueChanged="@(v => SetValueAsync(definition.Key, v))"
+                                     Required="@definition.IsRequired"
+                                     Width="100%" />
+                }
+
+                @if (!string.IsNullOrWhiteSpace(definition.Description))
+                {
+                    <small>@definition.Description</small>
+                }
+
+                @if (FieldErrors is not null && FieldErrors.TryGetValue(definition.Key, out var error))
+                {
+                    <div role="alert" style="color: var(--colorPaletteRedForeground1);">@error</div>
+                }
+            </div>
+        }
+    }
+</FluentStack>
+
+@code {
+    /// <summary>Gets or sets the attribute definitions to render.</summary>
+    [Parameter]
+    public IReadOnlyList<AttributeDefinitionResponse> Definitions { get; set; } = [];
+
+    /// <summary>Gets or sets the available field type metadata.</summary>
+    [Parameter]
+    public IReadOnlyList<FieldTypeResponse> FieldTypes { get; set; } = [];
+
+    /// <summary>Gets or sets the current attribute key/value map.</summary>
+    [Parameter]
+    public Dictionary<string, string?> Values { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Gets or sets the callback invoked when any attribute value changes.</summary>
+    [Parameter]
+    public EventCallback<Dictionary<string, string?>> ValuesChanged { get; set; }
+
+    /// <summary>Gets or sets optional per-key validation error messages.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? FieldErrors { get; set; }
+
+    private string GetValue(AttributeDefinitionResponse definition)
+    {
+        return Values.TryGetValue(definition.Key, out var value)
+            ? value ?? string.Empty
+            : definition.DefaultValue ?? string.Empty;
+    }
+
+    private async Task SetValueAsync(string key, string? value)
+    {
+        Values[key] = value;
+        await ValuesChanged.InvokeAsync(Values);
+    }
+
+    private FieldEditorKind ResolveEditorKind(string fieldTypeKey)
+    {
+        var match = FieldTypes.FirstOrDefault(f =>
+            string.Equals(f.Key, fieldTypeKey, StringComparison.OrdinalIgnoreCase)
+        );
+        return match?.EditorKind ?? FieldEditorKind.Text;
+    }
+
+    private static TextInputType MapTextInputType(FieldEditorKind kind)
+    {
+        return kind switch
+        {
+            FieldEditorKind.Email => TextInputType.Email,
+            FieldEditorKind.Url => TextInputType.Url,
+            FieldEditorKind.Phone => TextInputType.Telephone,
+            _ => TextInputType.Text,
+        };
+    }
+
+    private static string FormatLabel(AttributeDefinitionResponse definition)
+    {
+        return definition.IsRequired ? $"{definition.Name} *" : definition.Name;
+    }
+
+    private static bool IsTrue(string value)
+    {
+        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<SelectOptionItem> ParseOptions(IReadOnlyDictionary<string, string> qualifiers)
+    {
+        var list = new List<SelectOptionItem> { new(string.Empty, "-- Select --") };
+        if (!qualifiers.TryGetValue("values", out var raw) || string.IsNullOrWhiteSpace(raw))
+        {
+            return list;
+        }
+
+        foreach (var token in raw.Split([',', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = token.Split('^', count: 2);
+            var val = parts[0].Trim();
+            var label = parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1]) ? parts[1].Trim() : val;
+            list.Add(new SelectOptionItem(val, label));
+        }
+
+        return list;
+    }
+
+    private sealed record SelectOptionItem(string Value, string Label);
+}

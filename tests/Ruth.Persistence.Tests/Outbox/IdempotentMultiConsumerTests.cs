@@ -45,7 +45,7 @@ public sealed class IdempotentMultiConsumerTests(Postgres18ContainerFixture fixt
             .GetRequiredService<OutboxDispatcherService>()
             .ProcessPendingOnceAsync();
 
-        await Task.Delay(TimeSpan.FromMilliseconds(150));
+        await Task.Delay(TimeSpan.FromMilliseconds(150), TimeProvider.System);
         Assert.Equal(1, counters.ConsumerACount);
 
         _ = gate1.ReleaseA.TrySetResult();
@@ -225,16 +225,25 @@ public sealed class IdempotentMultiConsumerTests(Postgres18ContainerFixture fixt
         public int ConsumerACount => Volatile.Read(ref _consumerA);
         public int ConsumerBCount => Volatile.Read(ref _consumerB);
 
-        public void IncrementA() => _ = Interlocked.Increment(ref _consumerA);
+        public void IncrementA()
+        {
+            _ = Interlocked.Increment(ref _consumerA);
+        }
 
-        public void IncrementB() => _ = Interlocked.Increment(ref _consumerB);
+        public void IncrementB()
+        {
+            _ = Interlocked.Increment(ref _consumerB);
+        }
     }
 
     private sealed class FlakyFailureState(bool failFirstAttempt)
     {
         private int _shouldFail = failFirstAttempt ? 1 : 0;
 
-        public bool ConsumeFailure() => Interlocked.Exchange(ref _shouldFail, 0) == 1;
+        public bool ConsumeFailure()
+        {
+            return Interlocked.Exchange(ref _shouldFail, 0) == 1;
+        }
     }
 
     private sealed record ModifyRaceTarget(TestWidgetId WidgetId);

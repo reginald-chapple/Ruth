@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Identity.Domain;
 
-/// <summary>Minimal administrator user account aggregate for Wave 0 initial setup.</summary>
+/// <summary>User account aggregate governing credentials, lockout state, and security role membership.</summary>
 public sealed class UserAccount
     : AggregateRoot<UserAccountId>,
         IAuditableEntity,
@@ -19,6 +19,7 @@ public sealed class UserAccount
         string email,
         string displayName,
         string passwordHash,
+        bool isConfirmed,
         DateTimeOffset createdOnUtc
     )
         : base(id)
@@ -29,7 +30,8 @@ public sealed class UserAccount
         NormalizedEmail = email.ToUpperInvariant();
         DisplayName = displayName;
         PasswordHash = passwordHash;
-        IsConfirmed = true;
+        IsConfirmed = isConfirmed;
+        IsActive = true;
         IsLockedOut = false;
         LastPasswordChangedOnUtc = createdOnUtc.ToUniversalTime();
     }
@@ -55,8 +57,29 @@ public sealed class UserAccount
     /// <summary>Gets a value indicating whether the account is confirmed.</summary>
     public bool IsConfirmed { get; private set; }
 
+    /// <summary>Gets a value indicating whether the account is active.</summary>
+    public bool IsActive { get; private set; } = true;
+
     /// <summary>Gets a value indicating whether the account is locked out.</summary>
     public bool IsLockedOut { get; private set; }
+
+    /// <summary>Gets a value indicating whether the user must change their password on next login.</summary>
+    public bool IsPasswordChangeRequired { get; private set; }
+
+    /// <summary>Gets the UTC timestamp until which automatic lockout remains in effect.</summary>
+    public DateTimeOffset? LockedOutUntilOnUtc { get; private set; }
+
+    /// <summary>Gets the number of consecutive failed password attempts in the current window.</summary>
+    public int FailedPasswordAttemptCount { get; private set; }
+
+    /// <summary>Gets the UTC start timestamp of the failed password attempt window.</summary>
+    public DateTimeOffset? FailedPasswordAttemptWindowStartOnUtc { get; private set; }
+
+    /// <summary>Gets the UTC timestamp of the most recent successful login.</summary>
+    public DateTimeOffset? LastLoginOnUtc { get; private set; }
+
+    /// <summary>Gets the UTC timestamp of the most recent account activity.</summary>
+    public DateTimeOffset? LastActivityOnUtc { get; private set; }
 
     /// <summary>Gets the UTC timestamp when the password was last changed.</summary>
     public DateTimeOffset? LastPasswordChangedOnUtc { get; private set; }
@@ -79,6 +102,33 @@ public sealed class UserAccount
         string email,
         string displayName,
         string passwordHash,
+        DateTimeOffset createdOnUtc
+    )
+    {
+        var result = Create(
+            userName,
+            email,
+            displayName,
+            passwordHash,
+            isConfirmed: true,
+            createdOnUtc
+        );
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        _ = result.Value.AddRole(SecurityRole.AdministratorsRoleId);
+        return result;
+    }
+
+    /// <summary>Creates a validated user account.</summary>
+    public static Result<UserAccount> Create(
+        string userName,
+        string email,
+        string displayName,
+        string passwordHash,
+        bool isConfirmed,
         DateTimeOffset createdOnUtc
     )
     {
@@ -105,21 +155,115 @@ public sealed class UserAccount
             displayNameResult,
             hashValidation
         );
-        if (combined.IsFailure)
+        return combined.IsFailure
+            ? Result.Failure<UserAccount>(combined.Errors)
+            : new UserAccount(
+                UserAccountId.Create(),
+                userNameResult.Value,
+                emailResult.Value,
+                displayNameResult.Value,
+                passwordHash.Trim(),
+                isConfirmed,
+                createdOnUtc
+            );
+    }
+
+    /// <summary>Evaluates whether the account is currently locked out at <paramref name="utcNow" />.</summary>
+    public bool IsCurrentlyLockedOut(DateTimeOffset utcNow)
+    {
+        return IsLockedOut
+            && (
+                !LockedOutUntilOnUtc.HasValue
+                || LockedOutUntilOnUtc.Value > utcNow.ToUniversalTime()
+            );
+    }
+
+    /// <summary>Records a successful authentication, clearing failed attempts and expired lockouts.</summary>
+    public void RecordSuccessfulLogin(DateTimeOffset utcNow)
+    {
+        var now = utcNow.ToUniversalTime();
+        LastLoginOnUtc = now;
+        LastActivityOnUtc = now;
+        FailedPasswordAttemptCount = 0;
+        FailedPasswordAttemptWindowStartOnUtc = null;
+        IsLockedOut = false;
+        LockedOutUntilOnUtc = null;
+    }
+
+    /// <summary>Records a failed password login attempt and applies lockout when the threshold is reached.</summary>
+    public void RecordFailedLogin(
+        DateTimeOffset utcNow,
+        int maxAttempts = AuthenticationPolicy.MaxFailedPasswordAttempts,
+        TimeSpan? attemptWindow = null,
+        TimeSpan? lockoutDuration = null
+    )
+    {
+        var now = utcNow.ToUniversalTime();
+        var window = attemptWindow ?? AuthenticationPolicy.FailedAttemptWindow;
+        var duration = lockoutDuration ?? AuthenticationPolicy.LockoutDuration;
+
+        if (
+            !FailedPasswordAttemptWindowStartOnUtc.HasValue
+            || (now - FailedPasswordAttemptWindowStartOnUtc.Value) > window
+        )
         {
-            return Result.Failure<UserAccount>(combined.Errors);
+            FailedPasswordAttemptWindowStartOnUtc = now;
+            FailedPasswordAttemptCount = 1;
+        }
+        else
+        {
+            FailedPasswordAttemptCount++;
         }
 
-        var account = new UserAccount(
-            UserAccountId.Create(),
-            userNameResult.Value,
-            emailResult.Value,
-            displayNameResult.Value,
-            passwordHash.Trim(),
-            createdOnUtc
-        );
-        _ = account.AddRole(SecurityRole.AdministratorsRoleId);
-        return account;
+        if (FailedPasswordAttemptCount >= maxAttempts)
+        {
+            IsLockedOut = true;
+            LockedOutUntilOnUtc = now.Add(duration);
+        }
+    }
+
+    /// <summary>Updates the account password hash and clears lockout / required password change flags.</summary>
+    public Result ChangePassword(string newPasswordHash, DateTimeOffset changedOnUtc)
+    {
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
+        {
+            return IdentityErrors.PasswordHashRequired;
+        }
+
+        var now = changedOnUtc.ToUniversalTime();
+        PasswordHash = newPasswordHash.Trim();
+        LastPasswordChangedOnUtc = now;
+        LastActivityOnUtc = now;
+        IsPasswordChangeRequired = false;
+        Unlock();
+        return Result.Success();
+    }
+
+    /// <summary>Marks the user account as confirmed.</summary>
+    public void ConfirmAccount()
+    {
+        IsConfirmed = true;
+    }
+
+    /// <summary>Unlocks the account and resets failed password attempt counters.</summary>
+    public void Unlock()
+    {
+        IsLockedOut = false;
+        LockedOutUntilOnUtc = null;
+        FailedPasswordAttemptCount = 0;
+        FailedPasswordAttemptWindowStartOnUtc = null;
+    }
+
+    /// <summary>Updates whether this account is active.</summary>
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+    }
+
+    /// <summary>Sets whether a password change is required at next sign-in.</summary>
+    public void SetPasswordChangeRequired(bool required)
+    {
+        IsPasswordChangeRequired = required;
     }
 
     /// <summary>Assigns a security role to this account unless already assigned.</summary>
@@ -136,6 +280,19 @@ public sealed class UserAccount
         }
 
         _roles.Add(new UserRole(Id, roleId));
+        return Result.Success();
+    }
+
+    /// <summary>Removes a security role assignment from this account.</summary>
+    public Result RemoveRole(SecurityRoleId roleId)
+    {
+        var index = _roles.FindIndex(role => role.SecurityRoleId == roleId);
+        if (index < 0)
+        {
+            return IdentityErrors.RoleNotAssigned;
+        }
+
+        _roles.RemoveAt(index);
         return Result.Success();
     }
 

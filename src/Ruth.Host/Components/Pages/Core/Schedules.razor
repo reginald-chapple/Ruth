@@ -1,0 +1,135 @@
+@page "/admin/core/schedules"
+@using System.Globalization
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject IDialogService DialogService
+
+<PageTitle>Schedules — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Schedules &amp; iCalendar Recurrence</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Schedule</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Schedule Name" Placeholder="Sunday 9:00 AM" />
+                <FluentTextInput @bind-Value="_checkInStartOffset" Label="Check-In Start Offset (min)" Placeholder="60" />
+                <FluentTextInput @bind-Value="_checkInEndOffset" Label="Check-In End Offset (min)" Placeholder="30" />
+            </FluentStack>
+            <FluentTextArea @bind-Value="_icalContent" Label="RFC 5545 iCalendar Content" />
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@OpenBuilderAsync">
+                    Open Schedule Builder
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Save Schedule
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_schedules.AsQueryable()">
+        <PropertyColumn Property="@(static s => s.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static s => s.FriendlyText)" Title="Recurrence" />
+        <PropertyColumn Property="@(static s => s.DurationMinutes)" Title="Duration (min)" />
+        <PropertyColumn Property="@(static s => s.IsActive)" Title="Active" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small" OnClick="@(() => DeleteAsync(context.Id))">
+                Delete
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<ScheduleResponse> _schedules = [];
+    private string _name = string.Empty;
+    private string _checkInStartOffset = "60";
+    private string _checkInEndOffset = "30";
+    private string _icalContent = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetSchedulesQuery, IReadOnlyList<ScheduleResponse>>(
+            new GetSchedulesQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _schedules = [.. result.Value];
+        }
+    }
+
+    private async Task OpenBuilderAsync()
+    {
+        var options = new DialogOptions
+        {
+            Header = { Title = "Schedule Builder" },
+            Size = DialogSize.Medium,
+            Modal = true,
+        };
+        var result = await DialogService.ShowDialogAsync<ScheduleBuilderDialog>(options);
+        if (!result.Cancelled && result.Value is string ical)
+        {
+            _icalContent = ical;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        int? startOffset = int.TryParse(_checkInStartOffset, NumberStyles.Integer, CultureInfo.InvariantCulture, out var s) ? s : null;
+        int? endOffset = int.TryParse(_checkInEndOffset, NumberStyles.Integer, CultureInfo.InvariantCulture, out var e) ? e : null;
+
+        var result = await CommandDispatcher.SendAsync<CreateScheduleCommand, ScheduleResponse>(
+            new CreateScheduleCommand(
+                Name: string.IsNullOrWhiteSpace(_name) ? null : _name,
+                ICalendarContent: string.IsNullOrWhiteSpace(_icalContent) ? null : _icalContent,
+                CheckInStartOffsetMinutes: startOffset,
+                CheckInEndOffsetMinutes: endOffset
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _icalContent = string.Empty;
+            _statusMessage = $"Saved schedule '{result.Value.Name ?? result.Value.FriendlyText}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var result = await CommandDispatcher.SendAsync<DeleteScheduleCommand, bool>(
+            new DeleteScheduleCommand(id)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Schedule deleted.";
+            await LoadAsync();
+        }
+    }
+}

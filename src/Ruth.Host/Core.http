@@ -1,0 +1,187 @@
+@baseUrl = http://localhost:5000
+@accessToken = replace-with-jwt-access-token
+@definedTypeId = 00000000-0000-0000-0000-000000000000
+@entityTypeId = 6d902c01-8599-4b22-a711-5b1d90020003
+
+### List compile-time registered entity types
+GET {{baseUrl}}/api/core/entity-types
+Authorization: Bearer {{accessToken}}
+
+### List all 25 built-in modular FieldType plugins
+GET {{baseUrl}}/api/core/field-types
+Authorization: Bearer {{accessToken}}
+
+### List DefinedTypes
+GET {{baseUrl}}/api/core/defined-types
+Authorization: Bearer {{accessToken}}
+
+### Create a DefinedType
+POST {{baseUrl}}/api/core/defined-types
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Shirt Sizes",
+  "description": "Standard volunteer apparel sizes",
+  "order": 0
+}
+
+### Add a DefinedValue with JSONB attributes
+POST {{baseUrl}}/api/core/defined-types/{{definedTypeId}}/values
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "definedTypeId": "{{definedTypeId}}",
+  "value": "Large",
+  "description": "Adult Large",
+  "attributes": {
+    "skuPrefix": "LG",
+    "inStock": "true"
+  }
+}
+
+### Query DefinedValues by JSONB attribute (GIN containment)
+GET {{baseUrl}}/api/core/defined-types/{{definedTypeId}}/values/by-attribute?key=skuPrefix&value=LG
+Authorization: Bearer {{accessToken}}
+
+### Get recursive category tree
+GET {{baseUrl}}/api/core/categories/tree?entityTypeKey=Ruth.Core.DefinedType
+Authorization: Bearer {{accessToken}}
+
+### Create a category
+POST {{baseUrl}}/api/core/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "entityTypeId": "{{entityTypeId}}",
+  "name": "Ministry Lookups",
+  "description": "Categories for ministry DefinedTypes",
+  "highlightColor": "#2563EB"
+}
+
+### List attribute definitions
+GET {{baseUrl}}/api/core/attributes
+Authorization: Bearer {{accessToken}}
+
+### Create an attribute definition
+POST {{baseUrl}}/api/core/attributes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "entityTypeId": "{{entityTypeId}}",
+  "key": "skuPrefix",
+  "name": "SKU Prefix",
+  "fieldTypeKey": "text",
+  "isRequired": false,
+  "isGridColumn": true,
+  "qualifiers": {
+    "maxLength": "10"
+  }
+}
+
+### List attribute matrix templates
+GET {{baseUrl}}/api/core/attribute-matrices
+Authorization: Bearer {{accessToken}}
+
+### Create an attribute matrix template
+POST {{baseUrl}}/api/core/attribute-matrices
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Emergency Contacts",
+  "description": "Structured emergency contact rows",
+  "minimumRows": 1,
+  "maximumRows": 5,
+  "columns": [
+    {
+      "key": "contactName",
+      "name": "Contact Name",
+      "fieldTypeKey": "text",
+      "isRequired": true,
+      "order": 0
+    },
+    {
+      "key": "phone",
+      "name": "Phone",
+      "fieldTypeKey": "phone",
+      "isRequired": true,
+      "order": 1
+    }
+  ]
+}
+
+
+### --- W1-S5: Campuses, PostGIS Locations & Devices ---
+
+### Create a PostGIS Location with coordinates and geofence
+POST {{baseUrl}}/api/core/locations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Main Campus Building",
+  "address": {
+    "street1": "3120 E Cholla St",
+    "city": "Phoenix",
+    "state": "AZ",
+    "postalCode": "85028",
+    "country": "US"
+  },
+  "geoPoint": { "latitude": 33.5898, "longitude": -112.0132 },
+  "softRoomThreshold": 40,
+  "firmRoomThreshold": 50
+}
+
+### Search locations within 5km radius via PostGIS
+GET {{baseUrl}}/api/core/locations/within-radius?latitude=33.59&longitude=-112.01&radiusMeters=5000
+Authorization: Bearer {{accessToken}}
+
+### List campuses
+GET {{baseUrl}}/api/core/campuses
+Authorization: Bearer {{accessToken}}
+
+### List physical devices
+GET {{baseUrl}}/api/core/devices
+Authorization: Bearer {{accessToken}}
+
+### --- W1-S6: Schedules & iCalendar Recurrence ---
+
+### Create a weekly Sunday service schedule
+POST {{baseUrl}}/api/core/schedules
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Sunday 9:00 AM Service",
+  "iCalendarContent": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;TZID=America/Denver:20261129T090000\nDTEND;TZID=America/Denver:20261129T101500\nRRULE:FREQ=WEEKLY;BYDAY=SU\nEND:VEVENT\nEND:VCALENDAR",
+  "checkInStartOffsetMinutes": 60,
+  "checkInEndOffsetMinutes": 30
+}
+
+### --- W1-S7: BinaryFiles, Documents & Electronic Signatures ---
+
+### List binary file types
+GET {{baseUrl}}/api/core/binary-file-types
+Authorization: Bearer {{accessToken}}
+
+### List signature document templates
+GET {{baseUrl}}/api/core/signatures/templates
+Authorization: Bearer {{accessToken}}
+
+### --- W1-S8: History, Notes, Tags, EntitySets & Preferences ---
+
+### Query structured history timeline
+GET {{baseUrl}}/api/core/history?maxResults=25
+Authorization: Bearer {{accessToken}}
+
+### List tags
+GET {{baseUrl}}/api/core/tags
+Authorization: Bearer {{accessToken}}
+
+### List active entity sets
+GET {{baseUrl}}/api/core/entity-sets
+Authorization: Bearer {{accessToken}}

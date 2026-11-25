@@ -1,0 +1,102 @@
+@baseUrl = http://localhost:5000
+@accessToken = replace-with-admin-jwt-access-token
+@roleId = 00000000-0000-0000-0000-000000000000
+@userId = 00000000-0000-0000-0000-000000000000
+@apiKeyId = 00000000-0000-0000-0000-000000000000
+
+### List security roles
+GET {{baseUrl}}/api/security/roles
+Authorization: Bearer {{accessToken}}
+
+### Create a custom security role
+POST {{baseUrl}}/api/security/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Finance Team",
+  "description": "Staff authorized to view and manage financial batches"
+}
+
+### Assign user to security role
+POST {{baseUrl}}/api/security/roles/{{roleId}}/members/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### Get entity ACL rules
+GET {{baseUrl}}/api/security/acl?entityTypeKey=Ruth.Security.GlobalDefault&action=View
+Authorization: Bearer {{accessToken}}
+
+### Save entity ACL rules
+PUT {{baseUrl}}/api/security/acl
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "entityTypeKey": "Ruth.Core.DefinedType",
+  "entityId": "00000000-0000-0000-0000-000000000000",
+  "action": "Edit",
+  "rules": [
+    {
+      "decision": "Allow",
+      "specialRole": "AllAuthenticatedUsers"
+    }
+  ]
+}
+
+### Verify entity authorization with inheritance trace
+GET {{baseUrl}}/api/security/verify?entityTypeKey=Ruth.Core.DefinedType&action=View
+Authorization: Bearer {{accessToken}}
+
+### Get ACL audit logs
+GET {{baseUrl}}/api/security/audit-logs?maxCount=50
+Authorization: Bearer {{accessToken}}
+
+### Create a REST API key
+POST {{baseUrl}}/api/security/api-keys
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "CI Sync Integration",
+  "description": "Service key for automated sync"
+}
+
+### List REST API keys
+GET {{baseUrl}}/api/security/api-keys
+Authorization: Bearer {{accessToken}}
+
+### Revoke a REST API key
+DELETE {{baseUrl}}/api/security/api-keys/{{apiKeyId}}
+Authorization: Bearer {{accessToken}}
+
+### List OAuth/OIDC clients
+GET {{baseUrl}}/api/security/clients
+Authorization: Bearer {{accessToken}}
+
+### Register an OAuth/OIDC client
+POST {{baseUrl}}/api/security/clients
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Ruth Mobile App",
+  "clientId": "ruth-mobile",
+  "redirectUri": "ruth://callback",
+  "postLogoutRedirectUri": "ruth://logout",
+  "allowedScopes": "openid profile email",
+  "allowUserApiAccess": true
+}
+
+### List OAuth/OIDC scopes
+GET {{baseUrl}}/api/security/scopes
+Authorization: Bearer {{accessToken}}
+
+### Create an OAuth/OIDC scope
+POST {{baseUrl}}/api/security/scopes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "crm.read",
+  "publicName": "Read CRM Profiles"
+}

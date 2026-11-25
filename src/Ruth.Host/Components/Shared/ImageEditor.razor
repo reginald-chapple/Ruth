@@ -1,0 +1,112 @@
+@using System.Globalization
+@inject ICommandDispatcher CommandDispatcher
+
+<FluentCard Padding="@Padding.All3">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <strong>Image Crop &amp; Avatar Resize</strong>
+        @if (BinaryFileId == Guid.Empty)
+        {
+            <p>Select an uploaded image file to crop or resize.</p>
+        }
+        else
+        {
+            <img src="@($"/api/core/files/{BinaryFileId:D}/content?v={_cacheBuster}")"
+                 alt="Selected binary image preview"
+                 style="max-width: 240px; max-height: 240px; border: 1px solid var(--colorNeutralStroke1);" />
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_x" Label="Crop X" />
+                <FluentTextInput @bind-Value="_y" Label="Crop Y" />
+                <FluentTextInput @bind-Value="_width" Label="Crop Width" />
+                <FluentTextInput @bind-Value="_height" Label="Crop Height" />
+                <FluentTextInput @bind-Value="_targetSize" Label="Avatar Size (px)" />
+                <FluentCheckbox @bind-Value="_createCopy" Label="Save as Copy" />
+            </FluentStack>
+
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Disabled="@_isWorking"
+                              OnClick="@ApplyCropAsync">
+                    Apply Crop
+                </FluentButton>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                              AllowDismiss="true">
+                @_statusMessage
+            </FluentMessageBar>
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private string _x = "0";
+    private string _y = "0";
+    private string _width = "128";
+    private string _height = "128";
+    private string _targetSize = "128";
+    private bool _createCopy;
+    private bool _isWorking;
+    private int _cacheBuster;
+    private string? _statusMessage;
+    private bool _isError;
+
+    /// <summary>Gets or sets the image binary file identifier being edited.</summary>
+    [Parameter]
+    public Guid BinaryFileId { get; set; }
+
+    /// <summary>Gets or sets the callback invoked when cropping completes.</summary>
+    [Parameter]
+    public EventCallback<BinaryFileResponse> OnCropped { get; set; }
+
+    private async Task ApplyCropAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (
+            !int.TryParse(_x, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
+            || !int.TryParse(_y, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
+            || !int.TryParse(_width, NumberStyles.Integer, CultureInfo.InvariantCulture, out var w)
+            || !int.TryParse(_height, NumberStyles.Integer, CultureInfo.InvariantCulture, out var h)
+        )
+        {
+            _isError = true;
+            _statusMessage = "Enter valid integer coordinates and dimensions.";
+            return;
+        }
+
+        int? target = int.TryParse(_targetSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
+            ? parsed
+            : null;
+
+        _isWorking = true;
+        try
+        {
+            var result = await CommandDispatcher.SendAsync<CropBinaryFileImageCommand, BinaryFileResponse>(
+                new CropBinaryFileImageCommand(
+                    BinaryFileId,
+                    new ImageCropRequest(x, y, w, h, target, target),
+                    _createCopy
+                )
+            );
+            if (result.IsSuccess)
+            {
+                _cacheBuster++;
+                _statusMessage = $"Cropped image saved ({result.Value.Width}x{result.Value.Height}).";
+                await OnCropped.InvokeAsync(result.Value);
+            }
+            else
+            {
+                _isError = true;
+                _statusMessage = result.PrimaryError.Description;
+            }
+        }
+        finally
+        {
+            _isWorking = false;
+        }
+    }
+}

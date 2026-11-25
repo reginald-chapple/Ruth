@@ -6,10 +6,12 @@
     "lint:js": "biome check --no-errors-on-unmatched src",
     "format:js": "biome check --write --no-errors-on-unmatched src",
     "lint:css": "stylelint \"src/**/*.{css,scss}\" --allow-empty-input",
-    "fix:css": "stylelint \"src/**/*.{css,scss}\" --fix --allow-empty-input"
+    "fix:css": "stylelint \"src/**/*.{css,scss}\" --fix --allow-empty-input",
+    "audit:web": "hint"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
+    "hint": "^7.1.13",
     "stylelint": "18.1.0",
     "stylelint-config-standard": "41.1.0"
   }

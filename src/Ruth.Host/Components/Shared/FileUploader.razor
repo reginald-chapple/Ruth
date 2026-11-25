@@ -1,0 +1,93 @@
+@inject ICommandDispatcher CommandDispatcher
+
+<FluentCard Padding="@Padding.All3">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <strong>@Label</strong>
+        <InputFile OnChange="@HandleFileSelectedAsync" accept="@Accept" />
+        @if (_isUploading)
+        {
+            <FluentProgressBar />
+        }
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                              AllowDismiss="true">
+                @_statusMessage
+            </FluentMessageBar>
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private bool _isUploading;
+    private string? _statusMessage;
+    private bool _isError;
+
+    /// <summary>Gets or sets the target binary file type identifier.</summary>
+    [Parameter]
+    public Guid BinaryFileTypeId { get; set; }
+
+    /// <summary>Gets or sets the uploader label.</summary>
+    [Parameter]
+    public string Label { get; set; } = "Upload File";
+
+    /// <summary>Gets or sets the HTML file input accept filter.</summary>
+    [Parameter]
+    public string? Accept { get; set; }
+
+    /// <summary>Gets or sets the maximum allowed upload size in bytes.</summary>
+    [Parameter]
+    public long MaxFileSizeBytes { get; set; } = 10 * 1024 * 1024;
+
+    /// <summary>Gets or sets whether uploaded files start as temporary.</summary>
+    [Parameter]
+    public bool IsTemporary { get; set; } = true;
+
+    /// <summary>Gets or sets the callback invoked when upload succeeds.</summary>
+    [Parameter]
+    public EventCallback<BinaryFileResponse> OnUploaded { get; set; }
+
+    private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args)
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (BinaryFileTypeId == Guid.Empty)
+        {
+            _isError = true;
+            _statusMessage = "Select a Binary File Type before uploading.";
+            return;
+        }
+
+        _isUploading = true;
+        try
+        {
+            var browserFile = args.File;
+            await using var stream = browserFile.OpenReadStream(MaxFileSizeBytes);
+            var result = await CommandDispatcher.SendAsync<UploadBinaryFileCommand, BinaryFileResponse>(
+                new UploadBinaryFileCommand(
+                    BinaryFileTypeId,
+                    browserFile.Name,
+                    string.IsNullOrWhiteSpace(browserFile.ContentType)
+                        ? "application/octet-stream"
+                        : browserFile.ContentType,
+                    stream,
+                    IsTemporary
+                )
+            );
+            if (result.IsSuccess)
+            {
+                _statusMessage = $"Uploaded '{result.Value.FileName}' ({result.Value.FileSize} bytes).";
+                await OnUploaded.InvokeAsync(result.Value);
+            }
+            else
+            {
+                _isError = true;
+                _statusMessage = result.PrimaryError.Description;
+            }
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+}

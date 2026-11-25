@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ruth.Modules.Identity.Contracts.Onboarding;
+using Ruth.Modules.Identity.Contracts.Security;
 using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
+using Ruth.Modules.Identity.Infrastructure.Security;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Slices.Onboarding;
@@ -13,7 +16,8 @@ internal sealed class CompleteOnboardingCommandHandler(
     IdentityDbContext dbContext,
     IPasswordHashingService passwordHashingService,
     IClock clock,
-    IOnboardingStateReader stateReader
+    IOnboardingStateReader stateReader,
+    IAclSnapshotCache? aclSnapshotCache = null
 ) : ICommandHandler<CompleteOnboardingCommand, CompleteOnboardingResponse>
 {
     private readonly IdentityDbContext _dbContext = dbContext
@@ -84,6 +88,7 @@ internal sealed class CompleteOnboardingCommandHandler(
         if (existingRole is null)
         {
             _ = _dbContext.SecurityRoles.Add(SecurityRole.CreateSystemAdministrators());
+            SeedAdministratorDefaultAclRules();
         }
 
         _ = _dbContext.UserAccounts.Add(admin);
@@ -100,12 +105,46 @@ internal sealed class CompleteOnboardingCommandHandler(
         }
 
         _stateReader.InvalidateCache();
+        if (aclSnapshotCache is not null)
+        {
+            await aclSnapshotCache.InvalidateAsync(cancellationToken);
+        }
 
         return new CompleteOnboardingResponse(
             organization.Id.Value,
             admin.Id.Value,
             organization.CompletedOnUtc
         );
+    }
+
+    private void SeedAdministratorDefaultAclRules()
+    {
+        string[] actions =
+        [
+            AuthorizationActions.View,
+            AuthorizationActions.Edit,
+            AuthorizationActions.Delete,
+            AuthorizationActions.Administrate,
+            AuthorizationActions.Approve,
+            AuthorizationActions.Tag,
+        ];
+
+        foreach (var action in actions)
+        {
+            var rule = EntityAclRule.Create(
+                GlobalDefaultSecured.TypeKey,
+                Guid.Empty,
+                action,
+                order: 0,
+                AclRuleDecision.Allow,
+                SpecialRoleType.None,
+                SecurityRole.AdministratorsRoleId
+            );
+            if (rule.IsSuccess)
+            {
+                _ = _dbContext.EntityAclRules.Add(rule.Value);
+            }
+        }
     }
 
     private static bool IsUniqueConstraintViolation(DbUpdateException exception)

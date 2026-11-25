@@ -1,0 +1,200 @@
+@page "/admin/core/categories"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+@inject IDialogService DialogService
+
+<PageTitle>Categories — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Hierarchical Categories</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentSelect TOption="EntityTypeResponse"
+                          TValue="string"
+                          Label="Entity Type"
+                          Items="@_entityTypes"
+                          OptionText="@(static e => $"{e.FriendlyName} ({e.ModuleName})")"
+                          OptionValue="@(static e => e.Id.ToString("D"))"
+                          Value="@_selectedEntityTypeId"
+                          ValueChanged="@OnEntityTypeChangedAsync" />
+
+            <FluentTextInput @bind-Value="_newName" Label="New Category Name" Placeholder="e.g., Core Lookups" />
+            <FluentTextInput @bind-Value="_newColor" Label="Highlight Color" Placeholder="#2563EB" />
+
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateRootCategoryAsync">
+                Add Root Category
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        @if (_tree.Count == 0)
+        {
+            <p>No categories found for the selected entity type.</p>
+        }
+        else
+        {
+            @foreach (var node in _tree)
+            {
+                @RenderNode(node)
+            }
+        }
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private List<EntityTypeResponse> _entityTypes = [];
+    private List<CategoryTreeNodeResponse> _tree = [];
+    private string _selectedEntityTypeId = string.Empty;
+    private string _newName = string.Empty;
+    private string _newColor = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var typesResult = await QueryDispatcher.QueryAsync<GetEntityTypesQuery, IReadOnlyList<EntityTypeResponse>>(
+            new GetEntityTypesQuery()
+        );
+        if (typesResult.IsSuccess)
+        {
+            _entityTypes = [.. typesResult.Value];
+            _selectedEntityTypeId = _entityTypes.FirstOrDefault()?.Id.ToString("D") ?? string.Empty;
+            await LoadTreeAsync();
+        }
+    }
+
+    private async Task OnEntityTypeChangedAsync(string value)
+    {
+        _selectedEntityTypeId = value;
+        await LoadTreeAsync();
+    }
+
+    private async Task LoadTreeAsync()
+    {
+        if (!Guid.TryParse(_selectedEntityTypeId, out var entityTypeId))
+        {
+            _tree = [];
+            return;
+        }
+
+        var result = await QueryDispatcher.QueryAsync<GetCategoryTreeQuery, IReadOnlyList<CategoryTreeNodeResponse>>(
+            new GetCategoryTreeQuery(EntityTypeId: entityTypeId)
+        );
+        if (result.IsSuccess)
+        {
+            _tree = [.. result.Value];
+        }
+    }
+
+    private async Task CreateRootCategoryAsync()
+    {
+        await CreateCategoryAsync(parentId: null);
+    }
+
+    private async Task CreateCategoryAsync(Guid? parentId)
+    {
+        _statusMessage = null;
+        _isError = false;
+        if (!Guid.TryParse(_selectedEntityTypeId, out var entityTypeId))
+        {
+            return;
+        }
+
+        var result = await CommandDispatcher.SendAsync<CreateCategoryCommand, CategoryResponse>(
+            new CreateCategoryCommand(
+                entityTypeId,
+                _newName,
+                parentId,
+                HighlightColor: string.IsNullOrWhiteSpace(_newColor) ? null : _newColor
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _newName = string.Empty;
+            _statusMessage = $"Created category '{result.Value.Name}'.";
+            await LoadTreeAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteCategoryAsync(Guid id)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteCategoryCommand, bool>(
+            new DeleteCategoryCommand(id)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Category deleted.";
+            await LoadTreeAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task OpenSecurityAsync(CategoryTreeNodeResponse node)
+    {
+        var options = new DialogOptions
+        {
+            Header = { Title = $"Security — {node.Name}" },
+            Size = DialogSize.Medium,
+            Modal = true,
+            Parameters = new Dictionary<string, object?>
+            {
+                [nameof(SecurityDialog.EntityTypeKey)] = "Ruth.Core.Category",
+                [nameof(SecurityDialog.EntityId)] = node.Id,
+                [nameof(SecurityDialog.EntityDisplayName)] = node.Name,
+            },
+        };
+        _ = await DialogService.ShowDialogAsync<SecurityDialog>(options);
+    }
+
+    private RenderFragment RenderNode(CategoryTreeNodeResponse node) => __builder =>
+    {
+        <div class="ruth-tree-node" @key="node.Id">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <strong>@node.Name</strong>
+                @if (!string.IsNullOrWhiteSpace(node.HighlightColor))
+                {
+                    <span>(@node.HighlightColor)</span>
+                }
+                <FluentButton Size="ButtonSize.Small" OnClick="@(() => CreateCategoryAsync(node.Id))">
+                    Add Child
+                </FluentButton>
+                <FluentButton Size="ButtonSize.Small" OnClick="@(() => OpenSecurityAsync(node))">
+                    Security
+                </FluentButton>
+                <FluentButton Size="ButtonSize.Small"
+                              Disabled="@node.IsSystem"
+                              OnClick="@(() => DeleteCategoryAsync(node.Id))">
+                    Delete
+                </FluentButton>
+            </FluentStack>
+
+            @foreach (var child in node.Children)
+            {
+                @RenderNode(child)
+            }
+        </div>
+    };
+}

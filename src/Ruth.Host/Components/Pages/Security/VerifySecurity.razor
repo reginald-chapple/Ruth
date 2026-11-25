@@ -1,0 +1,67 @@
+@page "/admin/security/verify"
+@inject IQueryDispatcher QueryDispatcher
+
+<PageTitle>Verify Security — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Verify Security &amp; Inheritance Trace</h1>
+</div>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+            <FluentTextInput @bind-Value="_entityTypeKey"
+                             Label="Entity Type Key"
+                             Placeholder="Ruth.Core.DefinedType"
+                             Width="100%" />
+
+            <FluentTextInput @bind-Value="_entityIdRaw"
+                             Label="Entity ID (optional UUID, blank for type/global)"
+                             Width="100%" />
+
+            <FluentTextInput @bind-Value="_action"
+                             Label="Action (View, Edit, Administrate, etc.)"
+                             Width="100%" />
+
+            <FluentTextInput @bind-Value="_userIdRaw"
+                             Label="User Account ID (optional UUID, blank for anonymous)"
+                             Width="100%" />
+
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@EvaluateAsync">
+                Verify Authorization
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_result is not null)
+    {
+        <FluentMessageBar Intent="@(_result.IsAllowed ? MessageBarIntent.Success : MessageBarIntent.Warning)"
+                          Title="@(_result.IsAllowed ? "ALLOWED" : "DENIED")"
+                          AllowDismiss="false">
+            <p><strong>Source:</strong> @_result.Source</p>
+            <p>@_result.Explanation</p>
+        </FluentMessageBar>
+    }
+</FluentStack>
+
+@code {
+    private string _entityTypeKey = GlobalDefaultSecured.TypeKey;
+    private string _entityIdRaw = string.Empty;
+    private string _action = AuthorizationActions.View;
+    private string _userIdRaw = string.Empty;
+    private AclVerificationResponse? _result;
+
+    private async Task EvaluateAsync()
+    {
+        var entityId = Guid.TryParse(_entityIdRaw, out var parsedEntity) ? parsedEntity : Guid.Empty;
+        Guid? userId = Guid.TryParse(_userIdRaw, out var parsedUser) ? parsedUser : null;
+
+        var queryResult = await QueryDispatcher.QueryAsync<VerifyEntityAuthorizationQuery, AclVerificationResponse>(
+            new VerifyEntityAuthorizationQuery(_entityTypeKey, entityId, _action, userId)
+        );
+        if (queryResult.IsSuccess)
+        {
+            _result = queryResult.Value;
+        }
+    }
+}

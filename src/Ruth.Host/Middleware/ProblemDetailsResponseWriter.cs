@@ -33,6 +33,7 @@ internal static class ProblemDetailsResponseWriter
         [StatusCodes.Status503ServiceUnavailable] =
             "https://tools.ietf.org/html/rfc9110#section-15.6.4",
     }.ToFrozenDictionary();
+
     public static async ValueTask WriteAsync(
         HttpContext httpContext,
         IProblemDetailsService? problemDetailsService,
@@ -44,6 +45,28 @@ internal static class ProblemDetailsResponseWriter
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(problemDetails);
 
+        PrepareResponse(httpContext, problemDetails);
+
+        if (
+            problemDetailsService is not null
+            && await problemDetailsService.TryWriteAsync(
+                new ProblemDetailsContext
+                {
+                    HttpContext = httpContext,
+                    Exception = exception,
+                    ProblemDetails = problemDetails,
+                }
+            )
+        )
+        {
+            return;
+        }
+
+        await WriteFallbackJsonAsync(httpContext, problemDetails, cancellationToken);
+    }
+
+    private static void PrepareResponse(HttpContext httpContext, ProblemDetails problemDetails)
+    {
         if (httpContext.Features.Get<IStatusCodePagesFeature>() is { } statusCodePages)
         {
             statusCodePages.Enabled = false;
@@ -53,26 +76,17 @@ internal static class ProblemDetailsResponseWriter
         {
             httpContext.Response.StatusCode = statusCode;
         }
+    }
 
-        if (problemDetailsService is not null)
-        {
-            var wrote = await problemDetailsService.TryWriteAsync(
-                new ProblemDetailsContext
-                {
-                    HttpContext = httpContext,
-                    Exception = exception,
-                    ProblemDetails = problemDetails,
-                }
-            );
-            if (wrote)
-            {
-                return;
-            }
-        }
-
+    private static Task WriteFallbackJsonAsync(
+        HttpContext httpContext,
+        ProblemDetails problemDetails,
+        CancellationToken cancellationToken
+    )
+    {
         if (httpContext.Response.HasStarted)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _ = problemDetails.Extensions.TryAdd(
@@ -80,7 +94,7 @@ internal static class ProblemDetailsResponseWriter
             Activity.Current?.Id ?? httpContext.TraceIdentifier
         );
 
-        await httpContext.Response.WriteAsJsonAsync(
+        return httpContext.Response.WriteAsJsonAsync(
             problemDetails,
             options: null,
             contentType: "application/problem+json",

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -12,14 +13,30 @@ public sealed partial class MainLayout : LayoutComponentBase
         $"color: {StylesVariables.Colors.Neutral.ForegroundOnBrand};";
 
     private ErrorBoundary? _errorBoundary;
+    private bool _isAuthenticated;
+    private string? _authenticatedUserName;
 
     [Inject]
     private IJSRuntime JsRuntime { get; set; } = default!;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
     /// <inheritdoc />
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _errorBoundary?.Recover();
+
+        if (AuthenticationStateTask is null)
+        {
+            _isAuthenticated = false;
+            _authenticatedUserName = null;
+            return;
+        }
+
+        var state = await AuthenticationStateTask;
+        _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+        _authenticatedUserName = state.User.Identity?.Name;
     }
 
     /// <summary>Toggles between light and dark themes via Fluent UI v5 JS interop.</summary>

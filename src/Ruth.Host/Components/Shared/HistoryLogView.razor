@@ -1,0 +1,45 @@
+@inject IQueryDispatcher QueryDispatcher
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+    @if (_entries.Count == 0)
+    {
+        <p>No history log entries found.</p>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_entries.AsQueryable()">
+            <PropertyColumn Property="@(static h => h.OccurredOnUtc)" Title="When (UTC)" Sortable="true" />
+            <PropertyColumn Property="@(static h => h.Verb)" Title="Verb" />
+            <PropertyColumn Property="@(static h => h.ChangeType)" Title="Type" />
+            <PropertyColumn Property="@(static h => h.Summary)" Title="Summary" />
+            <PropertyColumn Property="@(static h => h.SourceOfChange)" Title="Source" />
+        </FluentDataGrid>
+    }
+</FluentStack>
+
+@code {
+    private List<HistoryLogEntryResponse> _entries = [];
+
+    /// <summary>Gets or sets the optional entity type descriptor identifier filter.</summary>
+    [Parameter]
+    public Guid? EntityTypeId { get; set; }
+
+    /// <summary>Gets or sets the optional entity identifier filter.</summary>
+    [Parameter]
+    public Guid? EntityId { get; set; }
+
+    /// <summary>Gets or sets the maximum number of timeline entries to display.</summary>
+    [Parameter]
+    public int MaxResults { get; set; } = 50;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetHistoryLogQuery, IReadOnlyList<HistoryLogEntryResponse>>(
+            new GetHistoryLogQuery(EntityTypeId, EntityId, CategoryId: null, MaxResults)
+        );
+        if (result.IsSuccess)
+        {
+            _entries = [.. result.Value];
+        }
+    }
+}

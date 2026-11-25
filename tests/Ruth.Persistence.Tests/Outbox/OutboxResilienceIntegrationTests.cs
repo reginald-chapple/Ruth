@@ -234,10 +234,9 @@ public sealed class OutboxResilienceIntegrationTests(Postgres18ContainerFixture 
             configureOutbox?.Invoke(opts);
         });
         _ = services.AddModuleDbContext<AlphaModuleDbContext>(connectionString, "alpha");
-        _ = services.AddIdempotentIntegrationEventConsumer<
-            TestWidgetIntegrationEvent,
-            GatedTestConsumer,
-            AlphaModuleDbContext
+        _ = services.AddScoped<
+            IIntegrationEventConsumer<TestWidgetIntegrationEvent>,
+            GatedTestConsumer
         >();
         return services.BuildServiceProvider();
     }

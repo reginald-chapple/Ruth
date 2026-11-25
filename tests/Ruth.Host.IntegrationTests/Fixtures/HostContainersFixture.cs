@@ -9,6 +9,8 @@ namespace Ruth.Host.IntegrationTests.Fixtures;
 
 public sealed class HostContainersFixture : IAsyncLifetime, IAsyncDisposable
 {
+    private const string PostgresPostGisImageTag = "ruth-postgres18-e2e:latest";
+
     private PostgreSqlContainer? _postgresContainer;
     private RedisContainer? _redisContainer;
     private IContainer? _rustFsContainer;
@@ -21,7 +23,18 @@ public sealed class HostContainersFixture : IAsyncLifetime, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
-        _postgresContainer = new PostgreSqlBuilder("postgres:18-alpine")
+        var postgresImage = new ImageFromDockerfileBuilder()
+            .WithDockerfileDirectory(
+                CommonDirectoryPath.GetSolutionDirectory(),
+                "deploy/docker/postgres"
+            )
+            .WithDockerfile("Dockerfile")
+            .WithName(PostgresPostGisImageTag)
+            .WithDeleteIfExists(false)
+            .Build();
+        await postgresImage.CreateAsync();
+
+        _postgresContainer = new PostgreSqlBuilder(postgresImage)
             .WithDatabase("ruth")
             .WithUsername("ruth")
             .WithPassword("ruth_secret")
