@@ -6,6 +6,7 @@ using Ruth.Host.Endpoints;
 using Ruth.Host.Health;
 using Ruth.Host.Middleware;
 using Ruth.Host.Observability;
+using Ruth.Modules.Communication;
 using Ruth.Modules.Core;
 using Ruth.Modules.Crm;
 using Ruth.Modules.Groups;
@@ -25,6 +26,7 @@ builder.Services.AddCoreModule(builder.Configuration);
 builder.Services.AddCheckrBackgroundCheckProvider(builder.Configuration);
 builder.Services.AddCrmModule(builder.Configuration);
 builder.Services.AddGroupsModule(builder.Configuration);
+builder.Services.AddCommunicationModule(builder.Configuration);
 builder.Services.AddRuthJwtConfiguration();
 
 builder.Services.AddProblemDetails();
@@ -116,5 +118,6 @@ app.MapIdentityModuleEndpoints();
 app.MapCoreModuleEndpoints();
 app.MapCrmModuleEndpoints();
 app.MapGroupsModuleEndpoints();
+app.MapCommunicationModuleEndpoints();
 
 await app.RunAsync();

@@ -1,0 +1,48 @@
+@using Microsoft.AspNetCore.Components
+
+<section role="region" aria-label="@Title" style="max-width:560px;margin:0 auto;padding:20px 24px;border:1px solid #d1d5db;border-left:4px solid @AccentColor;border-radius:6px;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;">
+    <h2 style="margin:0 0 8px;font-size:18px;line-height:1.3;font-weight:600;">@Title</h2>
+    @if (!string.IsNullOrWhiteSpace(MessageHtml))
+    {
+        <div style="font-size:14px;line-height:1.6;">@((MarkupString)MessageHtml)</div>
+    }
+    else
+    {
+        <p style="margin:0;font-size:14px;line-height:1.6;">@Message</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Footnote))
+    {
+        <p style="margin:12px 0 0;font-size:12px;color:#6b7280;">@Footnote</p>
+    }
+</section>
+
+@code {
+    /// <summary>Gets or sets the notification title.</summary>
+    [Parameter]
+    public string Title { get; set; } = "Notification";
+
+    /// <summary>Gets or sets the plain-text notification message.</summary>
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets optional pre-rendered safe HTML body content.</summary>
+    [Parameter]
+    public string? MessageHtml { get; set; }
+
+    /// <summary>Gets or sets an optional muted footnote.</summary>
+    [Parameter]
+    public string? Footnote { get; set; }
+
+    /// <summary>Gets or sets the alert severity tone (info, success, warning, error).</summary>
+    [Parameter]
+    public string Tone { get; set; } = "info";
+
+    private string AccentColor =>
+        Tone?.Trim().ToUpperInvariant() switch
+        {
+            "SUCCESS" => "#107c10",
+            "WARNING" => "#ca5010",
+            "ERROR" => "#d13438",
+            _ => "#0f6cbd",
+        };
+}

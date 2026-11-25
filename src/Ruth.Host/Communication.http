@@ -1,0 +1,58 @@
+@HostAddress = https://localhost:7175
+@Token = replace-with-jwt
+
+### List registered compiled Razor templates
+GET {{HostAddress}}/api/communication/templates/razor
+Authorization: Bearer {{Token}}
+
+### List reusable merge snippets
+GET {{HostAddress}}/api/communication/snippets
+Authorization: Bearer {{Token}}
+
+### Create a reusable merge snippet
+POST {{HostAddress}}/api/communication/snippets
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "name": "Call To Action Button",
+  "key": "cta_button",
+  "description": "Styled link button for HTML emails",
+  "markup": "<a href=\"{{ url }}\" style=\"padding:10px 16px;background:#0f6cbd;color:#fff;border-radius:6px;text-decoration:none;\">{{ label | default:'Learn More' }}</a>",
+  "outputMode": "Html",
+  "defaultParameters": {
+    "label": "Learn More",
+    "url": "https://example.org"
+  },
+  "isActive": true
+}
+
+### Preview a safe merge template
+POST {{HostAddress}}/api/communication/templates/preview-merge
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "template": "<p>Hi {{ Person.NickName | default:'Friend' }}! {{ snippet:cta_button label=\"Give Online\" url=\"https://example.org/give\" }}</p>",
+  "contextJson": "{\"Person\":{\"NickName\":\"Jordan\"}}",
+  "outputMode": "Html",
+  "strictMissingTokens": false
+}
+
+### Preview a compiled Razor template via HtmlRenderer
+POST {{HostAddress}}/api/communication/templates/preview-razor
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "templateKey": "Communication.StandardEmail",
+  "parameters": {
+    "OrganizationName": "Grace Community Church",
+    "Subject": "Welcome",
+    "Heading": "Welcome, {{ Person.NickName }}!",
+    "BodyHtml": "<p>Thank you for giving {{ Gift.Amount | currency }}.</p>",
+    "ActionLabel": "View Receipt",
+    "ActionUrl": "https://example.org/receipts/1"
+  },
+  "mergeContextJson": "{\"Person\":{\"NickName\":\"Jordan\"},\"Gift\":{\"Amount\":125.50}}"
+}

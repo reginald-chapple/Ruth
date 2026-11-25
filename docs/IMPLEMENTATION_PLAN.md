@@ -295,7 +295,7 @@ flowchart TD
 ### Wave 3 — Check-In & Communications
 *Goal: Deliver Sunday-morning mission-critical Kiosk Check-In, ZPL label printing, the Razor & safe merge-token template engine, and multi-channel communications.*
 
-#### `W3-S1` — Razor Template Renderer, Safe Merge Tokens & Reusable Snippets
+#### `W3-S1` — Razor Template Renderer, Safe Merge Tokens & Reusable Snippets ✅ *(Completed)*
 * **Scope:** `IRazorTemplateRenderer` built on Blazor's native `.NET 10` `HtmlRenderer` (rendering strongly-typed `.razor` component templates to HTML/text with DI support) paired with `IMergeTemplateEngine` for database-stored, staff-editable content (emails, SMS, signature waivers, ZPL/text): compiled token parser (`{{ Field }}` with safe built-in formatters for dates, currency, casing, fallback defaults, and HTML encoding), strict size/recursion limits, reusable `TemplateSnippet` definitions, and read-only DTO merge contexts (never exposing `DbContext`, mutable domain entities, or arbitrary runtime C# execution).
 * **`refs/Rock` Reference:** Functional parity for `Rock/Model/CMS/LavaShortCode` & `Rock.Blocks/Cms/LavaShortcodeDetail.cs` (re-architected onto native `.NET 10` Razor components + safe merge tokens instead of Lava/Liquid).
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.

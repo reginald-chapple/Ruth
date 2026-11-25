@@ -1,0 +1,17 @@
+@using Microsoft.AspNetCore.Components
+
+<article class="custom-greeting" data-member-id="@MemberId">
+    <h1>Hello @DisplayName</h1>
+    <p>Total: @Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)</p>
+</article>
+
+@code {
+    [Parameter]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Parameter]
+    public int MemberId { get; set; }
+
+    [Parameter]
+    public decimal Amount { get; set; }
+}

@@ -1,6 +1,8 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Ruth.Host;
+using Ruth.Modules.Communication;
+using Ruth.Modules.Communication.Contracts;
 using Ruth.Modules.Core;
 using Ruth.Modules.Core.Contracts;
 using Ruth.Modules.Crm;
@@ -25,6 +27,7 @@ public sealed class ModularMonolithArchitectureTests
             CoreModuleAssembly.Instance,
             CrmModuleAssembly.Instance,
             GroupsModuleAssembly.Instance,
+            CommunicationModuleAssembly.Instance,
         ];
 
         return
@@ -49,6 +52,7 @@ public sealed class ModularMonolithArchitectureTests
             CoreContractsAssembly.Instance,
             CrmContractsAssembly.Instance,
             GroupsContractsAssembly.Instance,
+            CommunicationContractsAssembly.Instance,
         ];
 
         return
@@ -212,7 +216,10 @@ public sealed class ModularMonolithArchitectureTests
                     "Ruth.Modules.Crm.Slices",
                     "Ruth.Modules.Groups.Domain",
                     "Ruth.Modules.Groups.Infrastructure",
-                    "Ruth.Modules.Groups.Slices"
+                    "Ruth.Modules.Groups.Slices",
+                    "Ruth.Modules.Communication.Domain",
+                    "Ruth.Modules.Communication.Infrastructure",
+                    "Ruth.Modules.Communication.Slices"
                 )
                 .GetResult();
 
@@ -246,7 +253,10 @@ public sealed class ModularMonolithArchitectureTests
                 "Ruth.Modules.Crm.Slices",
                 "Ruth.Modules.Groups.Domain",
                 "Ruth.Modules.Groups.Infrastructure",
-                "Ruth.Modules.Groups.Slices"
+                "Ruth.Modules.Groups.Slices",
+                "Ruth.Modules.Communication.Domain",
+                "Ruth.Modules.Communication.Infrastructure",
+                "Ruth.Modules.Communication.Slices"
             )
             .GetResult();
 

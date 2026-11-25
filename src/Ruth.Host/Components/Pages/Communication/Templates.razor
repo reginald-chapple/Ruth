@@ -1,0 +1,360 @@
+@page "/admin/communication/templates"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Razor Templates &amp; Merge Snippets — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Razor Templates &amp; Safe Merge Snippets</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Compiled Razor Templates (HtmlRenderer)</h2>
+            <FluentDataGrid Items="@_razorTemplates.AsQueryable()">
+                <PropertyColumn Property="@(static t => t.Key)" Title="Key" Sortable="true" />
+                <PropertyColumn Property="@(static t => t.DisplayName)" Title="Template" Sortable="true" />
+                <PropertyColumn Property="@(static t => t.Category)" Title="Category" Sortable="true" />
+                <PropertyColumn Property="@(static t => t.Description)" Title="Description" />
+                <TemplateColumn Title="Preview">
+                    <FluentButton Size="ButtonSize.Small"
+                                  Appearance="ButtonAppearance.Primary"
+                                  OnClick="@(() => PreviewRazorTemplateAsync(context.Key))">
+                        Render Sample
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+            @if (!string.IsNullOrWhiteSpace(_razorPreviewHtml))
+            {
+                <h3>Rendered Razor HTML Preview (@_previewedRazorKey)</h3>
+                <iframe title="Razor template preview"
+                        sandbox=""
+                        srcdoc="@_razorPreviewHtml"
+                        style="width:100%;min-height:320px;border:1px solid var(--colorNeutralStroke1);border-radius:6px;background:#ffffff;">
+                </iframe>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Reusable Merge Snippets</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_snippetName" Label="Name" Placeholder="Church Footer" />
+                <FluentTextInput @bind-Value="_snippetKey" Label="Key" Placeholder="church_footer" />
+                <FluentSelect TOption="TemplateOutputMode"
+                              TValue="TemplateOutputMode"
+                              Label="Output Mode"
+                              Items="@_outputModes"
+                              OptionText="@(static m => m.ToString())"
+                              OptionValue="@(static m => m)"
+                              @bind-Value="_snippetOutputMode" />
+                <FluentCheckbox @bind-Value="_snippetIsActive" Label="Active" />
+            </FluentStack>
+            <FluentTextInput @bind-Value="_snippetDescription"
+                             Label="Description"
+                             Placeholder="Reusable email footer block with church address" />
+            <FluentTextArea @bind-Value="_snippetMarkup"
+                            Label="Snippet Markup"
+                            Rows="4"
+                            Placeholder="<p>{{ label | default:'Visit Us' }} — {{ Church.Name }}</p>" />
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveSnippetAsync">
+                    @(_editingSnippetId.HasValue ? "Update Snippet" : "Create Snippet")
+                </FluentButton>
+                @if (_editingSnippetId.HasValue)
+                {
+                    <FluentButton OnClick="@ResetSnippetForm">Cancel Edit</FluentButton>
+                }
+            </FluentStack>
+            <FluentDataGrid Items="@_snippets.AsQueryable()">
+                <PropertyColumn Property="@(static s => s.Name)" Title="Name" Sortable="true" />
+                <PropertyColumn Property="@(static s => s.Key)" Title="Key" Sortable="true" />
+                <PropertyColumn Property="@(static s => s.OutputMode)" Title="Mode" />
+                <PropertyColumn Property="@(static s => s.IsActive)" Title="Active" />
+                <TemplateColumn Title="Actions">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6">
+                        <FluentButton Size="ButtonSize.Small" OnClick="@(() => EditSnippet(context))">
+                            Edit
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      Disabled="@context.IsSystem"
+                                      OnClick="@(() => DeleteSnippetAsync(context.Id))">
+                            Delete
+                        </FluentButton>
+                    </FluentStack>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Safe Merge Playground</h2>
+            <FluentSelect TOption="TemplateOutputMode"
+                          TValue="TemplateOutputMode"
+                          Label="Output Mode"
+                          Items="@_outputModes"
+                          OptionText="@(static m => m.ToString())"
+                          OptionValue="@(static m => m)"
+                          @bind-Value="_playgroundOutputMode" />
+            <FluentTextArea @bind-Value="_playgroundTemplate"
+                            Label="Template Markup"
+                            Rows="4" />
+            <FluentTextArea @bind-Value="_playgroundContextJson"
+                            Label="Sample JSON Context"
+                            Rows="4" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RunMergePreviewAsync">
+                Evaluate Merge Template
+            </FluentButton>
+            @if (_mergePreview is not null)
+            {
+                <div>
+                    <strong>Output</strong> (Snippets expanded: @_mergePreview.SnippetsExpanded, Missing tokens: @_mergePreview.MissingTokens.Count)
+                </div>
+                <pre style="padding:12px;border-radius:6px;background:var(--colorNeutralBackground3);overflow:auto;">@_mergePreview.RenderedContent</pre>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private static readonly TemplateOutputMode[] _outputModes =
+    [
+        TemplateOutputMode.Html,
+        TemplateOutputMode.PlainText,
+    ];
+
+    private List<RazorTemplateSummaryResponse> _razorTemplates = [];
+    private List<TemplateSnippetResponse> _snippets = [];
+
+    private Guid? _editingSnippetId;
+    private string _snippetName = string.Empty;
+    private string _snippetKey = string.Empty;
+    private string _snippetDescription = string.Empty;
+    private string _snippetMarkup = string.Empty;
+    private TemplateOutputMode _snippetOutputMode = TemplateOutputMode.Html;
+    private bool _snippetIsActive = true;
+
+    private string? _previewedRazorKey;
+    private string? _razorPreviewHtml;
+
+    private TemplateOutputMode _playgroundOutputMode = TemplateOutputMode.Html;
+    private string _playgroundTemplate =
+        "<p>Hi {{ Person.NickName | default:'Friend' }}, thank you for giving {{ Gift.Amount | currency }} on {{ Gift.Date | date:'MMMM d, yyyy' }}!</p>";
+    private string _playgroundContextJson =
+        """{"Person":{"NickName":"Jordan"},"Gift":{"Amount":125.50,"Date":"2026-11-24"}}""";
+    private TemplatePreviewResponse? _mergePreview;
+
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var razorResult = await QueryDispatcher.QueryAsync<
+            GetRegisteredRazorTemplatesQuery,
+            IReadOnlyList<RazorTemplateSummaryResponse>
+        >(new GetRegisteredRazorTemplatesQuery());
+        if (razorResult.IsSuccess)
+        {
+            _razorTemplates = [.. razorResult.Value];
+        }
+
+        var snippetsResult = await QueryDispatcher.QueryAsync<
+            GetTemplateSnippetsQuery,
+            IReadOnlyList<TemplateSnippetResponse>
+        >(new GetTemplateSnippetsQuery());
+        if (snippetsResult.IsSuccess)
+        {
+            _snippets = [.. snippetsResult.Value];
+        }
+    }
+
+    private async Task SaveSnippetAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+
+        if (_editingSnippetId.HasValue)
+        {
+            var updateResult = await CommandDispatcher.SendAsync<
+                UpdateTemplateSnippetCommand,
+                TemplateSnippetResponse
+            >(
+                new UpdateTemplateSnippetCommand(
+                    _editingSnippetId.Value,
+                    _snippetName,
+                    _snippetKey,
+                    _snippetMarkup,
+                    Description: _snippetDescription,
+                    OutputMode: _snippetOutputMode,
+                    IsActive: _snippetIsActive
+                )
+            );
+            await HandleSnippetWriteOutcomeAsync(updateResult, "Updated");
+            return;
+        }
+
+        var createResult = await CommandDispatcher.SendAsync<
+            CreateTemplateSnippetCommand,
+            TemplateSnippetResponse
+        >(
+            new CreateTemplateSnippetCommand(
+                _snippetName,
+                _snippetKey,
+                _snippetMarkup,
+                Description: _snippetDescription,
+                OutputMode: _snippetOutputMode,
+                IsActive: _snippetIsActive
+            )
+        );
+        await HandleSnippetWriteOutcomeAsync(createResult, "Created");
+    }
+
+    private async Task HandleSnippetWriteOutcomeAsync(
+        Ruth.SharedKernel.Results.Result<TemplateSnippetResponse> result,
+        string verb
+    )
+    {
+        if (result.IsSuccess)
+        {
+            _statusMessage = $"{verb} snippet '{result.Value.Key}'.";
+            ResetSnippetForm();
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private void EditSnippet(TemplateSnippetResponse snippet)
+    {
+        _editingSnippetId = snippet.Id;
+        _snippetName = snippet.Name;
+        _snippetKey = snippet.Key;
+        _snippetDescription = snippet.Description ?? string.Empty;
+        _snippetMarkup = snippet.Markup;
+        _snippetOutputMode = snippet.OutputMode;
+        _snippetIsActive = snippet.IsActive;
+    }
+
+    private void ResetSnippetForm()
+    {
+        _editingSnippetId = null;
+        _snippetName = string.Empty;
+        _snippetKey = string.Empty;
+        _snippetDescription = string.Empty;
+        _snippetMarkup = string.Empty;
+        _snippetOutputMode = TemplateOutputMode.Html;
+        _snippetIsActive = true;
+    }
+
+    private async Task DeleteSnippetAsync(Guid snippetId)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteTemplateSnippetCommand, bool>(
+            new DeleteTemplateSnippetCommand(snippetId)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Deleted template snippet.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task RunMergePreviewAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<
+            PreviewMergeTemplateCommand,
+            TemplatePreviewResponse
+        >(
+            new PreviewMergeTemplateCommand(
+                _playgroundTemplate,
+                _playgroundContextJson,
+                _playgroundOutputMode
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _mergePreview = result.Value;
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task PreviewRazorTemplateAsync(string templateKey)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var sampleParameters = string.Equals(
+            templateKey,
+            "Communication.SimpleAlert",
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["Title"] = "Sunday Check-In Ready",
+                ["Message"] = "Hi {{ Person.NickName | default:'Friend' }}, kiosks are online.",
+                ["Tone"] = "success",
+                ["Footnote"] = "Ruth RMS Communication Engine",
+            }
+            : new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["OrganizationName"] = "Grace Community Church",
+                ["Subject"] = "Welcome to Grace",
+                ["Heading"] = "Welcome, {{ Person.NickName | default:'Friend' }}!",
+                ["BodyHtml"] = _playgroundTemplate,
+                ["ActionLabel"] = "Open Member Portal",
+                ["ActionUrl"] = "https://example.org/portal",
+                ["FooterText"] = "Sent via Ruth RMS Razor HtmlRenderer.",
+            };
+
+        var result = await CommandDispatcher.SendAsync<
+            PreviewRazorTemplateCommand,
+            TemplatePreviewResponse
+        >(
+            new PreviewRazorTemplateCommand(
+                templateKey,
+                sampleParameters,
+                _playgroundContextJson
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _previewedRazorKey = templateKey;
+            _razorPreviewHtml = result.Value.RenderedContent;
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}
