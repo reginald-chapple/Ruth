@@ -2,7 +2,7 @@ using Ruth.SharedKernel.Messaging;
 
 namespace Ruth.Modules.Crm.Contracts.Relationships;
 
-/// <summary>Command to upsert a directed peer-network connection edge with Rock-parity scoring.</summary>
+/// <summary>Command to upsert a directed peer-network connection edge with tenure and decay scoring.</summary>
 public sealed record UpsertPeerNetworkEdgeCommand(
     Guid SourcePersonId,
     Guid TargetPersonId,

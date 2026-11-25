@@ -20,8 +20,8 @@ public sealed class OrganizationProfile
         OrganizationId id,
         string name,
         string timeZoneId,
-        string primaryCampusName,
-        string? primaryCampusShortCode,
+        string primaryBranchName,
+        string? primaryBranchShortCode,
         DateTimeOffset completedOnUtc
     )
         : base(id)
@@ -29,8 +29,8 @@ public sealed class OrganizationProfile
         SingletonKey = 1;
         Name = name;
         TimeZoneId = timeZoneId;
-        PrimaryCampusName = primaryCampusName;
-        PrimaryCampusShortCode = primaryCampusShortCode;
+        PrimaryBranchName = primaryBranchName;
+        PrimaryBranchShortCode = primaryBranchShortCode;
         IsOnboardingCompleted = true;
         SelfRegistrationLocked = true;
         CompletedOnUtc = completedOnUtc.ToUniversalTime();
@@ -45,11 +45,11 @@ public sealed class OrganizationProfile
     /// <summary>Gets the configured organization time zone identifier.</summary>
     public string TimeZoneId { get; private set; } = string.Empty;
 
-    /// <summary>Gets the primary campus name.</summary>
-    public string PrimaryCampusName { get; private set; } = string.Empty;
+    /// <summary>Gets the primary branch or site name.</summary>
+    public string PrimaryBranchName { get; private set; } = string.Empty;
 
-    /// <summary>Gets the optional primary campus short code.</summary>
-    public string? PrimaryCampusShortCode { get; private set; }
+    /// <summary>Gets the optional primary branch or site short code.</summary>
+    public string? PrimaryBranchShortCode { get; private set; }
 
     /// <summary>Gets a value indicating whether initial onboarding has completed.</summary>
     public bool IsOnboardingCompleted { get; private set; }
@@ -77,8 +77,8 @@ public sealed class OrganizationProfile
     public static Result<OrganizationProfile> CompleteInitialOnboarding(
         string name,
         string timeZoneId,
-        string primaryCampusName,
-        string? primaryCampusShortCode,
+        string primaryBranchName,
+        string? primaryBranchShortCode,
         DateTimeOffset completedOnUtc
     )
     {
@@ -89,19 +89,19 @@ public sealed class OrganizationProfile
             IdentityErrors.OrganizationNameTooLong
         );
         var timeZoneResult = OnboardingPolicy.ValidateTimeZoneId(timeZoneId);
-        var campusResult = OnboardingPolicy.ValidateRequiredText(
-            primaryCampusName,
-            OnboardingPolicy.CampusNameMaxLength,
-            IdentityErrors.PrimaryCampusNameRequired,
-            IdentityErrors.PrimaryCampusNameTooLong
+        var branchResult = OnboardingPolicy.ValidateRequiredText(
+            primaryBranchName,
+            OnboardingPolicy.BranchNameMaxLength,
+            IdentityErrors.PrimaryBranchNameRequired,
+            IdentityErrors.PrimaryBranchNameTooLong
         );
         var shortCodeResult = OnboardingPolicy.ValidateOptionalText(
-            primaryCampusShortCode,
-            OnboardingPolicy.CampusShortCodeMaxLength,
-            IdentityErrors.PrimaryCampusShortCodeTooLong
+            primaryBranchShortCode,
+            OnboardingPolicy.BranchShortCodeMaxLength,
+            IdentityErrors.PrimaryBranchShortCodeTooLong
         );
 
-        var combined = Result.Combine(nameResult, timeZoneResult, campusResult, shortCodeResult);
+        var combined = Result.Combine(nameResult, timeZoneResult, branchResult, shortCodeResult);
         if (combined.IsFailure)
         {
             return Result.Failure<OrganizationProfile>(combined.Errors);
@@ -113,7 +113,7 @@ public sealed class OrganizationProfile
             id,
             nameResult.Value,
             timeZoneResult.Value,
-            campusResult.Value,
+            branchResult.Value,
             shortCodeResult.Value,
             utcCompleted
         );

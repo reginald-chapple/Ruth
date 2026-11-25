@@ -31,8 +31,8 @@ public sealed class GroupHistorical : AggregateRoot<GroupHistoricalId>, IAuditab
     /// <summary>Gets the GroupType name at this point in history.</summary>
     public string GroupTypeName { get; private set; } = string.Empty;
 
-    /// <summary>Gets the optional Campus identifier.</summary>
-    public Guid? CampusId { get; private set; }
+    /// <summary>Gets the optional Branch identifier.</summary>
+    public Guid? BranchId { get; private set; }
 
     /// <summary>Gets the optional parent Group identifier.</summary>
     public GroupId? ParentGroupId { get; private set; }
@@ -101,7 +101,7 @@ public sealed class GroupHistorical : AggregateRoot<GroupHistoricalId>, IAuditab
             GroupName = group.Name,
             GroupTypeId = group.GroupTypeId,
             GroupTypeName = groupTypeName,
-            CampusId = group.CampusId,
+            BranchId = group.BranchId,
             ParentGroupId = group.ParentGroupId,
             Description = group.Description,
             StatusValueId = group.StatusValueId,

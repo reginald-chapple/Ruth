@@ -31,21 +31,21 @@ internal static class PersonHouseholdSyncHelper
             select new
             {
                 h.Id,
-                h.CampusId,
+                h.BranchId,
                 m.Role,
-                m.IsCombinedGivingMember,
+                m.IsCombinedContributionMember,
             }
         ).ToListAsync(cancellationToken);
 
         var primary = memberships.FirstOrDefault();
-        var giving = memberships.FirstOrDefault(static m => m.IsCombinedGivingMember);
+        var billing = memberships.FirstOrDefault(static m => m.IsCombinedContributionMember);
         var hasAdult = memberships.Exists(static m => m.Role == HouseholdRole.Adult);
         var hasChild = memberships.Exists(static m => m.Role == HouseholdRole.Child);
 
         person.SyncHouseholdDerivedState(
             primary?.Id.Value,
-            primary?.CampusId,
-            giving?.Id.Value,
+            primary?.BranchId,
+            billing?.Id.Value,
             hasAdult,
             hasChild,
             today

@@ -8,7 +8,7 @@ namespace Ruth.Modules.Crm.Domain.Verification;
 /// <summary>Tracks an identity verification challenge with expiration, IP rate-limiting metadata, and failed-attempt lockout.</summary>
 public sealed class IdentityVerification : AggregateRoot<IdentityVerificationId>, IAuditableEntity
 {
-    /// <summary>Default maximum allowed failed code match attempts (Rock RMS parity).</summary>
+    /// <summary>Default maximum allowed failed code match attempts before challenge lockout.</summary>
     public const int DefaultMaxFailedMatchAttemptCount = 10;
 
     private IdentityVerification() { }

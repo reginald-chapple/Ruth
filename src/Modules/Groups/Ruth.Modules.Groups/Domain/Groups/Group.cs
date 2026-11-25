@@ -35,8 +35,8 @@ public sealed partial class Group
     /// <summary>Gets the optional parent Group identifier.</summary>
     public GroupId? ParentGroupId { get; private set; }
 
-    /// <summary>Gets the optional Core Campus identifier.</summary>
-    public Guid? CampusId { get; private set; }
+    /// <summary>Gets the optional Core Branch identifier.</summary>
+    public Guid? BranchId { get; private set; }
 
     /// <summary>Gets the optional Core Schedule identifier.</summary>
     public Guid? ScheduleId { get; private set; }

@@ -24,15 +24,15 @@ internal sealed class CompleteOnboardingCommandValidator
             ),
             OnboardingPolicy.ValidateTimeZoneId(request.TimeZoneId),
             OnboardingPolicy.ValidateRequiredText(
-                request.PrimaryCampusName,
-                OnboardingPolicy.CampusNameMaxLength,
-                IdentityErrors.PrimaryCampusNameRequired,
-                IdentityErrors.PrimaryCampusNameTooLong
+                request.PrimaryBranchName,
+                OnboardingPolicy.BranchNameMaxLength,
+                IdentityErrors.PrimaryBranchNameRequired,
+                IdentityErrors.PrimaryBranchNameTooLong
             ),
             OnboardingPolicy.ValidateOptionalText(
-                request.PrimaryCampusShortCode,
-                OnboardingPolicy.CampusShortCodeMaxLength,
-                IdentityErrors.PrimaryCampusShortCodeTooLong
+                request.PrimaryBranchShortCode,
+                OnboardingPolicy.BranchShortCodeMaxLength,
+                IdentityErrors.PrimaryBranchShortCodeTooLong
             ),
             OnboardingPolicy.ValidateRequiredText(
                 request.AdminUserName,

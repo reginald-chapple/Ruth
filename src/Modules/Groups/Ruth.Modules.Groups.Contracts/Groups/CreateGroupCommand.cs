@@ -7,7 +7,7 @@ public sealed record CreateGroupCommand(
     Guid GroupTypeId,
     string Name,
     Guid? ParentGroupId = null,
-    Guid? CampusId = null,
+    Guid? BranchId = null,
     Guid? ScheduleId = null,
     string? Description = null,
     Guid? PhotoId = null,

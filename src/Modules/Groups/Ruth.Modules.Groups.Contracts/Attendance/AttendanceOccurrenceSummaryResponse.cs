@@ -9,7 +9,7 @@ public sealed record AttendanceOccurrenceSummaryResponse(
     Guid? LocationId,
     Guid? ScheduleId,
     DateOnly OccurrenceDate,
-    DateOnly SundayDate,
+    DateOnly WeekEndDate,
     int OccurrenceDateKey,
     string? Name,
     bool? DidNotOccur,

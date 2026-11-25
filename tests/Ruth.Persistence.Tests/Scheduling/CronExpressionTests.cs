@@ -25,7 +25,7 @@ public sealed class CronExpressionTests
     [InlineData("@yearly")]
     [InlineData("@annually")]
     [InlineData("@never")]
-    [InlineData("0 0 0 1 1 ? 2200")]
+    [InlineData("@manual")]
     public void TryParse_Accepts_Valid_Expressions_And_Macros(string expression)
     {
         Assert.True(CronExpression.IsValid(expression));
@@ -68,12 +68,12 @@ public sealed class CronExpressionTests
         var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         var never = CronExpression.Parse(CronExpression.NeverExpression);
-        var legacyNever = CronExpression.Parse(CronExpression.LegacyNeverExpression);
+        var manual = CronExpression.Parse(CronExpression.ManualExpression);
 
         Assert.True(never.IsNever);
-        Assert.True(legacyNever.IsNever);
+        Assert.True(manual.IsNever);
         Assert.Null(never.GetNextOccurrence(now, TimeZoneInfo.Utc));
-        Assert.Null(legacyNever.GetNextOccurrence(now, TimeZoneInfo.Utc));
+        Assert.Null(manual.GetNextOccurrence(now, TimeZoneInfo.Utc));
     }
 
     [Fact]

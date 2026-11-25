@@ -11,6 +11,6 @@ public sealed record PersonMergedIntegrationEvent(
     DateTimeOffset OccurredOnUtc,
     Guid SurvivingPersonId,
     Guid RetiredPersonId,
-    IReadOnlyList<Guid> LegacyAliasGuids,
+    IReadOnlyList<Guid> ExternalRecordGuids,
     bool HadMultipleDistinctEmails
 ) : IIntegrationEvent;

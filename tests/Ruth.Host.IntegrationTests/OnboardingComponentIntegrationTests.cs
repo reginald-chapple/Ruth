@@ -56,13 +56,13 @@ public sealed class OnboardingComponentIntegrationTests
         Assert.DoesNotContain("fluent-text-field", html, StringComparison.OrdinalIgnoreCase);
 
         Assert.NotNull(capturedPage);
-        capturedPage.Model.OrganizationName = "Grace Fellowship";
+        capturedPage.Model.OrganizationName = "Civic Foundation";
         capturedPage.Model.TimeZoneId = "UTC";
-        capturedPage.Model.PrimaryCampusName = "Main Campus";
-        capturedPage.Model.PrimaryCampusShortCode = "  MAIN ";
-        capturedPage.Model.AdminDisplayName = "Grace Admin";
+        capturedPage.Model.PrimaryBranchName = "Main Branch";
+        capturedPage.Model.PrimaryBranchShortCode = "  MAIN ";
+        capturedPage.Model.AdminDisplayName = "Civic Admin";
         capturedPage.Model.AdminUserName = "admin";
-        capturedPage.Model.AdminEmail = "admin@grace.org";
+        capturedPage.Model.AdminEmail = "admin@civic.org";
         capturedPage.Model.AdminPassword = "StrongPass#2026!";
         capturedPage.Model.ConfirmPassword = "StrongPass#2026!";
 
@@ -71,8 +71,8 @@ public sealed class OnboardingComponentIntegrationTests
         var command = Assert.IsType<CompleteOnboardingCommand>(
             Assert.Single(dispatcher.SentCommands)
         );
-        Assert.Equal("Grace Fellowship", command.OrganizationName);
-        Assert.Equal("MAIN", command.PrimaryCampusShortCode);
+        Assert.Equal("Civic Foundation", command.OrganizationName);
+        Assert.Equal("MAIN", command.PrimaryBranchShortCode);
         Assert.Equal(1, stateReader.InvalidateCount);
         Assert.Contains("/", navigation.NavigatedUris, StringComparer.Ordinal);
     }

@@ -41,53 +41,68 @@ internal static class HouseholdMapper
             peopleById,
             includeChildren: true
         );
-        var givingLeader = HouseholdDomainService.ResolveGivingLeaderId(household, peopleById);
-
-        var members = household
-            .Members.OrderBy(static m => (int)m.Role)
-            .ThenBy(static m => m.HouseholdOrder)
-            .Select(m =>
-            {
-                var fullName = peopleById.TryGetValue(m.PersonId, out var person)
-                    ? person.FullName
-                    : m.PersonId.ToString();
-                return new HouseholdMemberResponse(
-                    m.Id.Value,
-                    m.PersonId.Value,
-                    fullName,
-                    m.Role,
-                    m.HouseholdOrder,
-                    m.IsCombinedGivingMember
-                );
-            })
-            .ToList();
-
-        var locations = household
-            .Locations.OrderBy(static l => (int)l.LocationType)
-            .Select(static l => new HouseholdLocationResponse(
-                l.Id.Value,
-                l.LocationId,
-                l.LocationType,
-                l.IsMailingLocation,
-                l.IsMappedLocation,
-                l.AddressSummary
-            ))
-            .ToList();
+        var primaryContact = HouseholdDomainService.ResolvePrimaryContactId(household, peopleById);
 
         return new HouseholdResponse(
             household.Id.Value,
             household.Name,
-            household.CampusId,
+            household.BranchId,
             household.IsActive,
             household.IsArchived,
-            household.CombineGivingByDefault,
+            household.CombineContributionsByDefault,
             salutation,
             salutationFull,
-            givingLeader?.Value,
-            members,
-            locations,
+            primaryContact?.Value,
+            MapMembers(household, peopleById),
+            MapLocations(household),
             household.CreatedOnUtc,
             household.ModifiedOnUtc
         );
+    }
+
+    private static List<HouseholdMemberResponse> MapMembers(
+        Household household,
+        IReadOnlyDictionary<PersonId, Person> peopleById
+    )
+    {
+        return
+        [
+            .. household
+                .Members.OrderBy(static m => (int)m.Role)
+                .ThenByDescending(static m => m.IsPrimaryContact)
+                .ThenBy(static m => m.HouseholdOrder)
+                .Select(m =>
+                {
+                    var fullName = peopleById.TryGetValue(m.PersonId, out var person)
+                        ? person.FullName
+                        : m.PersonId.ToString();
+                    return new HouseholdMemberResponse(
+                        m.Id.Value,
+                        m.PersonId.Value,
+                        fullName,
+                        m.Role,
+                        m.HouseholdOrder,
+                        m.IsCombinedContributionMember,
+                        m.IsPrimaryContact
+                    );
+                }),
+        ];
+    }
+
+    private static List<HouseholdLocationResponse> MapLocations(Household household)
+    {
+        return
+        [
+            .. household
+                .Locations.OrderBy(static l => (int)l.LocationType)
+                .Select(static l => new HouseholdLocationResponse(
+                    l.Id.Value,
+                    l.LocationId,
+                    l.LocationType,
+                    l.IsMailingLocation,
+                    l.IsMappedLocation,
+                    l.AddressSummary
+                )),
+        ];
     }
 }

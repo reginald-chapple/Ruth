@@ -21,12 +21,12 @@ POST {{baseUrl}}/api/onboarding
 Content-Type: application/json
 
 {
-  "organizationName": "Grace Fellowship",
+  "organizationName": "Civic Community Foundation",
   "timeZoneId": "UTC",
-  "primaryCampusName": "Main Campus",
-  "primaryCampusShortCode": "MAIN",
+  "primaryBranchName": "Headquarters Branch",
+  "primaryBranchShortCode": "HQ",
   "adminUserName": "admin",
-  "adminEmail": "admin@grace.org",
-  "adminDisplayName": "Grace Admin",
+  "adminEmail": "admin@civicfoundation.org",
+  "adminDisplayName": "System Administrator",
   "adminPassword": "ReplaceWithStrongPass#2026!"
 }

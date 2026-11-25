@@ -23,24 +23,24 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
             return GroupsErrors.InvalidDateRange;
         }
 
-        var weekendTypeFlags = await dbContext
+        var headlineTypeFlags = await dbContext
             .GroupTypes.AsNoTracking()
             .ToDictionaryAsync(
                 static gt => gt.Id,
-                static gt => gt.AttendanceCountsAsWeekendService,
+                static gt => gt.CountsTowardHeadlineAttendance,
                 cancellationToken
             );
-        var groupCampusMap = await dbContext
+        var groupBranchMap = await dbContext
             .Groups.AsNoTracking()
             .ToDictionaryAsync(
                 static g => g.Id,
-                static g => (g.CampusId, g.GroupTypeId),
+                static g => (g.BranchId, g.GroupTypeId),
                 cancellationToken
             );
         var occurrences = await LoadOccurrencesAsync(query, cancellationToken);
 
         return Result.Success(
-            AggregateMetrics(query, occurrences, groupCampusMap, weekendTypeFlags)
+            AggregateMetrics(query, occurrences, groupBranchMap, headlineTypeFlags)
         );
     }
 
@@ -72,14 +72,14 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
     private static AttendanceMetricsSummaryResponse AggregateMetrics(
         GetAttendanceMetricsSummaryQuery query,
         List<AttendanceOccurrence> occurrences,
-        Dictionary<GroupId, (Guid? CampusId, GroupTypeId GroupTypeId)> groupCampusMap,
-        Dictionary<GroupTypeId, bool> weekendTypeFlags
+        Dictionary<GroupId, (Guid? BranchId, GroupTypeId GroupTypeId)> groupBranchMap,
+        Dictionary<GroupTypeId, bool> headlineTypeFlags
     )
     {
         var state = new MetricsState();
         foreach (var occ in occurrences)
         {
-            AccumulateOccurrence(occ, query, groupCampusMap, weekendTypeFlags, state);
+            AccumulateOccurrence(occ, query, groupBranchMap, headlineTypeFlags, state);
         }
 
         return state.ToResponse(query.StartDate, query.EndDate);
@@ -88,24 +88,29 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
     private static void AccumulateOccurrence(
         AttendanceOccurrence occ,
         GetAttendanceMetricsSummaryQuery query,
-        Dictionary<GroupId, (Guid? CampusId, GroupTypeId GroupTypeId)> groupCampusMap,
-        Dictionary<GroupTypeId, bool> weekendTypeFlags,
+        Dictionary<GroupId, (Guid? BranchId, GroupTypeId GroupTypeId)> groupBranchMap,
+        Dictionary<GroupTypeId, bool> headlineTypeFlags,
         MetricsState state
     )
     {
-        var (campusId, groupTypeId) = ResolveCampusAndGroupType(occ, groupCampusMap);
-        var isWeekend =
-            groupTypeId.HasValue && weekendTypeFlags.GetValueOrDefault(groupTypeId.Value);
+        var (branchId, groupTypeId) = ResolveBranchAndGroupType(occ, groupBranchMap);
+        var isHeadline =
+            groupTypeId.HasValue && headlineTypeFlags.GetValueOrDefault(groupTypeId.Value);
 
         if (
-            (query.WeekendServicesOnly && !isWeekend)
-            || (query.CampusId.HasValue && campusId != query.CampusId.Value)
+            (query.HeadlineAttendanceOnly && !isHeadline)
+            || (query.BranchId.HasValue && branchId != query.BranchId.Value)
         )
         {
             return;
         }
 
-        var bucket = state.GetOrAddBucket(campusId, occ.SundayDate, groupTypeId?.Value, isWeekend);
+        var bucket = state.GetOrAddBucket(
+            branchId,
+            occ.WeekEndDate,
+            groupTypeId?.Value,
+            isHeadline
+        );
         bucket.OccurrenceCount++;
         if (occ.DidNotOccur == true)
         {
@@ -119,27 +124,27 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
 
         var knownInOcc = AccumulateKnownAttendances(occ.Attendances, bucket, state);
         state.TotalKnown += knownInOcc;
-        if (isWeekend)
+        if (isHeadline)
         {
-            state.WeekendTotal += knownInOcc + anon;
+            state.HeadlineTotal += knownInOcc + anon;
         }
     }
 
-    private static (Guid? CampusId, GroupTypeId? GroupTypeId) ResolveCampusAndGroupType(
+    private static (Guid? BranchId, GroupTypeId? GroupTypeId) ResolveBranchAndGroupType(
         AttendanceOccurrence occ,
-        Dictionary<GroupId, (Guid? CampusId, GroupTypeId GroupTypeId)> groupCampusMap
+        Dictionary<GroupId, (Guid? BranchId, GroupTypeId GroupTypeId)> groupBranchMap
     )
     {
-        Guid? campusId = null;
+        Guid? branchId = null;
         var groupTypeId = occ.RootGroupTypeId;
-        if (occ.GroupId.HasValue && groupCampusMap.TryGetValue(occ.GroupId.Value, out var info))
+        if (occ.GroupId.HasValue && groupBranchMap.TryGetValue(occ.GroupId.Value, out var info))
         {
-            campusId = info.CampusId;
+            branchId = info.BranchId;
             groupTypeId ??= info.GroupTypeId;
         }
 
-        campusId ??= occ.Attendances.FirstOrDefault(static a => a.CampusId.HasValue)?.CampusId;
-        return (campusId, groupTypeId);
+        branchId ??= occ.Attendances.FirstOrDefault(static a => a.BranchId.HasValue)?.BranchId;
+        return (branchId, groupTypeId);
     }
 
     private static int AccumulateKnownAttendances(
@@ -177,7 +182,7 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
     private sealed class MetricsState
     {
         private readonly Dictionary<
-            (Guid? CampusId, DateOnly SundayDate, Guid? GroupTypeId),
+            (Guid? BranchId, DateOnly WeekEndDate, Guid? GroupTypeId),
             BucketAccumulator
         > _buckets = [];
 
@@ -185,19 +190,19 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
         public int TotalKnown { get; set; }
         public int TotalAnon { get; set; }
         public int TotalFirstTime { get; set; }
-        public int WeekendTotal { get; set; }
+        public int HeadlineTotal { get; set; }
 
         public BucketAccumulator GetOrAddBucket(
-            Guid? campusId,
-            DateOnly sundayDate,
+            Guid? branchId,
+            DateOnly weekEndDate,
             Guid? groupTypeId,
-            bool isWeekend
+            bool countsTowardHeadline
         )
         {
-            var key = (campusId, sundayDate, groupTypeId);
+            var key = (branchId, weekEndDate, groupTypeId);
             if (!_buckets.TryGetValue(key, out var acc))
             {
-                acc = new BucketAccumulator(isWeekend);
+                acc = new BucketAccumulator(countsTowardHeadline);
                 _buckets[key] = acc;
             }
 
@@ -209,11 +214,11 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
             AttendanceMetricBucketResponse[] buckets =
             [
                 .. _buckets
-                    .OrderBy(static kv => kv.Key.SundayDate)
-                    .ThenBy(static kv => kv.Key.CampusId)
+                    .OrderBy(static kv => kv.Key.WeekEndDate)
+                    .ThenBy(static kv => kv.Key.BranchId)
                     .Select(static kv => new AttendanceMetricBucketResponse(
-                        kv.Key.CampusId,
-                        kv.Key.SundayDate,
+                        kv.Key.BranchId,
+                        kv.Key.WeekEndDate,
                         kv.Key.GroupTypeId,
                         kv.Value.OccurrenceCount,
                         kv.Value.DidNotOccurCount,
@@ -222,7 +227,7 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
                         kv.Value.KnownCount + kv.Value.AnonymousCount,
                         kv.Value.UniquePeople.Count,
                         kv.Value.FirstTimeCount,
-                        kv.Value.CountsAsWeekendService
+                        kv.Value.CountsTowardHeadlineAttendance
                     )),
             ];
 
@@ -234,15 +239,15 @@ internal sealed class GetAttendanceMetricsSummaryQueryHandler(GroupsDbContext db
                 TotalKnown + TotalAnon,
                 AllUniquePeople.Count,
                 TotalFirstTime,
-                WeekendTotal,
+                HeadlineTotal,
                 buckets
             );
         }
     }
 
-    private sealed class BucketAccumulator(bool countsAsWeekendService)
+    private sealed class BucketAccumulator(bool countsTowardHeadlineAttendance)
     {
-        public bool CountsAsWeekendService { get; } = countsAsWeekendService;
+        public bool CountsTowardHeadlineAttendance { get; } = countsTowardHeadlineAttendance;
         public int OccurrenceCount { get; set; }
         public int DidNotOccurCount { get; set; }
         public int KnownCount { get; set; }

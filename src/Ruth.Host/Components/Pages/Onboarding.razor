@@ -30,13 +30,13 @@
 
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
                     <section aria-labelledby="org-section-heading">
-                        <h2 id="org-section-heading">Organization &amp; Primary Campus</h2>
+                        <h2 id="org-section-heading">Organization &amp; Primary Branch / Site</h2>
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                             <div>
                                 <FluentTextInput Id="org-name"
                                                  @bind-Value="Model.OrganizationName"
                                                  Label="Organization Name"
-                                                 Placeholder="e.g., Grace Fellowship"
+                                                 Placeholder="e.g., Civic Community Foundation"
                                                  AutoComplete="organization"
                                                  Required="true"
                                                  Width="100%" />
@@ -57,23 +57,23 @@
                             </div>
 
                             <div>
-                                <FluentTextInput Id="campus-name"
-                                                 @bind-Value="Model.PrimaryCampusName"
-                                                 Label="Primary Campus Name"
-                                                 Placeholder="e.g., Main Campus"
+                                <FluentTextInput Id="branch-name"
+                                                 @bind-Value="Model.PrimaryBranchName"
+                                                 Label="Primary Branch / Site Name"
+                                                 Placeholder="e.g., Headquarters Branch"
                                                  Required="true"
                                                  Width="100%" />
-                                <FluentValidationMessage For="@(() => Model.PrimaryCampusName)" />
+                                <FluentValidationMessage For="@(() => Model.PrimaryBranchName)" />
                             </div>
 
                             <div>
-                                <FluentTextInput Id="campus-code"
-                                                 @bind-Value="Model.PrimaryCampusShortCode"
-                                                 Label="Primary Campus Short Code (optional)"
-                                                 Placeholder="e.g., MAIN"
+                                <FluentTextInput Id="branch-code"
+                                                 @bind-Value="Model.PrimaryBranchShortCode"
+                                                 Label="Primary Branch Short Code (optional)"
+                                                 Placeholder="e.g., HQ"
                                                  MaxLength="50"
                                                  Width="100%" />
-                                <FluentValidationMessage For="@(() => Model.PrimaryCampusShortCode)" />
+                                <FluentValidationMessage For="@(() => Model.PrimaryBranchShortCode)" />
                             </div>
                         </FluentStack>
                     </section>

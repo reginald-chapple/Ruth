@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Primitives;
 
 namespace Ruth.Modules.Crm.Domain.Duplicates;
 
-/// <summary>Immutable-key redirect ledger mapping retired PersonIds and legacy Rock PersonAlias GUIDs to surviving PersonIds.</summary>
+/// <summary>Immutable-key redirect ledger mapping retired PersonIds and optional imported ExternalRecordGuids to surviving PersonIds.</summary>
 public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditableEntity
 {
     private PersonRedirect() { }
@@ -13,7 +13,7 @@ public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditable
         PersonId sourcePersonId,
         PersonId targetPersonId,
         Guid mergeBatchId,
-        Guid? legacyPersonAliasGuid,
+        Guid? externalRecordGuid,
         Guid? mergedByUserId,
         DateTimeOffset mergedOnUtc
     )
@@ -22,7 +22,7 @@ public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditable
         SourcePersonId = sourcePersonId;
         TargetPersonId = targetPersonId;
         MergeBatchId = mergeBatchId;
-        LegacyPersonAliasGuid = legacyPersonAliasGuid;
+        ExternalRecordGuid = externalRecordGuid;
         MergedByUserId = mergedByUserId;
         MergedOnUtc = mergedOnUtc.ToUniversalTime();
     }
@@ -36,8 +36,8 @@ public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditable
     /// <summary>Gets the merge batch correlation identifier.</summary>
     public Guid MergeBatchId { get; private set; }
 
-    /// <summary>Gets an optional legacy Rock RMS PersonAlias GUID mapped to the survivor.</summary>
-    public Guid? LegacyPersonAliasGuid { get; private set; }
+    /// <summary>Gets an optional external system record GUID mapped to the survivor.</summary>
+    public Guid? ExternalRecordGuid { get; private set; }
 
     /// <summary>Gets the optional user identifier who executed the merge.</summary>
     public Guid? MergedByUserId { get; private set; }
@@ -57,7 +57,7 @@ public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditable
         PersonId targetPersonId,
         Guid mergeBatchId,
         DateTimeOffset mergedOnUtc,
-        Guid? legacyPersonAliasGuid = null,
+        Guid? externalRecordGuid = null,
         Guid? mergedByUserId = null
     )
     {
@@ -66,7 +66,7 @@ public sealed class PersonRedirect : AggregateRoot<PersonRedirectId>, IAuditable
             sourcePersonId,
             targetPersonId,
             mergeBatchId,
-            legacyPersonAliasGuid,
+            externalRecordGuid,
             mergedByUserId,
             mergedOnUtc
         );

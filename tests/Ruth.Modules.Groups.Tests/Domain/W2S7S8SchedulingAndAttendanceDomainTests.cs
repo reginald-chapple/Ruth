@@ -134,18 +134,22 @@ public sealed class W2S7S8SchedulingAndAttendanceDomainTests
     }
 
     [Fact]
-    public void SundayDateCalculator_AndAttendanceOccurrence_StageOutboxEventsAndRsvpsCleanly()
+    public void ReportingWeekCalculator_AndAttendanceOccurrence_StageOutboxEventsAndRsvpsCleanly()
     {
         // Monday 2026-07-06 -> Sunday 2026-07-12; Sunday 2026-07-12 -> Sunday 2026-07-12
         Assert.Equal(
             new DateOnly(2026, 7, 12),
-            SundayDateCalculator.ComputeSundayDate(new DateOnly(2026, 7, 6))
+            ReportingWeekCalculator.ComputeWeekEndDate(new DateOnly(2026, 7, 6))
         );
         Assert.Equal(
             new DateOnly(2026, 7, 12),
-            SundayDateCalculator.ComputeSundayDate(new DateOnly(2026, 7, 12))
+            ReportingWeekCalculator.ComputeWeekEndDate(new DateOnly(2026, 7, 12))
         );
-        Assert.Equal(20260712, SundayDateCalculator.ComputeDateKey(new DateOnly(2026, 7, 12)));
+        Assert.Equal(
+            new DateOnly(2026, 7, 10),
+            ReportingWeekCalculator.ComputeWeekEndDate(new DateOnly(2026, 7, 6), DayOfWeek.Friday)
+        );
+        Assert.Equal(20260712, ReportingWeekCalculator.ComputeDateKey(new DateOnly(2026, 7, 12)));
 
         var occ = AttendanceOccurrence.Create(
             GroupId.Create(),
@@ -155,16 +159,16 @@ public sealed class W2S7S8SchedulingAndAttendanceDomainTests
             new DateOnly(2026, 7, 12)
         );
         var personId = Guid.CreateVersion7();
-        var campusId = Guid.CreateVersion7();
+        var branchId = Guid.CreateVersion7();
 
         var firstSave = occ.RecordPersonAttendance(
             personId,
-            campusId,
+            branchId,
             didAttend: true,
             isFirstTime: true,
             "Checked in",
             checkedInByPersonId: null,
-            countsAsWeekendService: true,
+            countsTowardHeadlineAttendance: true,
             _now
         );
         Assert.True(firstSave.IsSuccess);
@@ -172,18 +176,18 @@ public sealed class W2S7S8SchedulingAndAttendanceDomainTests
         var attendedEvt = Assert.IsType<PersonAttendedIntegrationEvent>(evt);
         Assert.Equal(personId, attendedEvt.PersonId);
         Assert.True(attendedEvt.IsFirstTime);
-        Assert.True(attendedEvt.CountsAsWeekendService);
+        Assert.True(attendedEvt.CountsTowardHeadlineAttendance);
 
         occ.ClearIntegrationEvents();
         // Re-saving same attendee with updated note does NOT emit duplicate event
         _ = occ.RecordPersonAttendance(
             personId,
-            campusId,
+            branchId,
             didAttend: true,
             isFirstTime: false,
             "Updated note",
             checkedInByPersonId: null,
-            countsAsWeekendService: true,
+            countsTowardHeadlineAttendance: true,
             _now.AddMinutes(5)
         );
         Assert.Empty(occ.IntegrationEvents);
@@ -202,7 +206,7 @@ public sealed class W2S7S8SchedulingAndAttendanceDomainTests
         // RSVP lifecycle
         var volunteer = occ.ScheduleVolunteer(
             Guid.CreateVersion7(),
-            campusId,
+            branchId,
             Guid.CreateVersion7(),
             autoConfirm: false,
             _now

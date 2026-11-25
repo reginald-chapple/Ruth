@@ -76,7 +76,7 @@ internal sealed class CreateGroupCommandHandler(GroupsDbContext dbContext, ICloc
         return new GroupInput(
             command.Name,
             parentId,
-            command.CampusId,
+            command.BranchId,
             command.ScheduleId,
             command.Description,
             command.PhotoId,

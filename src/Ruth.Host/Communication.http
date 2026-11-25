@@ -47,12 +47,12 @@ Content-Type: application/json
 {
   "templateKey": "Communication.StandardEmail",
   "parameters": {
-    "OrganizationName": "Grace Community Church",
+    "OrganizationName": "Civic Community Foundation",
     "Subject": "Welcome",
     "Heading": "Welcome, {{ Person.NickName }}!",
-    "BodyHtml": "<p>Thank you for giving {{ Gift.Amount | currency }}.</p>",
+    "BodyHtml": "<p>Thank you for your payment of {{ Transaction.Amount | currency }}.</p>",
     "ActionLabel": "View Receipt",
     "ActionUrl": "https://example.org/receipts/1"
   },
-  "mergeContextJson": "{\"Person\":{\"NickName\":\"Jordan\"},\"Gift\":{\"Amount\":125.50}}"
+  "mergeContextJson": "{\"Person\":{\"NickName\":\"Jordan\"},\"Transaction\":{\"Amount\":125.50}}"
 }

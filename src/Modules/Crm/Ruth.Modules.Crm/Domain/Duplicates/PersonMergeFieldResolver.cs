@@ -87,7 +87,7 @@ public static class PersonMergeFieldResolver
             surviving.CommunicationPreference,
             maxProtection,
             Pick(selections.Photo, surviving.PhotoBinaryFileId, retired.PhotoBinaryFileId),
-            Pick(selections.PrimaryCampus, surviving.PrimaryCampusId, retired.PrimaryCampusId)
+            Pick(selections.PrimaryBranch, surviving.PrimaryBranchId, retired.PrimaryBranchId)
         );
     }
 

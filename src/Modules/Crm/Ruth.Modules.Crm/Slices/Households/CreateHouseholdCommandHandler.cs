@@ -24,8 +24,8 @@ internal sealed class CreateHouseholdCommandHandler(
     {
         var created = Household.Create(
             command.Name,
-            command.CampusId,
-            command.CombineGivingByDefault
+            command.BranchId,
+            command.CombineContributionsByDefault
         );
         if (created.IsFailure)
         {
@@ -85,7 +85,8 @@ internal sealed class CreateHouseholdCommandHandler(
                 pid,
                 input.Role,
                 input.HouseholdOrder,
-                input.IsCombinedGivingMember
+                input.IsCombinedContributionMember,
+                input.IsPrimaryContact
             );
             if (added.IsFailure)
             {

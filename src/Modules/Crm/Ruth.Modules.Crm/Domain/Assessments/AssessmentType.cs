@@ -4,7 +4,7 @@ using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Crm.Domain.Assessments;
 
-/// <summary>Configures an assessment catalog entry (Spiritual Gifts, DISC, Conflict, Motivators, EQ).</summary>
+/// <summary>Configures an assessment catalog entry (Team Strengths, DISC, Conflict, Motivators, EQ).</summary>
 public sealed class AssessmentType
     : AggregateRoot<AssessmentTypeId>,
         IAuditableEntity,
@@ -47,7 +47,7 @@ public sealed class AssessmentType
         BadgeColor = badgeColor;
     }
 
-    /// <summary>Gets the unique slug key (e.g. "disc", "spiritual-gifts").</summary>
+    /// <summary>Gets the unique slug key (e.g. "disc", "team-strengths").</summary>
     public string Key { get; private set; } = string.Empty;
 
     /// <summary>Gets the uppercase normalized key.</summary>

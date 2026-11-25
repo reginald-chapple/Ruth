@@ -1,0 +1,134 @@
+@page "/admin/checkin/configurations"
+@rendermode InteractiveServer
+
+<PageTitle>Check-In Configurations — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Check-In Configurations, Areas &amp; Room Balancing</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Check-In Profile</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_configName"
+                                 Label="Profile Name"
+                                 Required="true"
+                                 Placeholder="Member Facility Check-In" />
+                <FluentSelect TOption="CheckInProfileKind"
+                              TValue="CheckInProfileKind"
+                              Label="Scenario"
+                              Items="@_profileKinds"
+                              @bind-Value="_profileKind"
+                              OptionText="@(static x => x.ToString())"
+                              OptionValue="@(static x => x)" />
+                <FluentSelect TOption="CheckInSearchMode"
+                              TValue="CheckInSearchMode"
+                              Label="Search Mode"
+                              Items="@_searchModes"
+                              @bind-Value="_searchMode"
+                              OptionText="@(static x => x.ToString())"
+                              OptionValue="@(static x => x)" />
+                <FluentTextInput @bind-Value="_description"
+                                 Label="Description"
+                                 Placeholder="Kiosk &amp; pass entry rules" />
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <FluentCheckbox @bind-Value="_preventDuplicateCheckIn" Label="Prevent Duplicate Check-In" />
+                <FluentCheckbox @bind-Value="_allowCheckout" Label="Enable Check-Out" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateConfigurationAsync">
+                    Create Configuration
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_configurations.AsQueryable()">
+        <PropertyColumn Property="@(static c => c.Name)" Title="Profile Name" />
+        <PropertyColumn Property="@(static c => c.ProfileKind)" Title="Scenario" />
+        <PropertyColumn Property="@(static c => c.SearchMode)" Title="Search Mode" />
+        <PropertyColumn Property="@(static c => c.AreaCount)" Title="Areas" />
+        <PropertyColumn Property="@(static c => c.IsActive)" Title="Active" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small" OnClick="@(() => SelectConfigurationAsync(context.Id))">
+                Configure Areas &amp; Matrix
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+
+    @if (_selectedDetail is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>@_selectedDetail.Name — Areas, Eligibility &amp; Room Matrix</h2>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_areaName" Label="Area Name" Placeholder="Youth Studio (Ages 6-11)" />
+                    <FluentSelect TOption="RoomBalancingStrategy"
+                                  TValue="RoomBalancingStrategy"
+                                  Label="Balancing Strategy"
+                                  Items="@_balancingStrategies"
+                                  @bind-Value="_balancingStrategy"
+                                  OptionText="@(static x => x.ToString())"
+                                  OptionValue="@(static x => x)" />
+                    <FluentTextInput @bind-Value="_minAgeText" Label="Min Age" Placeholder="6" />
+                    <FluentTextInput @bind-Value="_maxAgeText" Label="Max Age" Placeholder="11" />
+                    <FluentTextInput @bind-Value="_tiersCsv" Label="Allowed Tiers (CSV)" Placeholder="Standard, Family" />
+                    <FluentTextInput @bind-Value="_skillsCsv" Label="Required Skills (CSV)" Placeholder="safety-101" />
+                </FluentStack>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_roomName" Label="Primary Room Label" Placeholder="Room 101" />
+                    <FluentTextInput @bind-Value="_softCapText" Label="Soft Capacity" Placeholder="15" />
+                    <FluentTextInput @bind-Value="_firmCapText" Label="Firm Capacity" Placeholder="20" />
+                    <FluentCheckbox @bind-Value="_issuePickupCode" Label="Issue Pickup Code" />
+                    <FluentCheckbox @bind-Value="_supportsAccommodations" Label="Supports Accommodations" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddAreaAsync">
+                        Save Area
+                    </FluentButton>
+                </FluentStack>
+
+                @foreach (var area in _selectedDetail.Areas)
+                {
+                    <FluentCard @key="area.Id" Padding="@Padding.All3">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                            <strong>@area.Name</strong>
+                            <span>
+                                Strategy: @area.BalancingStrategy · Enrollment: @area.Eligibility.EnrollmentMode
+                                @if (area.Eligibility.MinAgeYears.HasValue || area.Eligibility.MaxAgeYears.HasValue)
+                                {
+                                    <span> · Age: @(area.Eligibility.MinAgeYears?.ToString() ?? "0")–@(area.Eligibility.MaxAgeYears?.ToString() ?? "Any")</span>
+                                }
+                            </span>
+                            <ul>
+                                @foreach (var room in area.Rooms)
+                                {
+                                    <li @key="room.Id">
+                                        @room.LocationName (Soft: @(room.SoftCapacity?.ToString() ?? "-"), Firm: @(room.FirmCapacity?.ToString() ?? "-"))
+                                        — @(room.IsOpenForCheckIn ? "Open" : "Closed")
+                                        <FluentButton Size="ButtonSize.Small"
+                                                      Appearance="ButtonAppearance.Transparent"
+                                                      OnClick="@(() => ToggleRoomAsync(area.Id, room))">
+                                            @(room.IsOpenForCheckIn ? "Close Room" : "Reopen Room")
+                                        </FluentButton>
+                                    </li>
+                                }
+                            </ul>
+                        </FluentStack>
+                    </FluentCard>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

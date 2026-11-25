@@ -1,9 +1,9 @@
 namespace Ruth.Modules.Groups.Contracts.Attendance;
 
-/// <summary>Campus and weekend-service metric bucket aggregated across AttendanceOccurrences.</summary>
+/// <summary>Branch and program/headline attendance metric bucket aggregated across AttendanceOccurrences.</summary>
 public sealed record AttendanceMetricBucketResponse(
-    Guid? CampusId,
-    DateOnly SundayDate,
+    Guid? BranchId,
+    DateOnly WeekEndDate,
     Guid? GroupTypeId,
     int OccurrenceCount,
     int DidNotOccurCount,
@@ -12,5 +12,5 @@ public sealed record AttendanceMetricBucketResponse(
     int TotalAttendanceCount,
     int UniquePersonCount,
     int FirstTimeAttendeeCount,
-    bool CountsAsWeekendService
+    bool CountsTowardHeadlineAttendance
 );

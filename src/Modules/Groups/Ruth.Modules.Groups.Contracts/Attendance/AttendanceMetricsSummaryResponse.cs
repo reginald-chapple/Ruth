@@ -1,6 +1,6 @@
 namespace Ruth.Modules.Groups.Contracts.Attendance;
 
-/// <summary>Aggregated Campus/Service attendance metrics summary for reporting and dashboard hooks.</summary>
+/// <summary>Aggregated Branch and headline attendance metrics summary for reporting and dashboard hooks.</summary>
 public sealed record AttendanceMetricsSummaryResponse(
     DateOnly StartDate,
     DateOnly EndDate,
@@ -9,6 +9,6 @@ public sealed record AttendanceMetricsSummaryResponse(
     int TotalAttendance,
     int TotalUniquePeople,
     int TotalFirstTimeAttendees,
-    int WeekendServiceTotalAttendance,
+    int HeadlineTotalAttendance,
     IReadOnlyList<AttendanceMetricBucketResponse> Buckets
 );

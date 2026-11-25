@@ -58,7 +58,7 @@ internal sealed class ScheduleVolunteerService(
             groupType.ScheduleConfirmationLogic == ScheduleConfirmationLogic.AutoAccept;
         var attendance = occurrence.ScheduleVolunteer(
             command.PersonId,
-            group.CampusId,
+            group.BranchId,
             command.ScheduledByPersonId,
             autoConfirm,
             clock.UtcNow

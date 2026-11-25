@@ -29,15 +29,15 @@ public sealed class Wave1S8CollaborationIntegrationTests(
         var userB = Guid.CreateVersion7();
         var targetEntityId = Guid.CreateVersion7();
 
-        var campusType = (
+        var branchType = (
             await queries.QueryAsync<GetEntityTypeByKeyQuery, EntityTypeResponse>(
-                new GetEntityTypeByKeyQuery(Campus.EntityTypeKeyName)
+                new GetEntityTypeByKeyQuery(Branch.EntityTypeKeyName)
             )
         ).Value;
 
         _ = await commands.SendAsync<RecordHistoryLogCommand, HistoryLogEntryResponse>(
             new RecordHistoryLogCommand(
-                campusType.Id,
+                branchType.Id,
                 targetEntityId,
                 "Modify",
                 ValueName: "TaxId",
@@ -49,7 +49,7 @@ public sealed class Wave1S8CollaborationIntegrationTests(
         );
         var history = (
             await queries.QueryAsync<GetHistoryLogQuery, IReadOnlyList<HistoryLogEntryResponse>>(
-                new GetHistoryLogQuery(campusType.Id, targetEntityId)
+                new GetHistoryLogQuery(branchType.Id, targetEntityId)
             )
         ).Value;
         var entry = Assert.Single(history);
@@ -59,7 +59,7 @@ public sealed class Wave1S8CollaborationIntegrationTests(
         var noteType = (
             await commands.SendAsync<CreateNoteTypeCommand, NoteTypeResponse>(
                 new CreateNoteTypeCommand(
-                    campusType.Id,
+                    branchType.Id,
                     "Care Notes",
                     AllowsReplies: true,
                     MaxReplyDepth: 1,
@@ -151,42 +151,42 @@ public sealed class Wave1S8CollaborationIntegrationTests(
         var userB = Guid.CreateVersion7();
         var targetEntityId = Guid.CreateVersion7();
 
-        var campusType = (
+        var branchType = (
             await queries.QueryAsync<GetEntityTypeByKeyQuery, EntityTypeResponse>(
-                new GetEntityTypeByKeyQuery(Campus.EntityTypeKeyName)
+                new GetEntityTypeByKeyQuery(Branch.EntityTypeKeyName)
             )
         ).Value;
 
         var orgTag = (
             await commands.SendAsync<CreateTagCommand, TagResponse>(
-                new CreateTagCommand("First-Time Guest", campusType.Id)
+                new CreateTagCommand("First-Time Guest", branchType.Id)
             )
         ).Value;
         var personalTag = (
             await commands.SendAsync<CreateTagCommand, TagResponse>(
-                new CreateTagCommand("My Followups", campusType.Id, OwnerUserId: userA)
+                new CreateTagCommand("My Followups", branchType.Id, OwnerUserId: userA)
             )
         ).Value;
 
         _ = await commands.SendAsync<TagEntityCommand, bool>(
-            new TagEntityCommand(orgTag.Id, campusType.Id, targetEntityId, userA)
+            new TagEntityCommand(orgTag.Id, branchType.Id, targetEntityId, userA)
         );
         _ = await commands.SendAsync<TagEntityCommand, bool>(
-            new TagEntityCommand(personalTag.Id, campusType.Id, targetEntityId, userA)
+            new TagEntityCommand(personalTag.Id, branchType.Id, targetEntityId, userA)
         );
         var personalDenied = await commands.SendAsync<TagEntityCommand, bool>(
-            new TagEntityCommand(personalTag.Id, campusType.Id, Guid.CreateVersion7(), userB)
+            new TagEntityCommand(personalTag.Id, branchType.Id, Guid.CreateVersion7(), userB)
         );
         Assert.True(personalDenied.IsFailure);
 
         var tagsForA = (
             await queries.QueryAsync<GetEntityTagsQuery, IReadOnlyList<TagResponse>>(
-                new GetEntityTagsQuery(campusType.Id, targetEntityId, userA)
+                new GetEntityTagsQuery(branchType.Id, targetEntityId, userA)
             )
         ).Value;
         var tagsForB = (
             await queries.QueryAsync<GetEntityTagsQuery, IReadOnlyList<TagResponse>>(
-                new GetEntityTagsQuery(campusType.Id, targetEntityId, userB)
+                new GetEntityTagsQuery(branchType.Id, targetEntityId, userB)
             )
         ).Value;
         Assert.Equal(2, tagsForA.Count);
@@ -196,7 +196,7 @@ public sealed class Wave1S8CollaborationIntegrationTests(
             await commands.SendAsync<CreateEntitySetCommand, EntitySetResponse>(
                 new CreateEntitySetCommand(
                     "Annual Audit Selection",
-                    campusType.Id,
+                    branchType.Id,
                     [targetEntityId, Guid.CreateVersion7()],
                     ExpireInMinutes: null
                 )
@@ -205,27 +205,27 @@ public sealed class Wave1S8CollaborationIntegrationTests(
         Assert.Equal(2, savedSet.Items.Count);
         var activeSets = (
             await queries.QueryAsync<GetEntitySetsQuery, IReadOnlyList<EntitySetResponse>>(
-                new GetEntitySetsQuery(campusType.Id)
+                new GetEntitySetsQuery(branchType.Id)
             )
         ).Value;
         _ = Assert.Single(activeSets);
 
         _ = await commands.SendAsync<SetPersonPreferenceCommand, PersonPreferenceResponse>(
-            new SetPersonPreferenceCommand(userA, "grid-campus-page-size", "50", IsEnduring: true)
+            new SetPersonPreferenceCommand(userA, "grid-branch-page-size", "50", IsEnduring: true)
         );
         _ = await commands.SendAsync<SetPersonPreferenceCommand, PersonPreferenceResponse>(
-            new SetPersonPreferenceCommand(userA, "grid-campus-page-size", "100", IsEnduring: true)
+            new SetPersonPreferenceCommand(userA, "grid-branch-page-size", "100", IsEnduring: true)
         );
         var prefs = (
             await queries.QueryAsync<
                 GetPersonPreferencesQuery,
                 IReadOnlyList<PersonPreferenceResponse>
-            >(new GetPersonPreferencesQuery(userA, KeyPrefix: "grid-campus"))
+            >(new GetPersonPreferencesQuery(userA, KeyPrefix: "grid-branch"))
         ).Value;
         var pref = Assert.Single(prefs);
         Assert.Equal("100", pref.Value);
         var deletedPref = await commands.SendAsync<DeletePersonPreferenceCommand, bool>(
-            new DeletePersonPreferenceCommand(userA, "grid-campus-page-size")
+            new DeletePersonPreferenceCommand(userA, "grid-branch-page-size")
         );
         Assert.True(deletedPref.IsSuccess);
     }

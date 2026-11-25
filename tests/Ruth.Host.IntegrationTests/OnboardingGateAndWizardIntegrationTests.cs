@@ -90,8 +90,8 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
         {
             organizationName = "",
             timeZoneId = "Invalid/TimeZone",
-            primaryCampusName = "Main Campus",
-            primaryCampusShortCode = "MAIN",
+            primaryBranchName = "Main Branch",
+            primaryBranchShortCode = "MAIN",
             adminUserName = "admin",
             adminEmail = "not-an-email",
             adminDisplayName = "Admin User",
@@ -270,8 +270,8 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
         {
             organizationName = "Grace Fellowship",
             timeZoneId = "UTC",
-            primaryCampusName = "Main Campus",
-            primaryCampusShortCode = "MAIN",
+            primaryBranchName = "Main Branch",
+            primaryBranchShortCode = "MAIN",
             adminUserName = userName,
             adminEmail = email,
             adminDisplayName = "Grace Admin",
@@ -307,6 +307,8 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
         var outbox = await db.OutboxMessages.SingleAsync();
 
         Assert.Equal("Grace Fellowship", org.Name);
+        Assert.Equal("Main Branch", org.PrimaryBranchName);
+        Assert.Equal("MAIN", org.PrimaryBranchShortCode);
         Assert.True(org.IsOnboardingCompleted);
         Assert.True(org.SelfRegistrationLocked);
         Assert.Equal(SecurityRole.AdministratorsRoleId, role.Id);

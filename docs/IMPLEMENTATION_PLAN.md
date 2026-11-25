@@ -1,6 +1,6 @@
-# Ruth — Rock RMS Modernization Implementation Plan
+# Ruth — Relationship, Community & Operations Platform Implementation Plan
 
-> **Mission:** Port `refs/Rock` (~350 entities, 734 UI blocks, 173 FieldTypes, 226 Reporting Filters/Selects, 145 Workflow Actions, 155 Scheduled Jobs) into a clean, high-performance **.NET 10 + Blazor + Domain-Driven Design (DDD)** Modular Monolith backed by **PostgreSQL 18**, **Redis 8**, and **RustFS (S3)**.
+> **Mission:** Build a clean-room, high-performance **.NET 10 + Fluent UI Blazor v5 + Domain-Driven Design (DDD)** Modular Monolith serving **any member-driven, community, non-profit, or service organization** (handling both tax-deductible funds/grants and standard dues, fees, and invoices), backed by **PostgreSQL 18**, **Redis 8**, and **RustFS (S3)**.
 
 ---
 
@@ -8,12 +8,12 @@
 
 | # | Decision Area | Locked Choice | Architectural Consequence |
 | :--- | :--- | :--- | :--- |
-| **1** | **Port Strategy** | **Modernize the Stack (Functional & Domain Parity)** | Clean PostgreSQL-native DDD schema (`uuidv7` Strongly-Typed IDs, `timestamptz` / `DateTimeOffset`, `jsonb` + GIN indexes, `postgis`, `pgvector`, Apache `age`). Eliminates `System.Web`, `RockDateTime`, `PersonAlias` FK proliferation, and 10-column EAV `AttributeValue` join bottlenecks. Zero sample data on boot; `/onboarding` locks self-registration after initial admin setup. |
-| **2** | **UI Paradigm** | **Option A — Hybrid App Shell + CMS Engine** | **Internal Staff RMS:** Fast, idiomatic Fluent UI Blazor v5 routed pages (`/crm/people/{id}`, `/finance/batches`, `/groups/{id}`) with optional customizable widget zones.<br>**External / Portals / Custom Pages:** Full database-driven `Site -> Layout -> Page -> Zone -> Block` engine rendered via Blazor `<DynamicComponent>` (`IRuthBlock`). |
-| **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (RMS) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff RMS components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process (zero redundant HTTP DTO client wrappers for internal views). Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
+| **1** | **Clean-Room & Domain Posture** | **First-Principles & Organization-Agnostic** | Clean PostgreSQL-native DDD schema (`uuidv7` Strongly-Typed IDs, `timestamptz` / `DateTimeOffset`, `jsonb` + GIN indexes, `postgis`, `pgvector`, Apache `age`). Zero code, proprietary heuristics, or schema copying from restrictively licensed ChMS/RMS systems. Operating units are modeled neutrally as `Branch` (`Site` / `Branch` / `Chapter` / `Center`); financial ledgers support both tax-deductible funds and standard dues/fees/invoices. Zero sample data on boot; `/onboarding` locks self-registration after initial admin setup. |
+| **2** | **UI Paradigm** | **Option A — Hybrid App Shell + CMS Engine** | **Internal Staff Workspace:** Fast, idiomatic Fluent UI Blazor v5 routed pages (`/crm/people/{id}`, `/finance/batches`, `/groups/{id}`, `/admin/core/branches`) with optional customizable widget zones.<br>**External / Portals / Custom Pages:** Full database-driven `Site -> Layout -> Page -> Zone -> Block` engine rendered via Blazor `<DynamicComponent>` (`IRuthBlock`). |
+| **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (Staff) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process (zero redundant HTTP DTO client wrappers for internal views). Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
 | **4** | **CQRS, Messaging & Jobs** | **Zero-Magic Explicit Abstractions** | Custom lightweight `ICommand<T>`, `ICommandHandler<TCommand, T>`, `IQuery<T>`, `IQueryHandler<TQuery, T>`, `IDomainEvent`, `IIntegrationEvent`, and `Result<T>` in `Ruth.SharedKernel` (zero commercial licensing risk from MediatR/MassTransit, zero reflection magic). Per-module EF Core **Transactional Outbox** + `BackgroundService` dispatcher + Postgres-backed `IScheduledJob` runner. |
-| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `IAiProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
-| **6** | **Templating & Rendering** | **Compiled Razor Components (`HtmlRenderer`) + Safe Merge Tokens** | Replaces Rock's Lava/Liquid engine. Built-in layouts, transactional emails, contribution statements, and CMS blocks are strongly-typed `.razor` components rendered via Blazor's built-in `HtmlRenderer`. Database-stored, staff-editable content (bulk emails, SMS, waivers, merge fields) uses a safe declarative merge-token engine (`IMergeTemplateEngine` / `TemplateSnippet`) over read-only DTO contexts—eliminating arbitrary runtime scripting/RCE risk. |
+| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IWalletPassProvider`, `IVirtualRoomProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `IAiProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
+| **6** | **Templating & Rendering** | **Compiled Razor Components (`HtmlRenderer`) + Safe Merge Tokens** | Built-in layouts, transactional emails, annual tax receipts, invoices, and CMS blocks are strongly-typed `.razor` components rendered via Blazor's built-in `HtmlRenderer`. Database-stored, staff-editable content (bulk emails, SMS, waivers, merge fields) uses a safe declarative merge-token engine (`IMergeTemplateEngine` / `TemplateSnippet`) over read-only DTO contexts—eliminating arbitrary runtime scripting/RCE risk. |
 
 ---
 
@@ -30,25 +30,28 @@ Directory.Build.targets
 CodeMetricsConfig.txt                      # CA1502/CA1505/CA1506 maintainability & complexity thresholds
 src/
   Ruth.SharedKernel/                       # AggregateRoot, Entity, ValueObject, StronglyTypedId, Result<T>, IClock, Zero-Magic CQRS & Outbox primitives
+  Ruth.Persistence/                        # ModuleDbContext, Transactional Outbox/Inbox, Postgres Advisory-Locked Scheduler
   Ruth.Host/                               # ASP.NET Core 10 + Fluent UI Blazor v5 App Shell, /onboarding, Middleware, Composition Root
   Modules/
     Identity/                              # Schema: identity  (Users, Logins, OIDC/JWT, SecurityRoles, Hierarchical ISecured ACLs)
       Ruth.Modules.Identity.Contracts/
       Ruth.Modules.Identity/               # Domain/, Infrastructure/, Slices/<SliceName>/
-    Core/                                  # Schema: core      (DefinedTypes, Categories, jsonb Attributes/FieldTypes, Campuses, PostGIS Locations, Schedules, BinaryFiles, Audit, Notes, Tags)
-    Crm/                                   # Schema: crm       (People, Households, Apache AGE Relationships, Merge/Deduplication, Badges, Assessments, Protection)
-    Groups/                                # Schema: groups    (GroupTypes, Groups, Memberships, Requirements, Serving Scheduler, Attendance)
-    CheckIn/                               # Schema: checkin   (Kiosk Config, Family/Individual Matching, Capacity Thresholds, ZPL Labels)
-    Communication/                         # Schema: comms     (Razor HtmlRenderer + Safe Merge Engine, Mediums/Transports, Templates, Bulk Email/SMS/Push, Two-Way SMS, Flows)
-    Finance/                               # Schema: finance   (Accounts, Gateways, Saved Accounts, Batches, Transactions, Scheduled Giving, Pledges, Statements, Benevolence, Fundraising)
-    Events/                                # Schema: events    (Calendars, EventItems, Registrations, Fees/Discounts/Waitlists, Interactive Experiences)
-    Engagement/                            # Schema: engage    (Connections, Steps, Streaks, Achievements, Prayer, Reminders, Following, Outreach Touchpoints)
+    Core/                                  # Schema: core      (DefinedTypes, Categories, jsonb Attributes/FieldTypes, Branches/Sites, PostGIS Locations, Schedules, BinaryFiles, Audit, Notes, Tags)
+    Crm/                                   # Schema: crm       (People/Organizations, Households/Units, Apache AGE Relationships, Merge/Deduplication, Badges, Assessments, Screening)
+    Groups/                                # Schema: groups    (GroupTypes, Groups/Chapters/Teams, Memberships, Requirements, Volunteer & Shift Scheduler, Attendance)
+    CheckIn/                               # Schema: checkin   (Kiosk & Facility Check-In Config, Household/Member Matching, Capacity Thresholds, ZPL Badges, Smart Apple/Google Wallet Passes)
+    Communication/                         # Schema: comms     (Razor HtmlRenderer + Safe Merge Engine, Transports, Templates, Bulk Email/SMS/Push, Two-Way SMS, Drip Flows)
+    Finance/                               # Schema: finance   (Tax-Deductible Funds & Revenue Accounts, Gateways, Batches, Donations/Dues/Fees/Invoices, Recurring Billing, Statements/Receipts, Assistance/Grants, Campaigns)
+    Events/                                # Schema: events    (Calendars, EventItems, Registrations, Tiered Fees/Discounts/Waitlists, Live Interactive Sessions)
+    Commerce/                              # Schema: commerce  (Products/Merch/Digital Goods, Punch/Credit Packs, Member Pricing, Quid-Pro-Quo Splits, 1-on-1 Service Appointments & Facility/Resource Rentals)
+    Engagement/                            # Schema: engage    (Engagement Pipelines, Journeys/Milestones, Streaks, Achievements, Care/Support Requests, Reminders, Following, Touchpoints)
     Workflow/                              # Schema: workflow  (WorkflowTypes, State/Activity/Action Engine, Triggers, Interactive Form Builder)
+    VirtualRooms/                          # Schema: virtual   (Embedded LiveKit WebRTC Rooms, ACL Room JWTs, Webhook Auto-Attendance & RustFS Recording Egress)
     Cms/                                   # Schema: cms       (Sites, Layouts, Pages, Zones, Dynamic Blocks, Content Channels, Shortlinks, Media, Interactions, Personalization, Mobile/TV)
-    Reporting/                             # Schema: reporting (Query AST DataViews, Reports, MergeTemplates, Metrics, Star-Schema Projections)
-    Lms/                                   # Schema: lms       (Programs, Courses, Semesters, Classes, Activities, Grading)
+    Reporting/                             # Schema: reporting (Query AST DataViews, Reports, MergeTemplates, Operational & Financial Metrics, Star-Schema Projections)
+    Lms/                                   # Schema: lms       (Programs, Courses, Terms, Classes, Activities, Grading & Certifications)
     Ai/                                    # Schema: ai        (Content Collections, pgvector Hybrid Search, AI Providers, Agents & Skills/Tools)
-  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Checkr, OpenAi, etc.)
+  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Stripe, Checkr, AppleWallet, GoogleWallet, LiveKit, OpenAi, etc.)
 tests/
   Ruth.ArchitectureTests/                  # Enforces module isolation, Domain purity, sealed handlers/DTOs
   Ruth.Modules.<Context>.Tests/            # Unit + Testcontainers (PostgreSQL 18 / Redis 8 / RustFS) slice tests
@@ -70,7 +73,7 @@ Every skill in `.agents/skills/` has a distinct role. Per `quality-ci`, **overla
 | **`aspnet-core`** | [.agents/skills/aspnet-core/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/aspnet-core/SKILL.md) | `Ruth.Host` request pipeline & middleware ordering, `IOptions<T>` configuration, cookie/JWT/OIDC authentication, `IAuthorizationHandler` policies, `IHttpClientFactory`, `BackgroundService` workers, health checks. |
 | **`dotnet-webapi`** | [.agents/skills/dotnet-webapi/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/dotnet-webapi/SKILL.md) | Minimal API resource endpoints (`Map<Resource>`), `sealed record` Request/Response DTOs with XML `<summary>` docs, `DateTimeOffset`, string enums, `TypedResults`, built-in `AddOpenApi()` (never Swashbuckle), RFC 7807 `ProblemDetails`, and `.http` test files. |
 | **`entity-framework-core`** | [.agents/skills/entity-framework-core/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/entity-framework-core/SKILL.md) | Per-module `DbContext` & PostgreSQL schema isolation, `IEntityTypeConfiguration<T>`, `jsonb`/`postgis`/`pgvector` mappings, `AsNoTracking()` DTO projections, compiled hot queries, concurrency tokens, reviewable migrations. |
-| **`blazor`** | [.agents/skills/blazor/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/blazor/SKILL.md) | `.NET 10` render modes (`InteractiveServer` for RMS, `Static SSR` + islands for CMS), `[PersistentState]`, `<ErrorBoundary>`, `<Virtualize>`, `@key` diffing, debounced search, async `IJSRuntime` interop. |
+| **`blazor`** | [.agents/skills/blazor/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/blazor/SKILL.md) | `.NET 10` render modes (`InteractiveServer` for Staff UI, `Static SSR` + islands for CMS), `[PersistentState]`, `<ErrorBoundary>`, `<Virtualize>`, `@key` diffing, debounced search, async `IJSRuntime` interop. |
 | **`fluentui-blazor-usage`** | [.agents/skills/fluentui-blazor-usage/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/fluentui-blazor-usage/SKILL.md) | `Microsoft.FluentUI.AspNetCore.Components` **v5** patterns: `<FluentProviders />`, JS/CSS custom-property theming, `FluentLayout`/`FluentNav`/`FluentNavCategory`, `FluentDataGrid` (`ItemsProvider`), two-parameter `FluentSelect<TOption, TValue>`, `IDialogService` (`IDialogInstance` cascading parameter). |
 | **`blazing-fast-dotnet`** | [.agents/skills/blazing-fast-dotnet/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/blazing-fast-dotnet/SKILL.md) | Hot-path engineering: `[LoggerMessage]` source-gen logging, STJ `JsonSerializerContext`, `[GeneratedRegex]`, `FrozenDictionary` caches (ACLs, SystemGuids, FieldTypes), `Span<T>`/`SearchValues`, `StringComparison.Ordinal`, `dotnet-counters`/`dotnet-trace` profiling. |
 
@@ -95,20 +98,20 @@ Every skill in `.agents/skills/` has a distinct role. Per `quality-ci`, **overla
 | :--- | :--- | :--- |
 | **`biome`** | [.agents/skills/biome/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/biome/SKILL.md) | **Primary formatter & linter** (`biome.json`) for Blazor JS/TS interop modules (`wwwroot/**/*.js`, `*.ts`) and static JSON assets. |
 | **`stylelint`** | [.agents/skills/stylelint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/stylelint/SKILL.md) | **Stylesheet owner** for custom CSS (`wwwroot/**/*.css`, `.razor.css` isolation styles, Fluent v5 token usage, and CMS themes). |
-| **`htmlhint`** | [.agents/skills/htmlhint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/htmlhint/SKILL.md) | Validates **rendered/static HTML output** (exported Email HTML templates, Contribution Statement HTML, and rendered CMS pages)—never raw `.razor` source files. |
+| **`htmlhint`** | [.agents/skills/htmlhint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/htmlhint/SKILL.md) | Validates **rendered/static HTML output** (exported Email HTML templates, Tax Receipt / Invoice HTML, and rendered CMS pages)—never raw `.razor` source files. |
 | **`webhint`** | [.agents/skills/webhint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/webhint/SKILL.md) | **Runtime URL auditor** (`.hintrc`) checking accessibility (a11y), security headers, performance, PWA signals, and SEO against live `/onboarding`, Staff Shell, Check-in Kiosk, and Public CMS routes. |
 | **`eslint`** | [.agents/skills/eslint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/eslint/SKILL.md) | Standby (`not_applicable` by default while `biome` owns JS/TS); activate **only** on bounded rich client packages (e.g., visual Form/Workflow canvas) if specialized ESLint plugins are required. |
 | **`sonarjs`** | [.agents/skills/sonarjs/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/sonarjs/SKILL.md) | Cognitive-complexity extension (`eslint-plugin-sonarjs`) paired with `eslint` **only** if complex client-side TypeScript editors (ZPL label canvas / Workflow designer) are introduced. |
 
 ---
 
-## 4. Standard Slice Execution Contract ("Keeping Implementation Sane")
+## 4. Standard Slice Execution Contract ("Clean-Room & Shippable")
 
 Every slice (`W<Wave>-S<Slice>`) is an atomic, shippable vertical increment. **Never start N+1 infrastructure for a future wave inside an earlier slice.**
 
 ```mermaid
 flowchart LR
-    A["1. Inspect refs/Rock<br/>(Extract Domain Rules Only)"] --> B["2. Domain Model<br/>(architecture, modern-csharp)"]
+    A["1. First-Principles Spec<br/>(Clean-Room Invariants)"] --> B["2. Domain Model<br/>(architecture, modern-csharp)"]
     B --> C["3. EF Core + Migration<br/>(entity-framework-core)"]
     C --> D["4. Zero-Magic CQRS Handlers<br/>(architecture, blazing-fast-dotnet)"]
     D --> E["5. UI & Minimal APIs<br/>(blazor, fluentui-blazor-usage, dotnet-webapi)"]
@@ -116,13 +119,13 @@ flowchart LR
 ```
 
 ### Definition of Done (Every Slice)
-1. **Reference Audit:** Read the mapped `refs/Rock/Rock/Model/...` and `refs/Rock/Rock.Blocks/...` files to capture domain invariants, edge cases, and UX workflows—without copying legacy EF6, `RockContext`, or WebForms patterns.
-2. **Domain Purity:** Aggregates enforce invariants via methods returning `Result<T>`, emit `IDomainEvent`s, use `Guid.CreateVersion7()` Strongly-Typed IDs, and have **zero** dependencies on EF Core, ASP.NET Core, or Blazor.
+1. **Clean-Room Specification:** Define domain invariants, edge cases, and open-standard workflows from first principles—never referencing or copying restrictively licensed third-party code or proprietary formulas.
+2. **Domain Purity:** Aggregates enforce invariants via methods returning `Result<T>`, emit `IDomainEvent`s, use `Guid.CreateVersion7()` Strongly-Typed IDs, remain organization-agnostic, and have **zero** dependencies on EF Core, ASP.NET Core, or Blazor.
 3. **Persistence:** Module-scoped `DbContext` + explicit `IEntityTypeConfiguration<T>` + reviewable EF Core migration + `AsNoTracking()` read projections.
 4. **Presentation:** Fluent UI Blazor v5 pages/dialogs (with `<ErrorBoundary>`, loading states, and ACL checks) and/or Minimal API endpoints (`TypedResults` + OpenAPI metadata + `.http` requests).
 5. **Automated Tests:** Domain unit tests + Testcontainers PostgreSQL 18 integration tests + `Ruth.ArchitectureTests` green.
 6. **Post-Slice Quality Gate:**
-   - `dotnet csharpier check .` (`csharpier`)
+   - `dotnet tool run csharpier check .` (`csharpier`)
    - `dotnet build Ruth.slnx -warnaserror` (`code-analysis`, `meziantou-analyzer`, `complexity`)
    - `dotnet format style Ruth.slnx --verify-no-changes && dotnet format analyzers Ruth.slnx --verify-no-changes` (`format`)
    - `dotnet test` with Cobertura coverage + `crap-score` check (`CRAP < 15`) on newly added complex domain methods.
@@ -134,18 +137,18 @@ flowchart LR
 ```mermaid
 flowchart TD
     W0["Wave 0: Platform, Governance & Shared Kernel (5 Slices)"] --> W1["Wave 1: Identity, Security & Core Foundation (8 Slices)"]
-    W1 --> W2["Wave 2: CRM & Groups — Core RMS (8 Slices)"]
-    W2 --> W3["Wave 3: Check-In & Communications (7 Slices)"]
-    W2 --> W4["Wave 4: Finance & Events (8 Slices)"]
-    W2 --> W5["Wave 5: Engagement, Connection, Prayer & Workflow (6 Slices)"]
+    W1 --> W2["Wave 2: Constituent CRM & Groups/Teams (8 Slices)"]
+    W2 --> W3["Wave 3: Generalization, Check-In, Comms & Wallet Passes (9 Slices)"]
+    W2 --> W4["Wave 4: Finance, Events & Commerce/Bookings (10 Slices)"]
+    W2 --> W5["Wave 5: Engagement, Care, Workflow & LiveKit Rooms (7 Slices)"]
     W3 --> W6["Wave 6: CMS, Reporting, LMS & AI (8 Slices)"]
     W4 --> W6
     W5 --> W6
-    W6 --> W7["Wave 7 (Optional): Legacy Rock Slingshot ETL Importer (1 Slice)"]
+    W6 --> W7["Wave 7 (Optional): Universal CSV/JSON Data Import Pipeline (1 Slice)"]
 ```
 
 > [!TIP]
-> Once **Wave 2 (CRM & Groups)** is complete, **Waves 3, 4, and 5** depend primarily on `Identity`, `Core`, `Crm.Contracts`, and `Groups.Contracts`—meaning slices across Check-In/Comms, Finance/Events, and Engagement/Workflow can be executed **in parallel** (e.g., via `/teamwork` swarm workers in isolated workspaces).
+> With **Wave 2** and **`W3-S0` (Clean-Room & Organization-Agnostic Generalization)** complete, **Waves 3, 4, and 5** depend primarily on `Identity`, `Core`, `Crm.Contracts`, and `Groups.Contracts`—meaning slices across Check-In/Comms, Finance/Events, and Engagement/Workflow can be executed **in parallel** (e.g., via `/teamwork` swarm workers in isolated workspaces).
 
 ---
 
@@ -155,344 +158,318 @@ flowchart TD
 *Goal: Establish repository governance, zero-warning CI gates, DDD/CQRS building blocks, Docker infrastructure, and the Fluent UI v5 host shell with zero-seed `/onboarding`.*
 
 #### `W0-S1` — Repository Governance, Solution Skeleton & Quality Gates ✅ *(Completed)*
-* **Scope:** Rebrand remaining template files ([Dockerfile](file:///Users/reginaldchapple/Developer/Ruth/deploy/docker/dotnet/Dockerfile), `docker-compose.yml`) to `Ruth`; create root `AGENTS.md`, `Ruth.slnx`, `Directory.Build.props` (`net10.0`, `LangVersion=14`, `TreatWarningsAsErrors=true`, `EnableNETAnalyzers=true`, `Meziantou.Analyzer`), repo-root `.editorconfig`, `CodeMetricsConfig.txt`, local `csharpier` tool manifest, `biome.json`, `stylelint.config.mjs`, and `tests/Ruth.ArchitectureTests`.
-* **`refs/Rock` Reference:** `Directory.Build.props`, `CLAUDE.md` (conceptual domain boundaries only).
+* **Scope:** Configure root `AGENTS.md`, `Ruth.slnx`, `Directory.Build.props` (`net10.0`, `LangVersion=14`, `TreatWarningsAsErrors=true`, `EnableNETAnalyzers=true`, `Meziantou.Analyzer`), repo-root `.editorconfig`, `CodeMetricsConfig.txt`, local `csharpier` tool manifest, `biome.json`, `stylelint.config.mjs`, Docker stack ([Dockerfile](file:///Users/reginaldchapple/Developer/Ruth/deploy/docker/dotnet/Dockerfile), `docker-compose.yml`), and `tests/Ruth.ArchitectureTests`.
 * **Authoring Skills:** `mcaf`, `architecture`, `quality-ci`, `analyzer-config`, `code-analysis`, `meziantou-analyzer`, `complexity`, `csharpier`, `biome`, `stylelint`.
 * **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`.
 
 #### `W0-S2` — `Ruth.SharedKernel` (DDD & Zero-Magic CQRS Primitives) ✅ *(Completed)*
 * **Scope:** `Entity<TId>`, `AggregateRoot<TId>`, `IStronglyTypedId<T>` (`Guid.CreateVersion7()`), `ValueObject`, `Result` / `Result<T>` / `Error`, `IClock` (`TimeProvider` adapter), `IDomainEvent` / `IDomainEventHandler<T>`, `IIntegrationEvent` / `IIntegrationEventHandler<T>`, explicit DI-dispatched `ICommand<TResponse>` / `ICommandHandler<TCommand, TResponse>` and `IQuery<TResponse>` / `IQueryHandler<TQuery, TResponse>` with logging/validation decorator pipeline.
-* **`refs/Rock` Reference:** Replaces `Rock/Data/Entity.cs`, `Rock/Data/IEntity.cs`, `RockDateTime`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W0-S3` — Module Persistence Base, Transactional Outbox & Scheduled Job Engine ✅ *(Completed)*
-* **Scope:** Abstract `ModuleDbContext` (Npgsql 18 with `postgis`, `pgvector`, `age` readiness), audit timestamp/concurrency `SaveChangesInterceptor`, per-schema `OutboxMessage` + `InboxMessage` tables, `BackgroundService` Outbox dispatcher, and Postgres-advisory-locked cron `IScheduledJob` engine (replacing Quartz `ServiceJob` / `ServiceJobHistory`).
-* **`refs/Rock` Reference:** `Rock/Model/Core/ServiceJob`, `ServiceJobHistory`, `ServiceLog`, `Rock/Transactions`, `Rock/Bus`.
+* **Scope:** Abstract `ModuleDbContext` (Npgsql 18 with `postgis`, `pgvector`, `age` readiness), audit timestamp/concurrency `SaveChangesInterceptor`, per-schema `OutboxMessage` + `InboxMessage` tables, `BackgroundService` Outbox dispatcher, and Postgres-advisory-locked cron `IScheduledJob` engine.
 * **Authoring Skills:** `entity-framework-core`, `architecture`, `aspnet-core`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W0-S4` — `Ruth.Host` Pipeline, Observability & Fluent UI Blazor v5 App Shell ✅ *(Completed)*
 * **Scope:** `Program.cs` middleware pipeline (`ApiExceptionHandler` -> HTTPS -> `MapStaticAssets` -> Routing -> Auth -> RateLimiter -> OutputCache -> Endpoints), built-in `AddOpenApi()`, `/health` checks (Postgres, Redis, RustFS), OpenTelemetry logging/metrics/tracing, `<FluentProviders />`, `MainLayout.razor` (`FluentLayout`, `FluentNav`, light/dark theme toggle via `Blazor.theme`, `<ErrorBoundary>`).
-* **`refs/Rock` Reference:** `Rock.WebStartup`, `Rock/Observability`, `Rock/Model/Core/ExceptionLog`.
 * **Authoring Skills:** `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`, `stylelint`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `webhint` (against local host shell).
 
 #### `W0-S5` — Zero-Seed First-Run `/onboarding` & Production Startup Guards ✅ *(Completed)*
-* **Scope:** Production fail-fast validator if `Authentication:Jwt:SigningKey` uses dev default; onboarding state gate middleware redirecting all routes to `/onboarding` when zero admin users exist; one-time Administrator + Organization setup wizard that permanently locks self-registration upon completion (matching [.env.example](file:///Users/reginaldchapple/Developer/Ruth/.env.example)).
-* **`refs/Rock` Reference:** Modernizes Rock's first-run installer/admin setup flow.
+* **Scope:** Production fail-fast validator if `Authentication:Jwt:SigningKey` uses dev default; onboarding state gate middleware redirecting all routes to `/onboarding` when zero admin users exist; one-time Administrator + Organization & Primary Branch/Site setup wizard that permanently locks self-registration upon completion (matching [.env.example](file:///Users/reginaldchapple/Developer/Ruth/.env.example)).
 * **Authoring Skills:** `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `webhint`, `crap-score`.
 
 ---
 
 ### Wave 1 — Identity, Security & Core Foundation
-*Goal: Deliver Rock's authentication, hierarchical Allow/Deny entity security, extensible `jsonb` attributes/FieldTypes, PostGIS locations, iCal schedules, and RustFS storage.*
+*Goal: Deliver enterprise authentication, hierarchical Allow/Deny entity security, extensible `jsonb` attributes/FieldTypes, Branches/Sites, PostGIS locations, iCal schedules, and RustFS storage.*
 
 #### `W1-S1` — Authentication, User Logins & OIDC/JWT Providers ✅ *(Completed)*
-* **Scope:** `Identity` module (`identity` schema): `UserAccount` (`UserLogin`), Argon2id/ASP.NET Core password hashing, Cookie auth for Blazor Server, JWT Bearer + Refresh Tokens for APIs/Mobile, external OIDC provider abstraction, password reset & account confirmation flows, login history, `Auth.http`.
-* **`refs/Rock` Reference:** `Rock/Model/CRM/UserLogin`, `PersonToken`, `RemoteAuthenticationSession`, `Rock.Oidc`, `Rock.Blocks/Security/Login.cs`, `AccountEntry.cs`, `ChangePassword.cs`, `LoginHistory.cs`.
+* **Scope:** `Identity` module (`identity` schema): `UserAccount`, Argon2id/ASP.NET Core password hashing, Cookie auth for Blazor Server, JWT Bearer + Refresh Tokens for APIs/Mobile, external OIDC provider abstraction, password reset & account confirmation flows, login history, `Auth.http`.
 * **Authoring Skills:** `aspnet-core`, `architecture`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W1-S2` — Security Roles & Hierarchical `ISecured` ACL Engine ✅ *(Completed)*
-* **Scope:** `SecurityRole` (extracted cleanly out of legacy `Group`), special roles (`AllUsers`, `AllAuthenticatedUsers`), `EntityAclRule` (`Auth`: ordered `Allow`/`Deny` per action `View`, `Edit`, `Administrate`, etc. with parent-entity hierarchy inheritance), `AuthAuditLog`, `RestApiKey` (`RestKeyDetail`), `AuthClient`/`AuthScope`, Redis-backed `FrozenDictionary` ACL evaluator + ASP.NET Core `IAuthorizationHandler` + reusable Blazor `<SecurityDialog />`.
-* **`refs/Rock` Reference:** `Rock/Security/Authorization.cs`, `ISecured.cs`, `Rock/Model/Core/Auth`, `AuthAuditLog`, `AuthClient`, `AuthScope`, `Rock.Blocks/Security/VerifySecurity.cs`, `SecurityChangeAuditList.cs`, `RestKeyList.cs`.
+* **Scope:** `SecurityRole`, special roles (`AllUsers`, `AllAuthenticatedUsers`), `EntityAclRule` (ordered `Allow`/`Deny` per action `View`, `Edit`, `Administrate`, etc. with parent-entity hierarchy inheritance), `AuthAuditLog`, `RestApiKey`, `AuthClient`/`AuthScope`, Redis-backed `FrozenDictionary` ACL evaluator + ASP.NET Core `IAuthorizationHandler` + reusable Blazor `<SecurityDialog />`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `blazing-fast-dotnet`, `entity-framework-core`, `fluentui-blazor-usage`, `blazor`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (critical security engine: mandatory near-100% branch coverage).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W1-S3` — Entity Registry, DefinedTypes & Hierarchical Categories ✅ *(Completed)*
 * **Scope:** `Core` module (`core` schema): `EntityTypeDescriptor` (compile-time discovered modular entity registry + `SystemGuid` constants), `DefinedType` + `DefinedValue` aggregate, recursive `Category` tree aggregate, Redis/memory read caches, Admin UI screens (`DefinedTypeList`, `DefinedTypeDetail`, `CategoryTreeView`).
-* **`refs/Rock` Reference:** `Rock/Model/Core/EntityType`, `DefinedType`, `DefinedValue`, `Category`, `Rock/SystemGuid`, `Rock.Blocks/Core/DefinedTypeList.cs`, `DefinedTypeDetail.cs`, `CategoryDetail.cs`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W1-S4` — Typed `jsonb` Attribute Engine, Attribute Matrices & Core FieldTypes ✅ *(Completed)*
-* **Scope:** `AttributeDefinition` (global, entity-type, or entity-qualifier scoped), `AttributeMatrixTemplate` (repeatable structured sub-rows in `jsonb`), `IHasAttributes` `jsonb` column convention + GIN index helper, and modular `IFieldTypePlugin` registry (starting with the ~25 foundational FieldTypes: Text, Memo, Boolean, Integer, Decimal, Currency, Date, DateTime, DateRange, SingleSelect, MultiSelect, DefinedValue, Category, KeyValueList, Json/Code, Color, Url, Email, Phone, Rating, Matrix) + dynamic `<AttributeValuesEditor />` and `<AttributeValuesSummary />` Blazor components.
-* **`refs/Rock` Reference:** `Rock/Model/Core/Attribute`, `AttributeQualifier`, `AttributeValue`, `AttributeMatrix*`, `FieldType`, `Rock/Field/Types/*`, `Rock.Blocks/Core/Attributes.cs`, `AttributeMatrixTemplateDetail.cs`.
+* **Scope:** `AttributeDefinition` (global, entity-type, or entity-qualifier scoped), `AttributeMatrixTemplate` (repeatable structured sub-rows in `jsonb`), `IHasAttributes` `jsonb` column convention + GIN index helper, and modular `IFieldTypePlugin` registry (25 foundational FieldTypes: Text, Memo, Boolean, Integer, Decimal, Currency, Date, DateTime, DateRange, SingleSelect, MultiSelect, DefinedValue, Category, KeyValueList, Json/Code, Color, Url, Email, Phone, Rating, Matrix) + dynamic `<AttributeValuesEditor />` and `<AttributeValuesSummary />` Blazor components.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W1-S5` — Campuses, PostGIS Locations & Physical Devices ✅ *(Completed)*
-* **Scope:** `Campus` (`CampusSchedule`, `CampusTopic`), `Location` hierarchy (buildings, rooms, named locations, street addresses) with `NetTopologySuite` **PostGIS** `geography(Point, 4326)` & `geography(Polygon, 4326)` geofences, `IAddressVerificationProvider` / geocoding hook, `Device` (kiosks, label printers, check-in tablets, IP/Geo matching).
-* **`refs/Rock` Reference:** `Rock/Model/Core/Campus*`, `Location`, `Device`, `NcoaHistory`, `Rock/Address`, `Rock.Blocks/Core/CampusList.cs`, `LocationTree.cs`, `LocationDetail.cs`, `DeviceDetail.cs`.
+#### `W1-S5` — Branches (Sites), PostGIS Locations & Physical Devices ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** `Branch` (`BranchSchedule`, `BranchTopic` — representing operating Sites, Branches, Chapters, Centers, or Offices), `Location` hierarchy (buildings, rooms, named locations, street addresses) with `NetTopologySuite` **PostGIS** `geography(Point, 4326)` & `geography(Polygon, 4326)` geofences, `IAddressVerificationProvider` / geocoding hook, `Device` (kiosks, label printers, check-in tablets, IP/Geo matching).
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W1-S6` — Schedules & iCalendar Recurrence Engine ✅ *(Completed)*
 * **Scope:** `Schedule` aggregate (`iCalendarContent` RFC 5545 RRULEs, check-in start/end offsets, `ScheduleDate` materialized horizon table for fast SQL range joins, `ScheduleCategoryExclusion`), friendly schedule text formatter, `<ScheduleBuilderDialog />` Blazor component.
-* **`refs/Rock` Reference:** `Rock/Model/Core/Schedule`, `ScheduleDate`, `ScheduleCategoryExclusion`, `Rock.Blocks/Core/ScheduleList.cs`, `ScheduleDetail.cs`, `ScheduleCategoryExclusionList.cs`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (recurrence & timezone math must have exhaustive DST/leap-year tests).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W1-S7` — BinaryFiles, Documents, Electronic Signatures & RustFS Storage ✅ *(Completed)*
 * **Scope:** `IStorageProvider` + `RustFsStorageProvider` (S3 presigned URLs & streaming uploads), `BinaryFileType`, `BinaryFile`, image crop/avatar processor, `DocumentType`/`Document`, `SignatureDocumentTemplate`/`SignatureDocument` electronic signature capture, `<FileUploader />` & `<ImageEditor />` Blazor components.
-* **`refs/Rock` Reference:** `Rock/Model/Core/AssetStorageProvider`, `BinaryFile*`, `Document*`, `SignatureDocument*`, `Rock/Storage`, `Rock.Blocks/Core/BinaryFileDetail.cs`, `SignatureDocumentTemplateDetail.cs`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W1-S8` — Audit History, Notes, Tags, EntitySets & User Preferences ✅ *(Completed)*
-* **Scope:** Structured `HistoryLog` (`History` / `Audit` domain change timeline), `NoteType`/`Note`/`NoteAttachment`/`NoteWatch` threaded notes timeline component, personal & organizational `Tag`/`TaggedItem` autocomplete pill bar, ephemeral/saved `EntitySet` bulk selection sets, `PersonPreference` key-value store.
-* **`refs/Rock` Reference:** `Rock/Model/Core/Audit*`, `History`, `Note*`, `Tag`, `TaggedItem`, `EntitySet*`, `PersonPreference`, `Rock.Blocks/Core/NoteTypeList.cs`, `TagList.cs`, `HistoryLog.cs`.
+* **Scope:** Structured `HistoryLog` (`HistoryLogEntry` domain change timeline), `NoteType`/`Note`/`NoteAttachment`/`NoteWatch` threaded notes timeline component, personal & organizational `Tag`/`TaggedItem` autocomplete pill bar, ephemeral/saved `EntitySet` bulk selection sets, `PersonPreference` key-value store.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 ---
 
-### Wave 2 — CRM & Groups (The Heart of the RMS)
-*Goal: Deliver Rock's complete Person 360 profile, Household/Relationship graph, deduplication/merge, ministry groups, serving schedules, and attendance.*
+### Wave 2 — Constituent CRM & Groups/Teams
+*Goal: Deliver complete Person & Organization 360 profiles, Household/Unit & Apache AGE relationship graphs, deduplication/merge, hierarchical groups/chapters/teams, volunteer/shift scheduling, and attendance.*
 
 #### `W2-S1` — Person Aggregate, Contact Info, Metaphones & Fast Person Search ✅ *(Completed)*
-* **Scope:** `Crm` module (`crm` schema): `Person` aggregate (record type Person/Business/RestUser, connection status, record status, marital status, BirthDate, graduation/grade calculation, deceased handling, photo), `PhoneNumber` (E.164 normalization, SMS opt-in), `PersonPreviousName`, `PersonSearchKey` (alternate emails/barcodes/legacy IDs), `Metaphone` / `MetaFirstNameGenderLookup` / `MetaNickNameLookup`, PostgreSQL `pg_trgm` + phonetic instant search bar & Person Profile header.
-* **`refs/Rock` Reference:** `Rock/Model/CRM/Person`, `PhoneNumber`, `PersonPreviousName`, `PersonSearchKey`, `Rock/Model/Meta/*`, `Rock.Blocks/Crm/PersonDetail`, `PersonSearch.cs`.
+* **Scope:** `Crm` module (`crm` schema): `Person` aggregate (record type Person/Business/SystemUser, connection status, record status, marital status, BirthDate, graduation/grade calculation, deceased handling, photo, `PrimaryBranchId`), `PhoneNumber` (E.164 normalization, SMS opt-in), `PersonPreviousName`, `PersonSearchKey` (alternate emails/barcodes/external IDs), `Metaphone` / `MetaFirstNameGenderLookup` / `MetaNickNameLookup`, PostgreSQL `pg_trgm` + phonetic instant search bar & Person Profile header.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S2` — Households (Families) & Apache AGE Relationship Graph ✅ *(Completed)*
-* **Scope:** First-class `Household` aggregate (replacing overloaded Family `Group`s: Adult/Child roles, Primary Campus, Mapped Mailing/Home `Location`s, Combined Giving Unit flag, multi-household membership for blended families) + `KnownRelationship` & `PeerNetwork` graph synchronized to **PostgreSQL Apache AGE** (`crm_graph`) for multi-hop family/influence/relationship traversal, plus Household UI cards on Person Profile.
-* **`refs/Rock` Reference:** Family logic in `Rock/Model/CRM/Person`, `Rock/Model/Group/PeerNetwork`, `Rock.Blocks/Crm/PersonDetail/EditFamily.cs`, `Relationships.cs`, `FamilyPreRegistration.cs`.
+#### `W2-S2` — Households (Member/Billing Units) & Apache AGE Relationship Graph ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** First-class `Household` aggregate (Adult/Child roles, `IsPrimaryContact`, `BranchId`, Mapped Mailing/Home `Location`s, Combined Contribution/Billing Unit flag, multi-household membership) + `KnownRelationship` & `PeerNetwork` graph (clean-room bounded saturation growth & exponential half-life decay) synchronized to **PostgreSQL Apache AGE** (`crm_graph`) for multi-hop relationship traversal, plus Household UI cards on Person Profile.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S3` — Person Duplicate Detection, Alias Redirects & Cross-Module Merge ✅ *(Completed)*
-* **Scope:** Scheduled `PersonDuplicateScannerJob` (`PersonDuplicate` confidence scoring across name/nicknames/phone/email/address/DOB), `PersonRedirectLedger` (maps retired `PersonId`s and legacy `PersonAlias` GUIDs to surviving `PersonId`), side-by-side Blazor `<PersonMergePage />`, and `PersonMergedIntegrationEvent` via Outbox so every downstream module (`Groups`, `Finance`, `CheckIn`, etc.) re-points `PersonId` cleanly.
-* **`refs/Rock` Reference:** `Rock/Model/CRM/PersonDuplicate`, `PersonAlias`, `Rock/Jobs/PersonDuplicateFinder.cs`, `Rock.Blocks/Crm/PersonDuplicateList.cs`, `PersonMerge.cs`.
+#### `W2-S3` — Person Duplicate Detection, Redirect Ledger & Cross-Module Merge ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** Scheduled `PersonDuplicateScannerJob` (clean-room completeness-adjusted weighted attribute similarity scoring across email/phones/address/name/DOB/suffix), `PersonRedirect` ledger (maps retired `PersonId`s and optional `ExternalRecordGuid`s to surviving `PersonId`), side-by-side Blazor `<PersonMergePage />`, and `PersonMergedIntegrationEvent` via Outbox so every downstream module (`Core`, `Groups`, `Finance`, `CheckIn`, etc.) re-points `PersonId` cleanly.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (high-risk data mutation: thorough Testcontainers merge tests).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S4` — Signals, Extensible Badges, Assessments & Background Checks ✅ *(Completed)*
-* **Scope:** `SignalType` / `PersonSignal` (top-of-profile safety/VIP banners), modular `IPersonBadge` Blazor component bar (`Badge`), `AssessmentType` / `Assessment` (Spiritual Gifts, DISC, Conflict, Motivators, Emotional Intelligence), `BackgroundCheck` + `IBackgroundCheckProvider` (including modular Checkr webhook adapter), `IdentityVerification`, and `PersonViewed` audit log.
-* **`refs/Rock` Reference:** `Rock/Model/Core/PersonSignal`, `SignalType`, `Rock/Model/CRM/Badge`, `Assessment*`, `BackgroundCheck`, `IdentityVerification*`, `PersonViewed`, `Rock.Checkr`, `Rock.Blocks/Crm/Assessment*`, `BadgeDetail.cs`, `Rock.Blocks/Security/BackgroundCheck/*`.
+#### `W2-S4` — Signals, Extensible Badges, Assessments & Background Screening ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** `SignalType` / `PersonSignal` (top-of-profile safety/compliance/VIP banners), modular `IPersonBadge` Blazor component bar, `AssessmentType` / `Assessment` (Team Strengths, DISC, Conflict Style, Motivators, Emotional Intelligence), `BackgroundCheck` + `IBackgroundCheckProvider` (including modular Checkr webhook adapter), `IdentityVerification`, and `PersonViewed` audit log.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W2-S5` — GroupTypes, Group Hierarchy, Locations & PostGIS Group Finder ✅ *(Completed)*
-* **Scope:** `Groups` module (`groups` schema): `GroupType` (`GroupTypeRole`, allowed child GroupTypes, location modes, attendance rules), `Group` tree aggregate, `GroupLocation`, `GroupDemographicType`/`Value`, `GroupHistorical` snapshots, Admin `GroupTreeView`/`GroupDetail` shell, and public/internal PostGIS radius/polygon `GroupFinder` + map view.
-* **`refs/Rock` Reference:** `Rock/Model/Group/Group`, `GroupType*`, `GroupLocation*`, `GroupDemographic*`, `GroupHistorical`, `Rock.Blocks/Group/GroupTreeView.cs`, `GroupDetail.cs`, `GroupTypeDetail.cs`, `GroupFinder.cs`, `GroupMap.cs`.
+#### `W2-S5` — GroupTypes, Group Hierarchy, Locations & PostGIS Group Finder ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** `Groups` module (`groups` schema): `GroupType` (`GroupTypeRole`, allowed child GroupTypes, `GroupsRequireBranch`, location modes, attendance rules), `Group` tree aggregate (chapters, committees, cohorts, classes, volunteer teams), `GroupLocation`, `GroupDemographicType`/`Value`, `GroupHistorical` snapshots, Admin `GroupTreeView`/`GroupDetail` shell, and public/internal PostGIS radius/polygon `GroupFinder` + map view.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W2-S6` — Group Memberships, Requirements, Placement & Sync ✅ *(Completed)*
-* **Scope:** `GroupMember` lifecycle (Active, Inactive, Pending, capacity/role limits, `GroupMemberHistorical`), `GroupRequirementType` / `GroupRequirement` / `GroupMemberRequirement` (background check/step/attribute prerequisites), `GroupPlacement` board, `GroupSimpleRegister`, and scheduled `GroupSync` reconciliation.
-* **`refs/Rock` Reference:** `Rock/Model/Group/GroupMember`, `GroupMemberHistorical`, `GroupRequirement*`, `GroupSync`, `Rock.Blocks/Group/GroupMemberList.cs`, `GroupPlacement.cs`, `GroupRequirementTypeDetail.cs`.
+* **Scope:** `GroupMember` lifecycle (Active, Inactive, Pending, capacity/role limits, `GroupMemberHistorical`), `GroupRequirementType` / `GroupRequirement` / `GroupMemberRequirement` (background screening/certification/attribute prerequisites), `GroupPlacement` board, `GroupSimpleRegister`, and scheduled `GroupSync` reconciliation.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S7` — Ministry Serving Scheduler & RSVPs ✅ *(Completed)*
-* **Scope:** `GroupMemberScheduleTemplate`, `GroupLocationScheduleConfig` (min/desired/max volunteer thresholds), `GroupMemberAssignment`, `PersonScheduleExclusion` (blackout dates), `GroupScheduleExclusion`, interactive Coordinator Schedule Grid + Volunteer Schedule Toolbox & Decline/Accept RSVP links (`Rsvp`).
-* **`refs/Rock` Reference:** `Rock/Model/Group/GroupMemberScheduleTemplate`, `GroupLocationScheduleConfig`, `GroupMemberAssignment`, `PersonScheduleExclusion`, `Rock.Blocks/Group/Scheduling/*`, `Rock.Blocks/Rsvp/*`.
+#### `W2-S7` — Volunteer & Shift Roster Scheduler & RSVPs ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** `GroupMemberScheduleTemplate`, `GroupLocationScheduleConfig` (min/desired/max staffing thresholds), `GroupMemberAssignment`, `PersonScheduleExclusion` (blackout dates), `GroupScheduleExclusion`, interactive Coordinator Roster Grid + Volunteer/Staff Schedule Toolbox & Decline/Accept RSVP links (`Rsvp`).
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W2-S8` — Attendance Occurrences & Group Attendance Entry ✅ *(Completed)*
-* **Scope:** `AttendanceOccurrence` (Group + Location + Schedule + OccurrenceDate, `DidNotOccur`), `Attendance` records, fast mobile/tablet-friendly Group Roster Attendance checklist UI, Campus/Service metric summary hooks, and `PersonAttendedIntegrationEvent`.
-* **`refs/Rock` Reference:** `Rock/Model/Event/AttendanceOccurrence`, `Attendance`, `Rock.Blocks/Group/GroupAttendanceList.cs`, `GroupAttendanceDetail.cs`.
+#### `W2-S8` — Attendance Occurrences & Roster Checklists ✅ *(Completed — Generalized in `W3-S0`)*
+* **Scope:** `AttendanceOccurrence` (Group + Location + Schedule + OccurrenceDate, configurable `WeekEndDate` via `ReportingWeekCalculator`, `DidNotOccur`), `Attendance` records (`BranchId`), mobile/tablet-friendly Roster Attendance checklist UI, Branch/Program metric summary hooks, and `PersonAttendedIntegrationEvent`.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 ---
 
-### Wave 3 — Check-In & Communications
-*Goal: Deliver Sunday-morning mission-critical Kiosk Check-In, ZPL label printing, the Razor & safe merge-token template engine, and multi-channel communications.*
+### Wave 3 — Clean-Room Generalization, Check-In & Communications
+*Goal: Complete the organization-agnostic clean-room refactor, then deliver mission-critical Kiosk/Facility Check-In, ZPL badge printing, the Razor & safe merge-token template engine, and multi-channel communications.*
+
+#### `W3-S0` — Clean-Room & Organization-Agnostic Generalization ✅ *(Completed)*
+* **Scope:** Disconnect external ChMS reference code (`refs/`); generalize `Campus` -> `Branch` (`Site`/`Branch`) across `Identity`, `Core`, `Crm`, `Groups`, and `Host` with EF Core schema migrations (dropping church-only `TitheMetric` and `AverageWeekendAttendance`); replace `SundayDateCalculator` with configurable `ReportingWeekCalculator` (`WeekEndDate`); replace legacy-derived CRM heuristics (`PersonDuplicateScorer`, `HouseholdDomainService`, `PeerNetworkScoreCalculator`, `PersonRedirect`, `CronExpression`) with clean-room, gender-neutral, first-principles implementations; neutralize seeded assessments, screening packages, and UI copy.
+* **Authoring Skills:** `mcaf`, `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
+* **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W3-S1` — Razor Template Renderer, Safe Merge Tokens & Reusable Snippets ✅ *(Completed)*
-* **Scope:** `IRazorTemplateRenderer` built on Blazor's native `.NET 10` `HtmlRenderer` (rendering strongly-typed `.razor` component templates to HTML/text with DI support) paired with `IMergeTemplateEngine` for database-stored, staff-editable content (emails, SMS, signature waivers, ZPL/text): compiled token parser (`{{ Field }}` with safe built-in formatters for dates, currency, casing, fallback defaults, and HTML encoding), strict size/recursion limits, reusable `TemplateSnippet` definitions, and read-only DTO merge contexts (never exposing `DbContext`, mutable domain entities, or arbitrary runtime C# execution).
-* **`refs/Rock` Reference:** Functional parity for `Rock/Model/CMS/LavaShortCode` & `Rock.Blocks/Cms/LavaShortcodeDetail.cs` (re-architected onto native `.NET 10` Razor components + safe merge tokens instead of Lava/Liquid).
+* **Scope:** `IRazorTemplateRenderer` built on Blazor's native `.NET 10` `HtmlRenderer` (rendering strongly-typed `.razor` component templates to HTML/text with DI support) paired with `IMergeTemplateEngine` for database-stored, staff-editable content (emails, SMS, signature waivers, ZPL/text): compiled token parser (`{{ Field }}` with safe built-in formatters for dates, currency, casing, fallback defaults, and HTML encoding), strict size/recursion limits, reusable `TemplateSnippet` definitions, and read-only DTO merge contexts.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W3-S2` — Check-In Configuration, Areas, Rules & Room Balancing
-* **Scope:** `CheckIn` module (`checkin` schema): Check-in configuration profiles, Area/Group/Location/Schedule matrices, matching specifications (Age range, Birthdate, Grade, Ability level, Gender, Special Needs, Already-Enrolled), room capacity thresholds, and automated room-balancing domain service.
-* **`refs/Rock` Reference:** `Rock/CheckIn/v2/*` configuration & filtering services, `Rock.Blocks/CheckIn/Config/*`, `CheckInScheduleBuilder.cs`.
+#### `W3-S2` — Check-In Configuration, Areas, Eligibility Rules & Room Balancing ✅ *(Completed)*
+* **Scope:** `CheckIn` module (`checkin` schema): Check-in configuration profiles (youth/childcare safety, member facility access, classes, volunteer shifts, conferences), Area/Group/Location/Schedule matrices, eligibility specifications (Age range, Birthdate, Grade, Membership/Skill tier, Accessibility/Accommodations, Pre-Enrolled), room capacity thresholds, and automated room-balancing domain service.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W3-S3` — High-Throughput Check-In Session Engine, Kiosk UI & Classroom Manager
-* **Scope:** `AttendanceCheckInSession`, collision-free daily `AttendanceCode` generator (configurable alpha/numeric security codes with bad-word filter), sub-50ms phone-number/family/barcode search, touch-optimized Blazor Check-In Kiosk UI + Check-Out flow + Next-Gen Manager classroom roster/override tablet UI + Mobile Check-In Minimal APIs.
-* **`refs/Rock` Reference:** `Rock/CheckIn/v2/*`, `Rock/Model/Event/AttendanceCheckInSession`, `AttendanceCode`, `AttendanceData`, `Rock.Blocks/CheckIn/AttendanceHistoryList.cs`, `Manager/*`, `Rock.Blocks/Mobile/CheckIn/*`.
+#### `W3-S3` — High-Throughput Check-In Session Engine, Kiosk UI & Room/Facility Manager
+* **Scope:** `AttendanceCheckInSession`, collision-free daily `SecurityPickupCode` generator (configurable alpha/numeric pickup/badge codes with profanity filter), sub-50ms phone-number/household/member-card/barcode search, touch-optimized Blazor Check-In Kiosk UI + Check-Out flow + live Room/Facility Manager roster/override tablet UI + Mobile Check-In Minimal APIs.
 * **Authoring Skills:** `architecture`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint` (Kiosk touch/a11y/perf audit).
 
-#### `W3-S4` — Check-In Label Designer & Zebra ZPL Print Pipeline
-* **Scope:** `CheckInLabel` aggregate (JSON layout schema + ZPL compilation), merge fields (Security Code, Allergies/Legal Notes, Room, Parent Receipt, Achievement icons), server TCP raw-socket printer dispatch (for local/VPN Zebra printers) + browser local-print/WebUSB JS interop module, and visual Blazor Label Preview/Editor.
-* **`refs/Rock` Reference:** `Rock/Model/Core/CheckInLabel`, `Rock/CheckIn/v2/Labels/*`, `Checkin Labels/`, `Rock.Blocks/CheckIn/Config/CheckInLabelDetail.cs`.
+#### `W3-S4` — Badge & Label Designer & Zebra ZPL Print Pipeline
+* **Scope:** `CheckInLabel` aggregate (JSON layout schema + Zebra ZPL compilation), merge fields (Pickup Security Code, Medical/Allergy/Compliance Alerts, Room/Zone, Guardian Receipt, Badge/Tier icons), server TCP raw-socket printer dispatch (for local/VPN Zebra printers) + browser local-print/WebUSB JS interop module, and visual Blazor Label Preview/Editor.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `complexity`, `crap-score`.
 
-#### `W3-S5` — Communication Transports, System Communications & Snippets
-* **Scope:** `Communication` module (`comms` schema): `ICommunicationTransport` modular contracts + providers (SMTP, SendGrid, Mailgun, Twilio SMS, Push Notification stub, Dev In-Memory Sink), `SystemCommunication` transactional email/SMS templates (wired to Identity/Group/Workflow events), `SystemPhoneNumber`, `SnippetType`/`Snippet`, `PersonalDevice` push tokens.
-* **`refs/Rock` Reference:** `Rock/Communication/*`, `Rock.Mailgun`, `Rock.SendGrid`, `Rock.Mandrill`, `Rock/Model/Communication/SystemCommunication`, `SystemPhoneNumber`, `Snippet*`, `Rock/Model/CRM/PersonalDevice`, `Rock.Blocks/Communication/SystemCommunicationDetail.cs`.
-* **Authoring Skills:** `architecture`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint` (email HTML output validation).
+#### `W3-S5` — Communication Transports, System Notifications & Snippets
+* **Scope:** `Communication` module (`comms` schema): `ICommunicationTransport` modular contracts + providers (SMTP, SendGrid, Mailgun, Twilio SMS, Push Notification stub, Dev In-Memory Sink), `SystemCommunication` transactional email/SMS templates (wired to Identity/Group/Finance/Workflow events), `SystemPhoneNumber`, `PersonalDevice` push tokens.
+* **Authoring Skills:** `architecture`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`.
 
 #### `W3-S6` — Bulk Communications, Email Builder, Recipients & Two-Way SMS Pipeline
-* **Scope:** `CommunicationTemplate`, `EmailSection` structured email composer, `Communication` lifecycle (Draft -> Pending Approval -> Approved -> Sending -> Sent), `CommunicationRecipient` batch sending job, bounce/open/click webhook Minimal APIs, unsubscribe management, two-way SMS Conversations inbox (`CommunicationResponse`) + `SmsPipeline`/`SmsAction` keyword responder.
-* **`refs/Rock` Reference:** `Rock/Model/Communication/Communication*`, `EmailSection`, `SmsPipeline`, `SmsAction`, `Rock.Blocks/Communication/CommunicationEntryWizard.cs`, `CommunicationDetail.cs`, `Communications.cs`, `SmsConversations.cs`, `SmsPipelineDetail.cs`.
+* **Scope:** `CommunicationTemplate`, `EmailSection` structured email composer, `Communication` lifecycle (Draft -> Pending Approval -> Approved -> Sending -> Sent), `CommunicationRecipient` batch sending job, bounce/open/click webhook Minimal APIs, unsubscribe/preference center management, two-way SMS Conversations inbox (`CommunicationResponse`) + `SmsPipeline`/`SmsAction` keyword responder.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`, `crap-score`.
 
 #### `W3-S7` — Communication Flows & Automated Drip Campaigns
-* **Scope:** `CommunicationFlow` (multi-step timed drip sequences, exit/conversion conditions), `CommunicationFlowInstance`, `CommunicationFlowInstanceRecipient`, `CommunicationFlowInstanceCommunicationConversion`, Flow Builder & Performance Analytics UI.
-* **`refs/Rock` Reference:** `Rock/Model/Communication/CommunicationFlow*`, `Rock.Blocks/Communication/CommunicationFlowDetail.cs`, `CommunicationFlowPerformance.cs`.
+* **Scope:** `CommunicationFlow` (multi-step timed onboarding/renewal/engagement drip sequences, exit/conversion conditions), `CommunicationFlowInstance`, `CommunicationFlowInstanceRecipient`, `CommunicationFlowConversion`, Flow Builder & Performance Analytics UI.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
+
+#### `W3-S8` — Smart Wallet Passes (Apple `.pkpass` & Google Wallet Member/Event Cards)
+* **Scope:** `CheckIn` module (`Slices/WalletPasses/`) + `IWalletPassProvider` strategy (`ApplePkpassProvider` using native `.NET 10` PKCS#7 detached signature packaging + Apple PassKit WebService device registration/push-update endpoints, `GoogleWalletJwtProvider`, and deterministic `PreviewWalletPassProvider` when pass certificates are unconfigured): `WalletPassTemplate`, `IssuedWalletPass` (`SerialNumber`, `AuthTokenHash`, `ScanToken`, dynamic fields for Membership Tier, Punch/Credit Balance, Next Shift/Booking, or Event Ticket), `<50ms` Kiosk scan resolution hook, email/SMS pass claim links, and Staff/Member Pass Preview & Issuance UI.
+* **Authoring Skills:** `architecture`, `modern-csharp`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 ---
 
-### Wave 4 — Finance & Events
-*Goal: Deliver Rock's complete accounting/giving ledger, payment gateways, statements, benevolence, fundraising, calendars, and paid event registrations.*
+### Wave 4 — Finance (Funds, Dues, Fees, Invoices & Grants) & Events
+*Goal: Deliver a dual-capable financial ledger supporting both tax-deductible charitable funds/pledges/grants and standard membership dues, program fees, and invoices—paired with calendars and event registrations.*
 
-#### `W4-S1` — Financial Accounts, Giving Units, Businesses & Pledges
-* **Scope:** `Finance` module (`finance` schema): hierarchical `FinancialAccount` (tax-deductible flags, campus mapping, GL codes, start/end dates), `Money` value object (strict decimal currency invariants), Business CRM facade (`BusinessList`, `BusinessDetail`, `ConvertBusiness`), and `FinancialPledge` tracking + analytics.
-* **`refs/Rock` Reference:** `Rock/Model/Finance/FinancialAccount`, `FinancialPledge`, `Rock.Blocks/Finance/FinancialAccountDetail.cs`, `AccountTreeView.cs`, `BusinessDetail.cs`, `FinancialPledgeDetail.cs`.
+#### `W4-S1` — Financial Accounts, Funds, Revenue Categories, Organizations & Pledges
+* **Scope:** `Finance` module (`finance` schema): hierarchical `FinancialAccount` (`AccountKind`: CharitableFund, MembershipDues, ProgramFee, GrantFund, OperatingRevenue; `IsTaxDeductible` flag, `BranchId` mapping, GL/cost-center codes, start/end dates), `Money` value object (strict decimal ISO-4217 currency invariants), Organization/Sponsor CRM facade (`OrganizationList`, `OrganizationDetail`), and `FinancialPledge` / commitment tracking + analytics.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S2` — Payment Gateways & Tokenized Saved Accounts
-* **Scope:** `FinancialGateway` configuration, modular `IPaymentGateway` (hosted tokenizer JS interop, ACH/card charge, refund, customer vault, scheduled subscription sync), Test Gateway + modular `NmiGatewayProvider` (`Rock.NMI` port), `FinancialPersonSavedAccount` & hashed routing/account `FinancialPersonBankAccount` (for check-micr matching).
-* **`refs/Rock` Reference:** `Rock/Financial/*`, `Rock.NMI`, `Rock/Model/Finance/FinancialGateway`, `FinancialPaymentDetail`, `FinancialPersonSavedAccount`, `FinancialPersonBankAccount`, `Rock.Blocks/Finance/FinancialGatewayDetail.cs`, `SavedAccountList.cs`.
+#### `W4-S2` — Payment Gateways & Tokenized Saved Payment Methods
+* **Scope:** `FinancialGateway` configuration, modular `IPaymentGateway` (hosted tokenizer JS interop, ACH/card charge, refund, customer vault, recurring subscription sync), Test Gateway + modular `NmiGatewayProvider` / Stripe-ready contract, `SavedPaymentMethod` & hashed routing/account `BankAccountIdentifier` (for check/ACH matching).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `complexity`, `crap-score`.
 
-#### `W4-S3` — Financial Batches, Transactions, Refunds & Check Scanning API
-* **Scope:** `FinancialBatch` aggregate (Pending -> Open -> Closed state machine, control amount/count reconciliation, audit locks), `FinancialTransaction` + `FinancialTransactionDetail` multi-account splits, `FinancialTransactionImage` (RustFS encrypted check images), `FinancialTransactionRefund` partial/full refunds, Batch/Transaction RMS screens + Minimal API for check-scanner uploads.
-* **`refs/Rock` Reference:** `Rock/Model/Finance/FinancialBatch`, `FinancialTransaction*`, `Rock.Blocks/Finance/FinancialBatchList.cs`, `FinancialBatchDetail.cs`, `TransactionList.cs`, `TransactionDetail.cs`.
+#### `W4-S3` — Financial Batches, Invoices, Dues/Fee Billings, Transactions & Refunds
+* **Scope:** `Invoice` aggregate (line items, due dates, partial/full balance tracking for membership dues, tuition, facility rentals, or sponsorships), `FinancialBatch` aggregate (Pending -> Open -> Closed state machine, control amount/count reconciliation, audit locks), `FinancialTransaction` + `FinancialTransactionDetail` multi-account splits (settling charitable contributions, direct fees, or open `Invoice`s), `FinancialTransactionImage` (RustFS encrypted check/remittance images), `FinancialTransactionRefund`, Batch/Invoice/Transaction staff screens + check-scanner Minimal API.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (financial invariants require exhaustive unit + concurrency tests).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W4-S4` — Scheduled Giving & Giving Automation Alerts
-* **Scope:** `FinancialScheduledTransaction` + `FinancialScheduledTransactionDetail`, gateway webhook & nightly settlement download job (`ScheduledPaymentDownload`), donor self-service recurring giving management component, and `FinancialTransactionAlertType` / `FinancialTransactionAlert` (early-warning lapsing/spike giving cadence analyzer).
-* **`refs/Rock` Reference:** `Rock/Model/Finance/FinancialScheduledTransaction*`, `FinancialTransactionAlert*`, `Rock/Jobs/GivingAutomation.cs`, `Rock.Blocks/Finance/ScheduledTransactionEditV2.cs`, `GivingAutomationConfiguration.cs`.
+#### `W4-S4` — Recurring Contributions, Membership Subscriptions & Cadence Alerts
+* **Scope:** `RecurringScheduleTransaction` (recurring charitable gifts AND recurring membership dues/retainers), gateway webhook & nightly settlement sync job, member/donor self-service billing & recurring management component, and `TransactionCadenceAlertType` / `TransactionCadenceAlert` (churn/lapse risk and unusual spike detector).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W4-S5` — Contribution Statements & Benevolence Management
-* **Scope:** `FinancialStatementTemplate` (compiled `.razor` statement layout via `HtmlRenderer` + staff-editable header/footer merge tokens -> print-CSS / PDF statement generation for individuals & combined households, online donor download + bulk batch run), `BenevolenceType`, `BenevolenceRequest`, `BenevolenceRequestDocument`, `BenevolenceResult` caseworker UI.
-* **`refs/Rock` Reference:** `Rock/Model/Finance/FinancialStatementTemplate`, `Benevolence*`, `Rock.StatementGenerator`, `Rock.Blocks/Finance/FinancialStatementTemplateDetail.cs`, `ContributionStatementGenerator.cs`, `BenevolenceRequestDetail.cs`.
+#### `W4-S5` — Tax Receipts, Account Statements & Assistance / Grant Case Management
+* **Scope:** `FinancialStatementTemplate` (compiled `.razor` layout via `HtmlRenderer` + merge tokens -> print-CSS / PDF generation separating **Tax-Deductible Charitable Receipts** from **Non-Deductible Dues/Fee/Invoice Statements** for individuals, households, and corporate sponsors, online download + batch run), plus `AssistanceProgram`, `AssistanceCase` (`AssistanceDocument`, `AssistanceDisbursement` — supporting community aid, scholarships, fee waivers, and micro-grants).
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`.
 
-#### `W4-S6` — Fundraising Opportunities & Participant Giving Portals
-* **Scope:** Mission trip / project fundraising configuration on Groups + Financial Accounts, participant goal overrides, public donor contribution form (tax-deductible participant credit without exposing donor details inappropriately), `FundraisingLeaderToolbox` & progress bars.
-* **`refs/Rock` Reference:** `Rock.Blocks/Finance/Fundraising*`, `Rock.Blocks/Fundraising/*`.
+#### `W4-S6` — Peer-to-Peer & Project Campaign Fundraising
+* **Scope:** Campaign / project / team fundraising configuration on Groups + Financial Accounts, participant & team goal overrides, public contribution portal (supporting donor privacy options and participant fundraising credit), `CampaignLeaderToolbox` & progress widgets.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S7` — Event Calendars, Occurrences & Live Interactive Experiences
-* **Scope:** `Events` module (`events` schema): `EventCalendar`, `EventItem`, `EventItemAudience`, `EventItemOccurrence`, `EventItemOccurrenceGroupMap`, `iCal` feed endpoint, and real-time SignalR `InteractiveExperience` (`InteractiveExperienceAction`, `Occurrence`, `Answer` for live service polls/Q&A/projections).
-* **`refs/Rock` Reference:** `Rock/Model/Event/EventCalendar*`, `EventItem*`, `InteractiveExperience*`, `Rock.Blocks/Event/EventCalendarDetail.cs`, `EventItemDetail.cs`, `InteractiveExperiences/*`.
+#### `W4-S7` — Event Calendars, Occurrences & Live Interactive Sessions
+* **Scope:** `Events` module (`events` schema): `EventCalendar`, `EventItem`, `EventItemAudience`, `EventItemOccurrence` (`BranchId`, `LocationId`, `ScheduleId`), `iCal` feed endpoint, and real-time SignalR `InteractiveSession` (`InteractiveAction`, `Occurrence`, `Response` for live town-hall/conference/classroom polls, Q&A, and stage projections).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S8` — Event Registrations, Dynamic Forms, Fees, Discounts & Waitlists
-* **Scope:** `RegistrationTemplate` (`Form`, `FormField`, `Fee`, `FeeItem`, `Discount`, `Placement`), `RegistrationInstance`, `RegistrationSession` (seat holds with TTL), `Registration`, `RegistrationRegistrant`, `RegistrationRegistrantFee`, waitlist promotion, deposit/installment payment integration (`Finance.Contracts`), and multi-step public Registration Wizard.
-* **`refs/Rock` Reference:** `Rock/Model/Event/Registration*`, `Rock.Blocks/Event/RegistrationTemplateDetail.cs`, `RegistrationInstance*`, `RegistrationEntry.cs`.
+#### `W4-S8` — Event Registrations, Dynamic Forms, Fees, Invoices, Discounts & Waitlists
+* **Scope:** `RegistrationTemplate` (`Form`, `FormField`, `Fee`, `FeeItem`, `Discount`, `GroupPlacement`), `RegistrationInstance`, `RegistrationSession` (seat holds with TTL), `Registration`, `RegistrationRegistrant`, waitlist auto-promotion, deposit/installment/invoice payment integration (`Finance.Contracts`), and multi-step public Registration Wizard.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint` (public registration flow audit).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
+
+#### `W4-S9` — Commerce Catalog, Member Pricing, Punch Passes & Quid-Pro-Quo Checkout
+* **Scope:** `Commerce` module (`commerce` schema): `Product` & `ProductVariant` (Digital `RustFS` downloads, Pickup/Flat-Rate physical items, and `PunchPassType` multi-visit/credit packs), `MemberPricingRule` (tier/group automatic discounts), IRS *quid-pro-quo* split mapping (fair-market value routed to non-deductible `OperatingRevenue` account + excess routed to tax-deductible `CharitableFund` account via `Finance.Contracts`), `CommerceOrder` lifecycle, `IssuedPunchPass` balance ledger (syncing to `W3-S8` Wallet Passes), Staff Catalog/Order Manager, and Storefront Checkout UI. *(Scope guardrail: flat/gateway tax hooks and pickup/flat-rate fulfillment—no multi-warehouse WMS or carrier-rate ERP bloat.)*
+* **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
+
+#### `W4-S10` — Bookable Services, 1-on-1 Appointments & Facility/Resource Rentals
+* **Scope:** `Commerce` module (`Slices/Bookings/`): `BookableService` (1-on-1 coaching, counseling, tutoring, intake, or paid virtual workshops) and `RentableResource` (referencing `Core` `Location` rooms, courts, studios, or equipment), `AvailabilityRule` (provider/location `Schedule` windows, setup/teardown buffers, lead/cancel rules, blackout checks), conflict-free slot engine with TTL reservation holds, member-free vs. paid checkout (`Finance.Contracts` `Invoice`/charge), `ServiceBookingConfirmedIntegrationEvent` (updating Wallet Passes and provisioning virtual rooms), Coordinator Calendar UI, and Public Booking Wizard.
+* **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
 
 ---
 
-### Wave 5 — Engagement, Connection, Prayer & Workflow
-*Goal: Deliver Rock's assimilation pipelines, spiritual growth tracking, prayer ministry, and full dynamic Workflow + Form Builder engine.*
+### Wave 5 — Engagement Pipelines, Journeys, Care & Workflow
+*Goal: Deliver member/constituent onboarding pipelines, milestone journeys, attendance/activity streaks, community care/support intake, and a full dynamic Workflow + Form Builder engine.*
 
-#### `W5-S1` — Connection Opportunities, Requests & Connector Board
-* **Scope:** `Engagement` module (`engage` schema): `ConnectionType`, `ConnectionStatus`, `ConnectionStatusAutomation`, `ConnectionActivityType`, `ConnectionOpportunity` (campus/group/connector configs), `ConnectionRequest` lifecycle, `ConnectionRequestActivity`, Kanban/Grid Connector Board UI, and public Opportunity Finder/Signup.
-* **`refs/Rock` Reference:** `Rock/Model/Connection/*`, `Rock.Blocks/Connection/*`.
+#### `W5-S1` — Engagement Pipelines, Opportunities & Connector Board
+* **Scope:** `Engagement` module (`engage` schema): `PipelineType` (`ConnectionType`), `PipelineStage`, `StageAutomation`, `ActivityType`, `EngagementOpportunity` (branch/group/coordinator configs for volunteer intake, membership onboarding, mentorship, or referrals), `EngagementRequest` lifecycle, Kanban/Grid Coordinator Board UI, and public Opportunity Finder/Signup.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W5-S2` — Steps, High-Density Streaks & Achievements Engine
-* **Scope:** `StepProgram`, `StepType` (prerequisites), `StepStatus`, `Step`, `StepProgramCompletion`; `StreakType`, `StreakTypeExclusion`, `Streak` (Span/bitmask engagement map calculation inspired by Rock's byte-map streaks); `AchievementType` / `AchievementAttempt` event-driven milestone engine.
-* **`refs/Rock` Reference:** `Rock/Model/Engagement/Step*`, `Streak*`, `Achievement*`, `Rock/Achievement`, `Rock.Blocks/Engagement/Step*`, `Streak*`, `Achievement*`.
+#### `W5-S2` — Journeys (Milestones/Steps), High-Density Streaks & Achievements Engine
+* **Scope:** `JourneyProgram` (`StepProgram`), `MilestoneType` (prerequisites), `MilestoneStatus`, `PersonMilestone`, `JourneyCompletion`; `StreakType`, `StreakExclusion`, `Streak` (`Span<byte>` bitmask participation cadence engine); `AchievementType` / `AchievementAttempt` event-driven badge & certification milestone engine.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W5-S3` — Prayer Requests, Reminders & Following Subscriptions
-* **Scope:** `PrayerRequest` (submission, moderation queue, expiration, `PrayerCommentList`, guided `PrayerSession` player, "Prayed" counter), `ReminderType` / `Reminder` personal/entity follow-ups + notification bell (`NotificationMessage`), and `Following` (`FollowingEventType`, `FollowingSuggested`) digest notifications.
-* **`refs/Rock` Reference:** `Rock/Model/Prayer/PrayerRequest`, `Rock/Model/Core/Reminder*`, `NotificationMessage*`, `Following*`, `Rock.Blocks/Prayer/*`, `Rock.Blocks/Reminders/*`, `Rock.Blocks/Core/Following*`.
+#### `W5-S3` — Community Care / Support Requests, Reminders & Following Subscriptions
+* **Scope:** `SupportRequest` (configurable categories—e.g., Member Assistance, Wellbeing Check-In, Mentorship, Community Care, or Pastoral/Prayer where desired—with intake, privacy/moderation queue, expiration, threaded comments, guided care-team review queue, and community support counter), `ReminderType` / `Reminder` entity follow-ups + notification bell (`NotificationMessage`), and `Following` digest notifications.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W5-S4` — Outreach Contacts & Relational Touchpoints
-* **Scope:** Personal evangelism/care `Contact`, `ContactTouchpoint` cadence scheduler, `ContactRelationshipChange`, and mobile/web My Contacts experience.
-* **`refs/Rock` Reference:** `Rock/Model/Engagement/Contact*`, `Rock.Blocks/Engagement/Outreach*`, `Contact*`.
+#### `W5-S4` — Account / Constituent Touchpoints & Relationship Cadence
+* **Scope:** Personal portfolio / steward / caseworker `ConstituentContact`, `Touchpoint` cadence scheduler, relationship health updates, and mobile/web My Portfolio outreach queue.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
 #### `W5-S5` — Workflow State/Activity/Action Engine & Entity Triggers
-* **Scope:** `Workflow` module (`workflow` schema): `WorkflowType`, `WorkflowActivityType`, `WorkflowActionType`, `Workflow` state-machine aggregate (`WorkflowActivity`, `WorkflowAction`, `WorkflowLog`, persisted `jsonb` workflow attributes), `WorkflowTrigger` / `AutomationTrigger` (reacting to integration events), background processing worker, and the core ~50 modular `IWorkflowAction` implementations (Control Flow, Attribute manipulation, Person/Group/Finance/Connection/Communication actions, Razor/Merge Template, Webhook).
-* **`refs/Rock` Reference:** `Rock/Model/Workflow/*`, `Rock/Model/Core/Automation*`, `Rock/Workflow/Action/*`, `Rock.Blocks/WorkFlow/WorkflowList.cs`, `WorkflowTriggerDetail.cs`.
+* **Scope:** `Workflow` module (`workflow` schema): `WorkflowType`, `WorkflowActivityType`, `WorkflowActionType`, `Workflow` state-machine aggregate (`WorkflowActivity`, `WorkflowAction`, `WorkflowLog`, persisted `jsonb` workflow attributes), `WorkflowTrigger` / `AutomationTrigger` (reacting to integration events), background processing worker, and core modular `IWorkflowAction` implementations (Control Flow, Attribute manipulation, CRM/Group/Finance/Pipeline/Communication actions, Razor/Merge Template, Webhook).
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (core state machine must pass deep loop/error/persistence tests).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W5-S6` — Workflow Interactive Forms & Visual Form Builder
-* **Scope:** `WorkflowActionForm`, `WorkflowActionFormSection`, `WorkflowActionFormAttribute`, `WorkflowFormBuilderTemplate`, interactive drag-and-drop/structured Fluent UI v5 Form Builder, conditional field visibility rules, and `WorkflowEntry` / `MyWorkflows` task inbox UI.
-* **`refs/Rock` Reference:** `Rock/Model/Workflow/WorkflowActionForm*`, `WorkflowFormBuilderTemplate`, `Rock.Blocks/WorkFlow/FormBuilder/*`, `WorkflowEntry.cs`, `MyWorkflows.cs`.
+* **Scope:** `WorkflowActionForm`, `WorkflowActionFormSection`, `WorkflowActionFormField`, `FormBuilderTemplate`, interactive Fluent UI v5 Form Builder, conditional field visibility rules, and `WorkflowEntry` / `MyTasks` inbox UI.
 * **Authoring Skills:** `architecture`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `stylelint`, `biome` (plus `eslint`/`sonarjs` only if custom canvas TS is added).
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `stylelint`, `complexity`, `webhint`.
+
+#### `W5-S7` — Embedded `LiveKit` Virtual Rooms, Hybrid Sessions & Auto-Attendance
+* **Scope:** `VirtualRooms` module (`virtual` schema) + Apache-2.0 `livekit/livekit-server` (+ Egress) in `docker-compose.yml` backed by `Redis 8` and `RustFS` S3: `IVirtualRoomProvider` (`LiveKitRoomProvider` + `InMemoryVirtualRoomProvider` for deterministic tests), `VirtualRoom` & `VirtualRoomSession` linked to `Group` meetings, `Commerce` 1-on-1 bookings/workshops (`ServiceBookingConfirmedIntegrationEvent`), `SupportRequest` tele-care consults, `Events` hybrid sessions, or `LMS` cohorts; short-lived HMAC-SHA256 room JWT minting mapped from `Ruth` ACL/moderator roles; `Biome`-linted LiveKit WebComponent Blazor island; and verified LiveKit webhook endpoints (`participant_joined`, `participant_left`, `egress_ended`) that auto-record `Attendance` after configurable dwell thresholds and archive `RustFS` recordings for `Wave 6` `pgvector` transcript search.
+* **Authoring Skills:** `architecture`, `modern-csharp`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `biome`, `stylelint`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `stylelint`, `complexity`, `crap-score`.
 
 ---
 
 ### Wave 6 — CMS, Reporting, LMS, Channels & AI
-*Goal: Deliver Rock's external website/portal CMS, declarative DataViews/Reporting, Analytics, LMS, Mobile/TV backends, and `pgvector` AI agents.*
+*Goal: Deliver external website/member-portal CMS, declarative DataViews/Reporting, Operational & Financial Analytics, LMS, Mobile/Display backends, and `pgvector` AI agents.*
 
 #### `W6-S1` — Dynamic CMS Engine (`Site -> Layout -> Page -> Zone -> Block`)
-* **Scope:** `Cms` module (`cms` schema): `Site`, `SiteDomain` multi-tenant host routing, `Theme` (CSS custom-property bundles), `Layout`, `Page`, `PageRoute`, `PageContext`, `BlockType`, `Block`, `HtmlContent` (versioned + approval), `<CmsPageHost />` (`Static SSR` + interactive `<DynamicComponent>` islands implementing `IRuthBlock`), admin inline Zone/Block configurator, `PageShortLink` URL shortener + QR generator, and `RequestFilter`.
-* **`refs/Rock` Reference:** `Rock/Model/CMS/Site*`, `Theme`, `Layout`, `Page*`, `Block*`, `HtmlContent`, `PageShortLink`, `RequestFilter`, `Rock.Blocks/Cms/PageProperties.cs`, `SiteDetail.cs`, `ShortLink*.cs`.
+* **Scope:** `Cms` module (`cms` schema): `Site`, `SiteDomain` multi-host routing, `Theme` (CSS custom-property bundles), `Layout`, `Page`, `PageRoute`, `PageContext`, `BlockType`, `Block`, `HtmlContent` (versioned + approval), `<CmsPageHost />` (`Static SSR` + interactive `<DynamicComponent>` islands implementing `IRuthBlock`), admin inline Zone/Block configurator, `PageShortLink` URL shortener + QR generator, and `RequestFilter`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `stylelint`, `htmlhint`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `stylelint`, `htmlhint`, `webhint`, `complexity`, `crap-score`.
 
-#### `W6-S2` — Content Channels, Media Accounts, Personal Links & Persisted Datasets
+#### `W6-S2` — Content Channels, Media Accounts, Bookmarks & Persisted Datasets
 * **Scope:** `ContentChannelType`, `ContentChannel`, `ContentChannelItem` (`Slug`, `Association`, scheduled publishing, RSS/JSON feeds), `ContentTopic`, `MediaAccount` / `MediaFolder` / `MediaElement` (Vimeo/YouTube/HLS sync provider), `PersonalLinkSection` / `PersonalLink` staff bookmarks bar, and `PersistedDataset` cached JSON/query datasets consumed by Razor CMS blocks and typed Minimal API endpoints.
-* **`refs/Rock` Reference:** `Rock/Model/CMS/ContentChannel*`, `ContentTopic*`, `Media*`, `PersonalLink*`, `PersistedDataset`, `Rock.Blocks/Cms/ContentChannel*`, `Media*` (replacing custom `LavaApplication`/`LavaEndpoint` with typed Minimal APIs and Razor `<DynamicComponent>` blocks).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S3` — Interactions, Personalization Segments & Adaptive Messages
-* **Scope:** High-throughput buffered `Interaction` ingestion (`InteractionChannel`, `InteractionComponent`, `InteractionSession`, `InteractionSessionLocation`), `PersonalizationSegment` (affinity, request filters, DataView membership cached in Redis bitsets/sets), and `AdaptiveMessage` (`AdaptiveMessageAdaptation`) targeted content delivery.
-* **`refs/Rock` Reference:** `Rock/Model/Core/Interaction*`, `Rock/Model/CMS/PersonalizationSegment`, `AdaptiveMessage*`, `Rock/Personalization`, `Rock.Blocks/Cms/PersonalizationSegmentDetail.cs`, `AdaptiveMessageDetail.cs`.
+#### `W6-S3` — Interactions, Personalization Segments & Adaptive Content
+* **Scope:** High-throughput buffered `Interaction` ingestion (`InteractionChannel`, `InteractionComponent`, `InteractionSession`), `PersonalizationSegment` (affinity, request filters, DataView membership cached in Redis bitsets/sets), and `AdaptiveMessage` targeted content delivery.
 * **Authoring Skills:** `architecture`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W6-S4` — Mobile & TV Application Backends
-* **Scope:** Mobile app configuration (`MobileApplicationDetail`, `MobileLayoutDetail`, `MobilePageDetail`, `MobileDeepLinkDetail`) + versioned Minimal API contract for native mobile shells, and Apple TV / Roku `TvApplication` JSON/TVML feed endpoints.
-* **`refs/Rock` Reference:** `Rock.Blocks/Mobile/*`, `Rock.Blocks/Tv/*`, `Rock.Common.Tv`.
+#### `W6-S4` — Mobile & Digital Signage / TV Application Backends
+* **Scope:** Mobile app configuration (`MobileApplication`, `MobileLayout`, `MobilePage`, `MobileDeepLink`) + versioned Minimal API contract for native mobile shells, and Digital Signage / Apple TV / Roku feed endpoints.
 * **Authoring Skills:** `architecture`, `dotnet-webapi`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S5` — Declarative DataViews, Reports & Merge Templates
+#### `W6-S5` — Declarative DataViews, Reports & Merge Document Templates
 * **Scope:** `Reporting` module (`reporting` schema): `DataView` + `DataViewFilter` declarative **Query AST** (AND/OR/NOT filter trees compiling to module EF Core queries, `jsonb` attribute predicates, PostGIS spatial filters, and cross-module `PersonId` set intersections), `DataViewPersistedValue` background materializer, `Report` + `ReportField` column selector (`IFieldSelectPlugin`), CSV/Excel export, and DOCX/HTML `MergeTemplate` generator.
-* **`refs/Rock` Reference:** `Rock/Model/Reporting/DataView*`, `Report*`, `MergeTemplate`, `Rock/Reporting/DataFilter/*`, `DataSelect/*`, `Rock.Blocks/Reporting/DataView*.cs`, `Report*.cs`, `MergeTemplateDetail.cs`.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score` (Query AST compiler requires extensive Postgres SQL-translation & edge-case tests).
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W6-S6` — Metrics, Dashboards & Analytics Star-Schema Projections
-* **Scope:** `MetricCategory`, `Metric`, `MetricPartition`, `MetricValue` (manual `ServiceMetricsEntry` + scheduled SQL/Query calculation jobs), `DynamicChart` / KPI widgets, `TithingOverview` / `Insights` executive dashboards, and materialized PostgreSQL read-model views/tables replacing `AnalyticsDim*` & `AnalyticsFact*` for BI tools.
-* **`refs/Rock` Reference:** `Rock/Model/Reporting/Metric*`, `Analytics*`, `Rock.Blocks/Reporting/MetricValue*.cs`, `ServiceMetricsEntry.cs`, `Insights.cs`, `TithingOverview.cs`, `DynamicChart.cs`.
+#### `W6-S6` — Operational Metrics, Executive Dashboards & Star-Schema Projections
+* **Scope:** `MetricCategory`, `Metric`, `MetricPartition`, `MetricValue` (manual `OperationalMetricsEntry` + scheduled SQL/Query calculation jobs), `DynamicChart` / KPI widgets, `RevenueAndImpactOverview` & `ExecutiveInsights` dashboards (covering donations, dues/MRR, retention, attendance, and program outcomes), and materialized PostgreSQL star-schema views/tables for BI tools.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S7` — Learning Management System (LMS)
-* **Scope:** `Lms` module (`lms` schema): `LearningProgram` (On-Demand vs. Academic Calendar), `LearningCourse` + prerequisites, `LearningSemester`, `LearningGradingSystem` / `Scale`, `LearningClass`, `LearningClassContentPage`, `LearningClassAnnouncement`, `LearningActivity` / `LearningClassActivity` (Video, Article, File Upload, Assessment, Point-acknowledgment), `LearningParticipant`, `LearningClassActivityCompletion`, Facilitator Grading Queue, and Public Course Catalog / Student Classroom Portal.
-* **`refs/Rock` Reference:** `Rock/Model/LMS/*`, `Rock/Lms/*`, `Rock.Blocks/Lms/*`.
+#### `W6-S7` — Learning Management System (LMS & Certifications)
+* **Scope:** `Lms` module (`lms` schema): `LearningProgram` (On-Demand vs. Term/Cohort), `LearningCourse` + prerequisites, `LearningTerm`, `LearningGradingSystem` / `Scale`, `LearningClass`, `LearningClassContentPage`, `LearningClassAnnouncement`, `LearningActivity` (Video, Article, File Upload, Assessment, Acknowledgment), `LearningParticipant`, `LearningActivityCompletion`, Facilitator Grading Queue, and Public Course Catalog / Learner Portal.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
 
 #### `W6-S8` — Universal Search, Content Collections & `pgvector` AI Agents
-* **Scope:** `Ai` module (`ai` schema): `ContentCollection` + `ContentCollectionSource` indexing pipeline combining PostgreSQL `tsvector` full-text search with **`pgvector` HNSW semantic embeddings** (respecting `ISecured` ACL filters at query time!), global Spotlight Search modal in Staff Shell, modular `IAiProvider` (`OpenAiProvider` port), `AIAgent`, `AISkill`, `AISkillTool` (typed read/write tools invoking Ruth Application Queries/Commands under the caller's ACL permissions), and `AIAgentSession` chat drawer.
-* **`refs/Rock` Reference:** `Rock/Model/CMS/ContentCollection*`, `Rock/UniversalSearch`, `Rock/Model/AI/*`, `Rock.AI.Agent`, `Rock.AI.OpenAI`, `Rock.Blocks/AI/*`, `Rock.Blocks/Cms/ContentCollection*.cs`.
+* **Scope:** `Ai` module (`ai` schema): `ContentCollection` + `ContentCollectionSource` indexing pipeline combining PostgreSQL `tsvector` full-text search with **`pgvector` HNSW semantic embeddings** (respecting `ISecured` ACL filters at query time), global Spotlight Search modal in Staff Shell, modular `IAiProvider` (`OpenAiProvider`), `AIAgent`, `AISkill`, `AISkillTool` (typed read/write tools invoking Ruth Application Queries/Commands under the caller's ACL permissions), and `AIAgentSession` chat drawer.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 ---
 
-### Wave 7 (Optional Post-Parity) — Legacy Rock Migration Tooling
-*Goal: Provide an automated, repeatable path for existing churches on SQL Server Rock RMS to migrate onto `Ruth`.*
+### Wave 7 (Optional) — Universal Bulk Data Import & Onboarding Pipeline
+*Goal: Provide a high-throughput, repeatable bulk import engine so organizations migrating from spreadsheets, CRMs, association platforms, or legacy databases can onboard cleanly onto `Ruth`.*
 
-#### `W7-S1` — `Ruth.Slingshot` Legacy Rock SQL Server Importer
-* **Scope:** Standalone CLI / Admin job reading legacy Rock SQL Server databases (or `.slingshot` packages) via streaming `SqlDataReader` + PostgreSQL `COPY` binary bulk import: collapses `PersonAlias` -> `PersonId` + `PersonRedirectLedger`, splits `Group` into `SecurityRole` / `Household` / `Group`, packs `AttributeValue` rows into validated `jsonb` documents, converts SQL Server `geography` WKB to PostGIS, and produces a post-migration reconciliation checksum report.
-* **`refs/Rock` Reference:** `Rock.Slingshot`, `Rock.Slingshot.Model`, `Rock.Blocks/BulkImport/*`.
-* **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`.
+#### `W7-S1` — `Ruth.DataImport` Streaming CSV/JSON Bulk Import & Mapping Engine
+* **Scope:** Admin import wizard + CLI job ingesting CSV/JSON/ZIP packages via streaming parsers + PostgreSQL `COPY` binary bulk import: configurable column-to-field & `ExternalRecordGuid` mapping across Branches, Locations, People, Households, Groups, Memberships, Financial Accounts, Invoices, and Transactions, packing custom columns into validated `jsonb` attributes, converting WKT/lat-lng to PostGIS, and producing a post-import reconciliation checksum report.
+* **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `roslynator`.
 
 ---

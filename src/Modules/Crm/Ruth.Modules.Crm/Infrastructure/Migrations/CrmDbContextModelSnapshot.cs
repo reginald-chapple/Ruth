@@ -345,7 +345,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("LegacyPersonAliasGuid")
+                    b.Property<Guid?>("ExternalRecordGuid")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("MergeBatchId")
@@ -368,7 +368,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LegacyPersonAliasGuid");
+                    b.HasIndex("ExternalRecordGuid");
 
                     b.HasIndex("SourcePersonId")
                         .IsUnique();
@@ -388,10 +388,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("attributes");
 
-                    b.Property<Guid?>("CampusId")
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("CombineGivingByDefault")
+                    b.Property<bool>("CombineContributionsByDefault")
                         .HasColumnType("boolean");
 
                     b.Property<Guid>("ConcurrencyStamp")
@@ -421,7 +421,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
 
-                    b.HasIndex("CampusId");
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("IsArchived");
 
@@ -484,7 +484,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<int>("HouseholdOrder")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("IsCombinedGivingMember")
+                    b.Property<bool>("IsCombinedContributionMember")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimaryContact")
                         .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("ModifiedOnUtc")
@@ -654,6 +657,9 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("attributes");
 
+                    b.Property<Guid?>("BillingHouseholdId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date");
 
@@ -711,9 +717,6 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
-
-                    b.Property<Guid?>("GivingHouseholdId")
-                        .HasColumnType("uuid");
 
                     b.Property<int?>("GraduationYear")
                         .HasColumnType("integer");
@@ -777,7 +780,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid?>("PhotoBinaryFileId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("PrimaryCampusId")
+                    b.Property<Guid?>("PrimaryBranchId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("PrimaryHouseholdId")
@@ -855,7 +858,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasIndex("NormalizedNickName");
 
-                    b.HasIndex("PrimaryCampusId");
+                    b.HasIndex("PrimaryBranchId");
 
                     b.HasIndex("RecordStatus");
 

@@ -326,19 +326,19 @@ public sealed class GroupsDomainEdgeCaseAndCrapTests
         );
         var att = occ.ScheduleVolunteer(
             retired,
-            campusId: null,
+            branchId: null,
             scheduledByPersonId: retired,
             autoConfirm: false,
             _now
         );
         _ = occ.RecordPersonAttendance(
             retired,
-            campusId: null,
+            branchId: null,
             didAttend: true,
             isFirstTime: true,
             note: null,
             checkedInByPersonId: retired,
-            countsAsWeekendService: false,
+            countsTowardHeadlineAttendance: false,
             _now
         );
         att.Reschedule(retired, autoConfirm: true, _now.AddHours(1));
@@ -362,10 +362,10 @@ public sealed class GroupsDomainEdgeCaseAndCrapTests
             ShowInNavigation: true,
             AllowMultipleLocations: true,
             IsMeetingStyleEnabled: false,
-            GroupsRequireCampus: false,
+            GroupsRequireBranch: false,
             EnableGroupHistory: true,
             TakesAttendance: true,
-            AttendanceCountsAsWeekendService: false,
+            CountsTowardHeadlineAttendance: false,
             SendAttendanceReminder: false,
             GroupAttendanceRequiresLocation: false,
             GroupAttendanceRequiresSchedule: false,
@@ -391,7 +391,7 @@ public sealed class GroupsDomainEdgeCaseAndCrapTests
         return new GroupInput(
             name,
             ParentGroupId: null,
-            CampusId: null,
+            BranchId: null,
             ScheduleId: null,
             Description: null,
             PhotoId: null,

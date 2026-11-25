@@ -54,9 +54,9 @@ internal static class GroupsErrors
         "The parent group's GroupType does not allow child groups of this GroupType."
     );
 
-    public static readonly DomainError CampusRequired = DomainError.Validation(
-        "Groups.Group.CampusRequired",
-        "This GroupType requires a Campus to be assigned."
+    public static readonly DomainError BranchRequired = DomainError.Validation(
+        "Groups.Group.BranchRequired",
+        "This GroupType requires a Branch to be assigned."
     );
 
     public static readonly DomainError InvalidCapacity = DomainError.Validation(

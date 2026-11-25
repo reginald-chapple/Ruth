@@ -27,7 +27,7 @@ internal sealed class AttendanceOccurrenceConfiguration
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         _ = builder.HasIndex(static o => o.OccurrenceDate);
-        _ = builder.HasIndex(static o => o.SundayDate);
+        _ = builder.HasIndex(static o => o.WeekEndDate);
         _ = builder.HasIndex(static o => o.OccurrenceDateKey);
         _ = builder
             .HasIndex(static o => new

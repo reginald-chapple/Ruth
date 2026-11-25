@@ -2,11 +2,12 @@
 
 ## 1. Purpose & Solution Boundary
 
-`Ruth` is a clean-architecture Modular Monolith porting Rock RMS (`refs/Rock`, gitignored reference) onto **.NET 10 / C# 14**, **Fluent UI Blazor v5**, **Domain-Driven Design (DDD)**, **PostgreSQL 18** (`postgis`, `pgvector`, `age`), **Redis 8**, and **RustFS (S3)**.
+`Ruth` is a clean-architecture Modular Monolith Relationship, Community & Operations Platform for member-driven, community, non-profit, and service organizations—built on **.NET 10 / C# 14**, **Fluent UI Blazor v5**, **Domain-Driven Design (DDD)**, **PostgreSQL 18** (`postgis`, `pgvector`, `age`), **Redis 8**, **RustFS (S3)**, and **LiveKit (WebRTC)**.
 
 - **Solution file:** `Ruth.slnx`
 - **Implementation roadmap & slice catalog:** `docs/IMPLEMENTATION_PLAN.md`
-- **Reference source (read-only domain extraction only):** `refs/Rock` — extract business rules and invariants only; never copy `System.Web`, `RockContext`, EF6, `PersonAlias` FK proliferation, or legacy EAV patterns.
+- **Clean-room & licensing boundary:** Design all domain models, scoring algorithms, workflows, and persistence schemas strictly from first-principles functional specifications and open standards (e.g., RFC 5545 iCalendar, OAuth2/OIDC, IRS/GAAP fund & fee accounting, PKCS#7 Apple `.pkpass` & Google Wallet JWTs, Apache-2.0 LiveKit WebRTC, Zebra ZPL). Never reference, inspect, or copy code, proprietary heuristics, magic constants, or schemas from Rock RMS or any restrictively licensed codebase.
+- **Organization-agnostic domain model:** Keep core modules neutral across member, community, non-profit, and service organizations—supporting `Branch` (`Site`/`Branch`/`Chapter`/`Center`) operating units, configurable reporting week boundaries, smart Apple/Google Wallet member passes, per-account tax deductibility (handling both tax-deductible funds/grants and standard dues/fees/invoices/quid-pro-quo commerce), bookable services & facility rentals, embedded LiveKit virtual rooms, volunteer/shift scheduling, and assistance/grant case management.
 
 ## 2. MCAF 1.3 Governance Policies
 

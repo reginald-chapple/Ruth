@@ -49,8 +49,8 @@
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <h2>Reusable Merge Snippets</h2>
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                <FluentTextInput @bind-Value="_snippetName" Label="Name" Placeholder="Church Footer" />
-                <FluentTextInput @bind-Value="_snippetKey" Label="Key" Placeholder="church_footer" />
+                <FluentTextInput @bind-Value="_snippetName" Label="Name" Placeholder="Organization Footer" />
+                <FluentTextInput @bind-Value="_snippetKey" Label="Key" Placeholder="org_footer" />
                 <FluentSelect TOption="TemplateOutputMode"
                               TValue="TemplateOutputMode"
                               Label="Output Mode"
@@ -62,11 +62,11 @@
             </FluentStack>
             <FluentTextInput @bind-Value="_snippetDescription"
                              Label="Description"
-                             Placeholder="Reusable email footer block with church address" />
+                             Placeholder="Reusable email footer block with organization address" />
             <FluentTextArea @bind-Value="_snippetMarkup"
                             Label="Snippet Markup"
                             Rows="4"
-                            Placeholder="<p>{{ label | default:'Visit Us' }} — {{ Church.Name }}</p>" />
+                            Placeholder="<p>{{ label | default:'Visit Us' }} — {{ Organization.Name }}</p>" />
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
                 <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveSnippetAsync">
                     @(_editingSnippetId.HasValue ? "Update Snippet" : "Create Snippet")
@@ -150,9 +150,9 @@
 
     private TemplateOutputMode _playgroundOutputMode = TemplateOutputMode.Html;
     private string _playgroundTemplate =
-        "<p>Hi {{ Person.NickName | default:'Friend' }}, thank you for giving {{ Gift.Amount | currency }} on {{ Gift.Date | date:'MMMM d, yyyy' }}!</p>";
+        "<p>Hi {{ Person.NickName | default:'Member' }}, thank you for your payment of {{ Transaction.Amount | currency }} on {{ Transaction.Date | date:'MMMM d, yyyy' }}!</p>";
     private string _playgroundContextJson =
-        """{"Person":{"NickName":"Jordan"},"Gift":{"Amount":125.50,"Date":"2026-11-24"}}""";
+        """{"Person":{"NickName":"Jordan"},"Transaction":{"Amount":125.50,"Date":"2026-11-24"}}""";
     private TemplatePreviewResponse? _mergePreview;
 
     private string? _statusMessage;
@@ -320,16 +320,16 @@
         )
             ? new Dictionary<string, string?>(StringComparer.Ordinal)
             {
-                ["Title"] = "Sunday Check-In Ready",
-                ["Message"] = "Hi {{ Person.NickName | default:'Friend' }}, kiosks are online.",
+                ["Title"] = "Kiosk Check-In Ready",
+                ["Message"] = "Hi {{ Person.NickName | default:'Member' }}, kiosks are online.",
                 ["Tone"] = "success",
                 ["Footnote"] = "Ruth RMS Communication Engine",
             }
             : new Dictionary<string, string?>(StringComparer.Ordinal)
             {
-                ["OrganizationName"] = "Grace Community Church",
-                ["Subject"] = "Welcome to Grace",
-                ["Heading"] = "Welcome, {{ Person.NickName | default:'Friend' }}!",
+                ["OrganizationName"] = "Civic Community Foundation",
+                ["Subject"] = "Welcome to Civic Community Foundation",
+                ["Heading"] = "Welcome, {{ Person.NickName | default:'Member' }}!",
                 ["BodyHtml"] = _playgroundTemplate,
                 ["ActionLabel"] = "Open Member Portal",
                 ["ActionUrl"] = "https://example.org/portal",

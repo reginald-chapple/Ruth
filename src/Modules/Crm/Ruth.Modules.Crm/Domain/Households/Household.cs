@@ -7,7 +7,7 @@ using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Crm.Domain.Households;
 
-/// <summary>First-class Household (Family) aggregate replacing legacy overloaded Family Groups.</summary>
+/// <summary>First-class Household (family or shared billing/member unit) aggregate.</summary>
 public sealed class Household
     : AggregateRoot<HouseholdId>,
         IAuditableEntity,
@@ -24,20 +24,25 @@ public sealed class Household
 
     private Household() { }
 
-    private Household(HouseholdId id, string name, Guid? campusId, bool combineGivingByDefault)
+    private Household(
+        HouseholdId id,
+        string name,
+        Guid? branchId,
+        bool combineContributionsByDefault
+    )
         : base(id)
     {
         Name = name;
-        CampusId = campusId;
-        CombineGivingByDefault = combineGivingByDefault;
+        BranchId = branchId;
+        CombineContributionsByDefault = combineContributionsByDefault;
         IsActive = true;
     }
 
-    /// <summary>Gets the household display name (e.g. "Smith Family").</summary>
+    /// <summary>Gets the household display name (e.g. "Smith Household").</summary>
     public string Name { get; private set; } = string.Empty;
 
-    /// <summary>Gets the optional Core Campus identifier.</summary>
-    public Guid? CampusId { get; private set; }
+    /// <summary>Gets the optional Core Branch identifier.</summary>
+    public Guid? BranchId { get; private set; }
 
     /// <summary>Gets whether the household is active.</summary>
     public bool IsActive { get; private set; } = true;
@@ -45,8 +50,8 @@ public sealed class Household
     /// <summary>Gets whether the household has been archived.</summary>
     public bool IsArchived { get; private set; }
 
-    /// <summary>Gets whether new members default to combined giving in this household.</summary>
-    public bool CombineGivingByDefault { get; private set; } = true;
+    /// <summary>Gets whether new members default to combined contributions/billing in this household.</summary>
+    public bool CombineContributionsByDefault { get; private set; } = true;
 
     /// <summary>Gets the household memberships.</summary>
     public IReadOnlyCollection<HouseholdMember> Members => _members.AsReadOnly();
@@ -94,8 +99,8 @@ public sealed class Household
     /// <summary>Creates a validated household aggregate.</summary>
     public static Result<Household> Create(
         string name,
-        Guid? campusId = null,
-        bool combineGivingByDefault = true
+        Guid? branchId = null,
+        bool combineContributionsByDefault = true
     )
     {
         var validated = CrmTextPolicy.ValidateRequiredText(
@@ -110,14 +115,19 @@ public sealed class Household
                 new Household(
                     HouseholdId.Create(),
                     validated.Value,
-                    campusId,
-                    combineGivingByDefault
+                    branchId,
+                    combineContributionsByDefault
                 )
             );
     }
 
     /// <summary>Updates household metadata.</summary>
-    public Result Update(string name, Guid? campusId, bool isActive, bool combineGivingByDefault)
+    public Result Update(
+        string name,
+        Guid? branchId,
+        bool isActive,
+        bool combineContributionsByDefault
+    )
     {
         var validated = CrmTextPolicy.ValidateRequiredText(
             name,
@@ -131,9 +141,9 @@ public sealed class Household
         }
 
         Name = validated.Value;
-        CampusId = campusId;
+        BranchId = branchId;
         IsActive = isActive;
-        CombineGivingByDefault = combineGivingByDefault;
+        CombineContributionsByDefault = combineContributionsByDefault;
         return Result.Success();
     }
 
@@ -142,14 +152,28 @@ public sealed class Household
         PersonId personId,
         HouseholdRole role,
         int householdOrder = 0,
-        bool? isCombinedGivingMember = null
+        bool? isCombinedContributionMember = null,
+        bool? isPrimaryContact = null
     )
     {
-        var effectiveCombined = isCombinedGivingMember ?? CombineGivingByDefault;
+        var effectiveCombined = isCombinedContributionMember ?? CombineContributionsByDefault;
         var existing = _members.Find(m => m.PersonId == personId);
+        var hasOtherPrimary = _members.Exists(m => m.PersonId != personId && m.IsPrimaryContact);
+        var effectivePrimary = isPrimaryContact
+            ?? existing?.IsPrimaryContact
+            ?? (!hasOtherPrimary && role == HouseholdRole.Adult);
+
+        if (effectivePrimary)
+        {
+            foreach (var other in _members.Where(m => m.PersonId != personId && m.IsPrimaryContact))
+            {
+                other.ClearPrimaryContact();
+            }
+        }
+
         if (existing is not null)
         {
-            existing.Update(role, householdOrder, effectiveCombined);
+            existing.Update(role, householdOrder, effectiveCombined, effectivePrimary);
             return Result.Success(existing);
         }
 
@@ -159,7 +183,8 @@ public sealed class Household
             personId,
             role,
             householdOrder,
-            effectiveCombined
+            effectiveCombined,
+            effectivePrimary
         );
         _members.Add(member);
         return Result.Success(member);

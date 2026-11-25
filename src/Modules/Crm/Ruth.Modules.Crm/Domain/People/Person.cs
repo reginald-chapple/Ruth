@@ -136,14 +136,14 @@ public sealed partial class Person
     /// <summary>Gets the optional Core BinaryFile identifier for the profile photo.</summary>
     public Guid? PhotoBinaryFileId { get; private set; }
 
-    /// <summary>Gets the optional primary Core Campus identifier.</summary>
-    public Guid? PrimaryCampusId { get; private set; }
+    /// <summary>Gets the optional primary Core Branch identifier.</summary>
+    public Guid? PrimaryBranchId { get; private set; }
 
     /// <summary>Gets the optional primary household identifier.</summary>
     public Guid? PrimaryHouseholdId { get; private set; }
 
-    /// <summary>Gets the optional household identifier used for combined giving.</summary>
-    public Guid? GivingHouseholdId { get; private set; }
+    /// <summary>Gets the optional household identifier used for combined contributions or billing.</summary>
+    public Guid? BillingHouseholdId { get; private set; }
 
     /// <summary>Gets the highest-priority active signal identifier (denormalized).</summary>
     public Guid? TopSignalId { get; private set; }

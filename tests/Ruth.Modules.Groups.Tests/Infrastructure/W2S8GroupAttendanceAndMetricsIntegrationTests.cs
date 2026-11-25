@@ -28,15 +28,15 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
         var queries = scope.ServiceProvider.GetRequiredService<IQueryDispatcher>();
         var dbContext = scope.ServiceProvider.GetRequiredService<GroupsDbContext>();
 
-        var campusId = Guid.CreateVersion7();
+        var branchId = Guid.CreateVersion7();
         var groupTypeResult = await commands.SendAsync<
             CreateGroupTypeCommand,
             GroupTypeDetailResponse
         >(
             new CreateGroupTypeCommand(
-                Name: "Weekend Service Team",
+                Name: "General Assembly Team",
                 TakesAttendance: true,
-                AttendanceCountsAsWeekendService: true,
+                CountsTowardHeadlineAttendance: true,
                 InitialRoles: [new GroupTypeRoleInputDto("Attendee")]
             )
         );
@@ -45,8 +45,8 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
         var groupResult = await commands.SendAsync<CreateGroupCommand, GroupDetailResponse>(
             new CreateGroupCommand(
                 GroupTypeId: groupTypeResult.Value.Id,
-                Name: "Main Auditorium 9AM",
-                CampusId: campusId
+                Name: "Main Hall 9AM",
+                BranchId: branchId
             )
         );
         Assert.True(groupResult.IsSuccess);
@@ -58,7 +58,7 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
         await VerifyOutboxEventsAndMetricsAsync(
             queries,
             dbContext,
-            campusId,
+            branchId,
             groupResult.Value.Id,
             personA
         );
@@ -136,7 +136,7 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
     private static async Task VerifyOutboxEventsAndMetricsAsync(
         IQueryDispatcher queries,
         GroupsDbContext dbContext,
-        Guid campusId,
+        Guid branchId,
         Guid groupId,
         Guid personA
     )
@@ -157,8 +157,8 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
             new GetAttendanceMetricsSummaryQuery(
                 StartDate: new DateOnly(2026, 8, 1),
                 EndDate: new DateOnly(2026, 8, 31),
-                CampusId: campusId,
-                WeekendServicesOnly: true
+                BranchId: branchId,
+                HeadlineAttendanceOnly: true
             )
         );
         Assert.True(metrics.IsSuccess);
@@ -167,7 +167,7 @@ public sealed class W2S8GroupAttendanceAndMetricsIntegrationTests(
         Assert.Equal(11, metrics.Value.TotalAttendance);
         Assert.Equal(2, metrics.Value.TotalUniquePeople);
         Assert.Equal(2, metrics.Value.TotalFirstTimeAttendees);
-        Assert.Equal(11, metrics.Value.WeekendServiceTotalAttendance);
+        Assert.Equal(11, metrics.Value.HeadlineTotalAttendance);
         Assert.Equal(3, metrics.Value.Buckets.Count);
 
         var occurrences = await queries.QueryAsync<

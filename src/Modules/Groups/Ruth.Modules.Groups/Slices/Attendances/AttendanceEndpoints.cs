@@ -39,7 +39,7 @@ internal static class AttendanceEndpoints
         _ = group
             .MapGet("/metrics", GetMetricsAsync)
             .WithName("GroupsGetAttendanceMetricsSummary")
-            .WithSummary("Compute Campus and Weekend Service attendance metric summaries")
+            .WithSummary("Compute Branch and headline attendance metric summaries")
             .Produces<AttendanceMetricsSummaryResponse>(StatusCodes.Status200OK);
 
         return endpoints;
@@ -111,10 +111,10 @@ internal static class AttendanceEndpoints
     > GetMetricsAsync(
         DateOnly startDate,
         DateOnly endDate,
-        Guid? campusId,
+        Guid? branchId,
         Guid? groupTypeId,
         Guid? groupId,
-        bool? weekendServicesOnly,
+        bool? headlineAttendanceOnly,
         IQueryDispatcher dispatcher,
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -127,10 +127,10 @@ internal static class AttendanceEndpoints
             new GetAttendanceMetricsSummaryQuery(
                 startDate,
                 endDate,
-                campusId,
+                branchId,
                 groupTypeId,
                 groupId,
-                weekendServicesOnly ?? false
+                headlineAttendanceOnly ?? false
             ),
             cancellationToken
         );

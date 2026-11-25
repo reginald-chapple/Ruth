@@ -14,9 +14,9 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
     private static readonly DateTimeOffset _nowUtc = new(2026, 11, 24, 18, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void HouseholdDomainService_ComputesSalutations_GivingLeader_AndSpouse()
+    public void HouseholdDomainService_ComputesSalutations_PrimaryContact_AndSpouse()
     {
-        var husband = Person
+        var partnerA = Person
             .Create(
                 new PersonInput(
                     "Robert",
@@ -31,8 +31,7 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
                 _nowUtc
             )
             .Value;
-
-        var wife = Person
+        var partnerB = Person
             .Create(
                 new PersonInput(
                     "Elizabeth",
@@ -47,7 +46,6 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
                 _nowUtc
             )
             .Value;
-
         var child = Person
             .Create(
                 new PersonInput(
@@ -64,28 +62,28 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
 
         var household = Household.Create("Decker Family").Value;
         _ = household.AddOrUpdateMember(
-            husband.Id,
+            partnerA.Id,
             HouseholdRole.Adult,
-            householdOrder: 0,
-            isCombinedGivingMember: true
+            0,
+            isCombinedContributionMember: true
         );
         _ = household.AddOrUpdateMember(
-            wife.Id,
+            partnerB.Id,
             HouseholdRole.Adult,
-            householdOrder: 0,
-            isCombinedGivingMember: true
+            0,
+            isCombinedContributionMember: true
         );
         _ = household.AddOrUpdateMember(
             child.Id,
             HouseholdRole.Child,
-            householdOrder: 0,
-            isCombinedGivingMember: false
+            0,
+            isCombinedContributionMember: false
         );
 
         var map = new Dictionary<PersonId, Person>
         {
-            [husband.Id] = husband,
-            [wife.Id] = wife,
+            [partnerA.Id] = partnerA,
+            [partnerB.Id] = partnerB,
             [child.Id] = child,
         };
 
@@ -98,11 +96,21 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
             "Robert & Elizabeth Decker",
             HouseholdDomainService.ComputeSalutation(household, map, useFormalNames: true)
         );
-        Assert.Equal(husband.Id, HouseholdDomainService.ResolveGivingLeaderId(household, map));
+        Assert.Equal(partnerA.Id, HouseholdDomainService.ResolvePrimaryContactId(household, map));
 
-        var resolvedSpouse = HouseholdDomainService.ResolveSpouse(husband, [household], map);
+        _ = household.AddOrUpdateMember(
+            partnerB.Id,
+            HouseholdRole.Adult,
+            0,
+            isCombinedContributionMember: true,
+            isPrimaryContact: true
+        );
+        Assert.Equal(partnerB.Id, HouseholdDomainService.ResolvePrimaryContactId(household, map));
+        Assert.Equal("Beth & Bob Decker", HouseholdDomainService.ComputeSalutation(household, map));
+
+        var resolvedSpouse = HouseholdDomainService.ResolveSpouse(partnerA, [household], map);
         Assert.NotNull(resolvedSpouse);
-        Assert.Equal(wife.Id, resolvedSpouse.Id);
+        Assert.Equal(partnerB.Id, resolvedSpouse.Id);
     }
 
     [Fact]
@@ -187,7 +195,7 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
             isGrowthEnabled: true,
             previousScore: 15.0m
         );
-        Assert.Equal(16.5m, grownScore);
+        Assert.Equal(22.50m, grownScore);
         Assert.Equal(RelationshipTrend.Up, initialTrend);
 
         var (decayedScore, decayTrend) = PeerNetworkScoreCalculator.Calculate(
@@ -199,7 +207,16 @@ public sealed class W2S2HouseholdsAndRelationshipsDomainTests
             isGrowthEnabled: true,
             previousScore: 10.0m
         );
-        Assert.Equal(9.0m, decayedScore);
+        Assert.Equal(5.61m, decayedScore);
         Assert.Equal(RelationshipTrend.Down, decayTrend);
+
+        var (zeroScore, zeroTrend) = PeerNetworkScoreCalculator.Calculate(
+            RelationshipStrength.None,
+            start,
+            endDate: null,
+            today
+        );
+        Assert.Equal(0m, zeroScore);
+        Assert.Equal(RelationshipTrend.Level, zeroTrend);
     }
 }

@@ -7,7 +7,7 @@ public sealed record GroupHistoricalResponse(
     string GroupName,
     Guid GroupTypeId,
     string GroupTypeName,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? ParentGroupId,
     string? Description,
     Guid? StatusValueId,

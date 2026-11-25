@@ -6,7 +6,7 @@ public enum PeerNetworkRelationshipType
     /// <summary>Explicit person-to-person following edge (base score 5).</summary>
     Following = 0,
 
-    /// <summary>Connection derived from shared ministry group attendance/membership.</summary>
+    /// <summary>Connection derived from shared group, chapter, or team participation.</summary>
     GroupConnection = 1,
 
     /// <summary>Connection derived from a known relationship.</summary>

@@ -2,7 +2,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Crm.Contracts.BackgroundChecks;
 
-/// <summary>Modular provider contract for external background check integrations (e.g., Checkr, Protect My Ministry).</summary>
+/// <summary>Modular provider contract for external background screening integrations (e.g., Checkr, Sterling).</summary>
 public interface IBackgroundCheckProvider
 {
     /// <summary>Gets the unique lowercase provider key (e.g., "checkr", "in-memory").</summary>

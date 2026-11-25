@@ -13,7 +13,7 @@ public sealed record GroupTypeSummaryResponse(
     bool ShowInGroupList,
     bool ShowInNavigation,
     bool TakesAttendance,
-    bool AttendanceCountsAsWeekendService,
+    bool CountsTowardHeadlineAttendance,
     bool IsSchedulingEnabled,
     GroupCapacityRule GroupCapacityRule,
     int RoleCount

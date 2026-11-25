@@ -109,7 +109,7 @@ internal static class GroupEndpoints
         Results<Ok<IReadOnlyList<GroupTreeNodeResponse>>, ProblemHttpResult>
     > GetTreeAsync(
         Guid? groupTypeId,
-        Guid? campusId,
+        Guid? branchId,
         bool? includeInactive,
         bool? includeArchived,
         bool? navigationOnly,
@@ -124,7 +124,7 @@ internal static class GroupEndpoints
         >(
             new GetGroupTreeQuery(
                 groupTypeId,
-                campusId,
+                branchId,
                 includeInactive ?? false,
                 includeArchived ?? false,
                 navigationOnly ?? false

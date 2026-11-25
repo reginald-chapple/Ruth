@@ -1,0 +1,126 @@
+@page "/admin/core/branches"
+@inject IQueryDispatcher QueryDispatcher
+@inject ICommandDispatcher CommandDispatcher
+
+<PageTitle>Branches &amp; Sites — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Branches &amp; Sites</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Add Branch or Site</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="Name" Placeholder="Headquarters Branch" />
+                <FluentTextInput @bind-Value="_shortCode" Label="Short Code" Placeholder="HQ" />
+                <FluentTextInput @bind-Value="_timeZoneId" Label="Time Zone" Placeholder="America/Denver" />
+                <FluentTextInput @bind-Value="_url" Label="Website URL" Placeholder="https://example.org" />
+                <FluentTextInput @bind-Value="_phone" Label="Phone" />
+            </FluentStack>
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAsync">
+                    Add Branch
+                </FluentButton>
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentDataGrid Items="@_branches.AsQueryable()">
+        <PropertyColumn Property="@(static b => b.Name)" Title="Name" Sortable="true" />
+        <PropertyColumn Property="@(static b => b.CondensedName)" Title="Code" />
+        <PropertyColumn Property="@(static b => b.TimeZoneId)" Title="Time Zone" />
+        <PropertyColumn Property="@(static b => b.IsActive)" Title="Active" />
+        <TemplateColumn Title="Actions">
+            <FluentButton Size="ButtonSize.Small"
+                          Disabled="@(context.IsSystem || _branches.Count <= 1)"
+                          OnClick="@(() => DeleteAsync(context.Id))">
+                Delete
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
+
+@code {
+    private List<BranchResponse> _branches = [];
+    private string _name = string.Empty;
+    private string _shortCode = string.Empty;
+    private string _timeZoneId = "America/Denver";
+    private string _url = string.Empty;
+    private string _phone = string.Empty;
+    private string? _statusMessage;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<GetBranchesQuery, IReadOnlyList<BranchResponse>>(
+            new GetBranchesQuery()
+        );
+        if (result.IsSuccess)
+        {
+            _branches = [.. result.Value];
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<CreateBranchCommand, BranchResponse>(
+            new CreateBranchCommand(
+                _name,
+                ShortCode: string.IsNullOrWhiteSpace(_shortCode) ? null : _shortCode,
+                Url: string.IsNullOrWhiteSpace(_url) ? null : _url,
+                PhoneNumber: string.IsNullOrWhiteSpace(_phone) ? null : _phone,
+                TimeZoneId: string.IsNullOrWhiteSpace(_timeZoneId) ? null : _timeZoneId
+            )
+        );
+        if (result.IsSuccess)
+        {
+            _name = string.Empty;
+            _shortCode = string.Empty;
+            _url = string.Empty;
+            _phone = string.Empty;
+            _statusMessage = $"Created branch '{result.Value.Name}'.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        _statusMessage = null;
+        _isError = false;
+        var result = await CommandDispatcher.SendAsync<DeleteBranchCommand, bool>(
+            new DeleteBranchCommand(id)
+        );
+        if (result.IsSuccess)
+        {
+            _statusMessage = "Branch deleted.";
+            await LoadAsync();
+        }
+        else
+        {
+            _isError = true;
+            _statusMessage = result.PrimaryError.Description;
+        }
+    }
+}

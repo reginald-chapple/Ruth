@@ -23,9 +23,9 @@ internal static class CoreModelConfigurationRegistry
 
     private static void ApplyLocationsAndSchedules(ModelBuilder modelBuilder)
     {
-        _ = modelBuilder.ApplyConfiguration(new CampusConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new CampusScheduleConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new CampusTopicConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new BranchConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new BranchScheduleConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new BranchTopicConfiguration());
         _ = modelBuilder.ApplyConfiguration(new LocationConfiguration());
         _ = modelBuilder.ApplyConfiguration(new DeviceConfiguration());
         _ = modelBuilder.ApplyConfiguration(new DeviceLocationConfiguration());

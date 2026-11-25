@@ -1,9 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
-using Ruth.Modules.Core.Contracts.Campuses;
+using Ruth.Modules.Core.Contracts.Branches;
 using Ruth.Modules.Core.Contracts.Devices;
 using Ruth.Modules.Core.Contracts.Locations;
 using Ruth.Modules.Core.Contracts.Schedules;
-using Ruth.Modules.Core.Slices.Campuses;
+using Ruth.Modules.Core.Slices.Branches;
 using Ruth.Modules.Core.Slices.Devices;
 using Ruth.Modules.Core.Slices.Locations;
 using Ruth.Modules.Core.Slices.Schedules;
@@ -13,37 +13,37 @@ namespace Ruth.Modules.Core;
 
 internal static class CoreLocationsAndSchedulesRegistration
 {
-    public static void RegisterCampusAndLocationHandlers(IServiceCollection services)
+    public static void RegisterBranchAndLocationHandlers(IServiceCollection services)
     {
-        RegisterCampusHandlers(services);
+        RegisterBranchHandlers(services);
         RegisterLocationHandlers(services);
         RegisterDeviceHandlers(services);
         RegisterScheduleHandlers(services);
     }
 
-    private static void RegisterCampusHandlers(IServiceCollection services)
+    private static void RegisterBranchHandlers(IServiceCollection services)
     {
         _ = services.AddQueryHandler<
-            GetCampusesQuery,
-            IReadOnlyList<CampusResponse>,
-            GetCampusesQueryHandler
+            GetBranchesQuery,
+            IReadOnlyList<BranchResponse>,
+            GetBranchesQueryHandler
         >();
         _ = services.AddQueryHandler<
-            GetCampusByIdQuery,
-            CampusResponse,
-            GetCampusByIdQueryHandler
+            GetBranchByIdQuery,
+            BranchResponse,
+            GetBranchByIdQueryHandler
         >();
         _ = services.AddCommandHandler<
-            CreateCampusCommand,
-            CampusResponse,
-            CreateCampusCommandHandler
+            CreateBranchCommand,
+            BranchResponse,
+            CreateBranchCommandHandler
         >();
         _ = services.AddCommandHandler<
-            UpdateCampusCommand,
-            CampusResponse,
-            UpdateCampusCommandHandler
+            UpdateBranchCommand,
+            BranchResponse,
+            UpdateBranchCommandHandler
         >();
-        _ = services.AddCommandHandler<DeleteCampusCommand, bool, DeleteCampusCommandHandler>();
+        _ = services.AddCommandHandler<DeleteBranchCommand, bool, DeleteBranchCommandHandler>();
     }
 
     private static void RegisterLocationHandlers(IServiceCollection services)

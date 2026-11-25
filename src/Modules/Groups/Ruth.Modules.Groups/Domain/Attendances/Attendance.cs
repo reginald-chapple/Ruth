@@ -29,8 +29,8 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     /// <summary>Gets the optional CRM Person identifier.</summary>
     public Guid? PersonId { get; private set; }
 
-    /// <summary>Gets the optional Core Campus identifier.</summary>
-    public Guid? CampusId { get; private set; }
+    /// <summary>Gets the optional Core Branch identifier.</summary>
+    public Guid? BranchId { get; private set; }
 
     /// <summary>Gets the optional Core Device identifier.</summary>
     public Guid? DeviceId { get; private set; }
@@ -104,7 +104,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     internal static Attendance CreateForRoster(
         AttendanceOccurrenceId occurrenceId,
         Guid personId,
-        Guid? campusId,
+        Guid? branchId,
         bool didAttend,
         bool isFirstTime,
         string? note,
@@ -114,7 +114,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     {
         return new Attendance(AttendanceId.Create(), occurrenceId, personId, nowUtc)
         {
-            CampusId = campusId,
+            BranchId = branchId,
             DidAttend = didAttend,
             IsFirstTime = didAttend ? isFirstTime : null,
             Note = note,
@@ -125,7 +125,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     internal static Attendance CreateForSchedule(
         AttendanceOccurrenceId occurrenceId,
         Guid personId,
-        Guid? campusId,
+        Guid? branchId,
         Guid? scheduledByPersonId,
         bool autoConfirm,
         DateTimeOffset nowUtc
@@ -134,7 +134,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
         var utc = nowUtc.ToUniversalTime();
         return new Attendance(AttendanceId.Create(), occurrenceId, personId, utc)
         {
-            CampusId = campusId,
+            BranchId = branchId,
             RequestedToAttend = true,
             ScheduledToAttend = autoConfirm,
             Rsvp = autoConfirm ? RsvpStatus.Yes : RsvpStatus.Unknown,
@@ -147,7 +147,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     }
 
     internal bool UpdateRosterAttendance(
-        Guid? campusId,
+        Guid? branchId,
         bool didAttend,
         bool isFirstTime,
         string? note,
@@ -156,7 +156,7 @@ public sealed class Attendance : Entity<AttendanceId>, IAuditableEntity
     )
     {
         var transitionedToAttended = DidAttend != true && didAttend;
-        CampusId ??= campusId;
+        BranchId ??= branchId;
         DidAttend = didAttend;
         if (transitionedToAttended)
         {

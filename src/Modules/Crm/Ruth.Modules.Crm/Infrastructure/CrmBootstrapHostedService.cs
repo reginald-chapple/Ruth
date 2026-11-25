@@ -109,7 +109,7 @@ internal sealed partial class CrmBootstrapHostedService(
 
         (string Key, string Title, string Path, string Color)[] defaults =
         [
-            ("spiritual-gifts", "Spiritual Gifts", "/crm/assessments/spiritual-gifts", "#4F6BED"),
+            ("team-strengths", "Team Strengths", "/crm/assessments/team-strengths", "#4F6BED"),
             ("disc", "DISC Personality", "/crm/assessments/disc", "#0078D4"),
             ("conflict-theme", "Conflict Theme", "/crm/assessments/conflict", "#CA5010"),
             ("motivators", "Motivators", "/crm/assessments/motivators", "#107C10"),

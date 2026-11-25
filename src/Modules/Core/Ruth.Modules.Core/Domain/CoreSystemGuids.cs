@@ -93,8 +93,8 @@ public static class CoreSystemGuids
         0x3d
     );
 
-    /// <summary>EntityType SystemGuid for Campus.</summary>
-    public static readonly Guid Campus = new(
+    /// <summary>EntityType SystemGuid for Branch.</summary>
+    public static readonly Guid Branch = new(
         0x00096bed,
         0x9587,
         0x415e,

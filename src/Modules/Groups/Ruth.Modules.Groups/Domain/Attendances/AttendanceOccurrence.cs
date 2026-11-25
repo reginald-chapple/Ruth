@@ -37,8 +37,8 @@ public sealed class AttendanceOccurrence
         LocationId = locationId;
         ScheduleId = scheduleId;
         OccurrenceDate = occurrenceDate;
-        SundayDate = SundayDateCalculator.ComputeSundayDate(occurrenceDate);
-        OccurrenceDateKey = SundayDateCalculator.ComputeDateKey(occurrenceDate);
+        WeekEndDate = ReportingWeekCalculator.ComputeWeekEndDate(occurrenceDate);
+        OccurrenceDateKey = ReportingWeekCalculator.ComputeDateKey(occurrenceDate);
     }
 
     /// <summary>Gets the optional Group identifier.</summary>
@@ -56,8 +56,8 @@ public sealed class AttendanceOccurrence
     /// <summary>Gets the calendar date of this occurrence.</summary>
     public DateOnly OccurrenceDate { get; private set; }
 
-    /// <summary>Gets the computed week-ending Sunday date.</summary>
-    public DateOnly SundayDate { get; private set; }
+    /// <summary>Gets the computed reporting week-ending date.</summary>
+    public DateOnly WeekEndDate { get; private set; }
 
     /// <summary>Gets the computed yyyyMMdd integer date key.</summary>
     public int OccurrenceDateKey { get; private set; }
@@ -194,12 +194,12 @@ public sealed class AttendanceOccurrence
 
     internal Result<Attendance> RecordPersonAttendance(
         Guid personId,
-        Guid? campusId,
+        Guid? branchId,
         bool didAttend,
         bool isFirstTime,
         string? note,
         Guid? checkedInByPersonId,
-        bool countsAsWeekendService,
+        bool countsTowardHeadlineAttendance,
         DateTimeOffset nowUtc
     )
     {
@@ -217,7 +217,7 @@ public sealed class AttendanceOccurrence
         if (existing is not null)
         {
             shouldEmitEvent = existing.UpdateRosterAttendance(
-                campusId,
+                branchId,
                 effectiveDidAttend,
                 isFirstTime,
                 noteResult.Value,
@@ -231,7 +231,7 @@ public sealed class AttendanceOccurrence
             record = Attendance.CreateForRoster(
                 Id,
                 personId,
-                campusId,
+                branchId,
                 effectiveDidAttend,
                 isFirstTime,
                 noteResult.Value,
@@ -247,9 +247,9 @@ public sealed class AttendanceOccurrence
             StagePersonAttendedEvent(
                 record,
                 personId,
-                campusId,
+                branchId,
                 isFirstTime,
-                countsAsWeekendService,
+                countsTowardHeadlineAttendance,
                 nowUtc
             );
         }
@@ -260,9 +260,9 @@ public sealed class AttendanceOccurrence
     private void StagePersonAttendedEvent(
         Attendance record,
         Guid personId,
-        Guid? campusId,
+        Guid? branchId,
         bool isFirstTime,
-        bool countsAsWeekendService,
+        bool countsTowardHeadlineAttendance,
         DateTimeOffset nowUtc
     )
     {
@@ -275,20 +275,20 @@ public sealed class AttendanceOccurrence
                 personId,
                 GroupId?.Value,
                 RootGroupTypeId?.Value,
-                campusId,
+                branchId,
                 LocationId,
                 ScheduleId,
                 OccurrenceDate,
-                SundayDate,
+                WeekEndDate,
                 isFirstTime,
-                countsAsWeekendService
+                countsTowardHeadlineAttendance
             )
         );
     }
 
     internal Attendance ScheduleVolunteer(
         Guid personId,
-        Guid? campusId,
+        Guid? branchId,
         Guid? scheduledByPersonId,
         bool autoConfirm,
         DateTimeOffset nowUtc
@@ -304,7 +304,7 @@ public sealed class AttendanceOccurrence
         var created = Attendance.CreateForSchedule(
             Id,
             personId,
-            campusId,
+            branchId,
             scheduledByPersonId,
             autoConfirm,
             nowUtc

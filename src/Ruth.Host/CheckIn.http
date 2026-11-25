@@ -1,0 +1,131 @@
+@baseUrl = http://localhost:5080
+@token = REPLACE_WITH_JWT_BEARER_TOKEN
+@configId = 00000000-0000-0000-0000-000000000000
+@areaId = 00000000-0000-0000-0000-000000000000
+@locationId = 0196f4a0-1000-7000-8000-000000000001
+@scheduleId = 0196f4a0-2000-7000-8000-000000000001
+
+### List check-in configurations
+GET {{baseUrl}}/api/checkin/configurations?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Create a check-in configuration profile
+POST {{baseUrl}}/api/checkin/configurations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Center Youth & Makerspace Check-In",
+  "description": "Unified facility access, workshops, and youth safety check-in",
+  "profileKind": "YouthAndChildcare",
+  "searchMode": "PhoneAndName",
+  "checkInStartOffsetMinutes": 30,
+  "checkInEndOffsetMinutes": 45,
+  "securityCodeAlphaLength": 2,
+  "securityCodeNumericLength": 2,
+  "preventDuplicateCheckIn": true,
+  "allowCheckout": true,
+  "autoSelectDaysBack": 60,
+  "isActive": true
+}
+
+### Get check-in configuration by ID
+GET {{baseUrl}}/api/checkin/configurations/{{configId}}
+Authorization: Bearer {{token}}
+
+### Update check-in configuration
+PUT {{baseUrl}}/api/checkin/configurations/{{configId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "name": "Community Center Youth & Makerspace Check-In",
+  "description": "Updated check-in offsets",
+  "profileKind": "YouthAndChildcare",
+  "searchMode": "PhoneAndName",
+  "checkInStartOffsetMinutes": 45,
+  "checkInEndOffsetMinutes": 45,
+  "securityCodeAlphaLength": 2,
+  "securityCodeNumericLength": 2,
+  "preventDuplicateCheckIn": true,
+  "allowCheckout": true,
+  "autoSelectDaysBack": 60,
+  "isActive": true
+}
+
+### Upsert check-in area with eligibility rules and room matrix
+POST {{baseUrl}}/api/checkin/configurations/{{configId}}/areas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "name": "Youth STEM Lab (Grades 3-5)",
+  "balancingStrategy": "LowestCapacityRatio",
+  "order": 1,
+  "isActive": true,
+  "printBadge": true,
+  "issueSecurityPickupCode": true,
+  "eligibility": {
+    "minAgeYears": 8,
+    "maxAgeYears": 11,
+    "minGrade": 3,
+    "maxGrade": 5,
+    "allowedMembershipTiers": ["Standard", "Family"],
+    "requiredSkillOrBadgeCodes": ["lab-orientation"],
+    "supportsAccommodations": true,
+    "requiresAccommodationFlag": false,
+    "enrollmentMode": "OpenToEligible"
+  },
+  "rooms": [
+    {
+      "locationId": "{{locationId}}",
+      "locationName": "STEM Room A",
+      "scheduleIds": ["{{scheduleId}}"],
+      "softCapacity": 16,
+      "firmCapacity": 20,
+      "priorityOrder": 0,
+      "isOpenForCheckIn": true,
+      "isOverflowRoom": false
+    }
+  ]
+}
+
+### Toggle live room availability and capacities
+PATCH {{baseUrl}}/api/checkin/configurations/{{configId}}/areas/{{areaId}}/rooms/{{locationId}}/availability
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "areaId": "{{areaId}}",
+  "locationId": "{{locationId}}",
+  "isOpenForCheckIn": false,
+  "softCapacity": 16,
+  "firmCapacity": 20
+}
+
+### Evaluate participant eligibility and balanced room options
+POST {{baseUrl}}/api/checkin/configurations/{{configId}}/evaluate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "scheduleId": "{{scheduleId}}",
+  "participant": {
+    "ageYears": 9.5,
+    "grade": 4,
+    "membershipTier": "Family",
+    "skillAndBadgeCodes": ["lab-orientation"],
+    "needsAccommodations": false
+  },
+  "currentOccupancyByLocationId": {
+    "{{locationId}}": 12
+  }
+}
+
+### Delete check-in area
+DELETE {{baseUrl}}/api/checkin/configurations/{{configId}}/areas/{{areaId}}
+Authorization: Bearer {{token}}

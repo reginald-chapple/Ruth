@@ -127,6 +127,7 @@ public sealed class Wave1EndpointsAndAuthIntegrationTests(HostContainersFixture 
             "/admin/core/categories",
             "/admin/core/attributes",
             "/admin/core/attribute-matrices",
+            "/admin/core/branches",
         };
 
         var isolatedDb = await containers.CreateIsolatedDatabaseAsync();
@@ -170,13 +171,13 @@ public sealed class Wave1EndpointsAndAuthIntegrationTests(HostContainersFixture 
             new Uri("/api/onboarding", UriKind.Relative),
             new
             {
-                organizationName = "Grace Fellowship",
+                organizationName = "Civic Foundation",
                 timeZoneId = "UTC",
-                primaryCampusName = "Main Campus",
-                primaryCampusShortCode = "MAIN",
+                primaryBranchName = "Main Branch",
+                primaryBranchShortCode = "MAIN",
                 adminUserName = "admin",
-                adminEmail = "admin@grace.org",
-                adminDisplayName = "Grace Admin",
+                adminEmail = "admin@civic.org",
+                adminDisplayName = "Civic Admin",
                 adminPassword = AdminPassword,
             }
         );

@@ -18,7 +18,7 @@ internal sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attenda
 
         _ = builder.HasIndex(static a => a.OccurrenceId);
         _ = builder.HasIndex(static a => a.PersonId);
-        _ = builder.HasIndex(static a => a.CampusId);
+        _ = builder.HasIndex(static a => a.BranchId);
         _ = builder.HasIndex(static a => a.StartDateTimeUtc);
         _ = builder.HasIndex(static a => a.RsvpToken).IsUnique();
     }

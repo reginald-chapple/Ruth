@@ -51,14 +51,14 @@ public sealed partial class Onboarding : ComponentBase
 
         try
         {
-            var shortCode = string.IsNullOrWhiteSpace(Model.PrimaryCampusShortCode)
+            var shortCode = string.IsNullOrWhiteSpace(Model.PrimaryBranchShortCode)
                 ? null
-                : Model.PrimaryCampusShortCode.Trim();
+                : Model.PrimaryBranchShortCode.Trim();
 
             var command = new CompleteOnboardingCommand(
                 Model.OrganizationName.Trim(),
                 Model.TimeZoneId,
-                Model.PrimaryCampusName.Trim(),
+                Model.PrimaryBranchName.Trim(),
                 shortCode,
                 Model.AdminUserName.Trim(),
                 Model.AdminEmail.Trim(),

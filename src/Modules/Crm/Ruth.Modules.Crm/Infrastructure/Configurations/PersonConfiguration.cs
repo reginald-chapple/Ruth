@@ -109,7 +109,7 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
         _ = builder.HasIndex(static p => p.NormalizedLastName);
         _ = builder.HasIndex(static p => new { p.LastName, p.FirstName });
         _ = builder.HasIndex(static p => p.RecordStatus);
-        _ = builder.HasIndex(static p => p.PrimaryCampusId);
+        _ = builder.HasIndex(static p => p.PrimaryBranchId);
         _ = builder.HasIndex(static p => p.FirstName).HasMethod("gin").HasOperators("gin_trgm_ops");
         _ = builder.HasIndex(static p => p.NickName).HasMethod("gin").HasOperators("gin_trgm_ops");
         _ = builder.HasIndex(static p => p.LastName).HasMethod("gin").HasOperators("gin_trgm_ops");

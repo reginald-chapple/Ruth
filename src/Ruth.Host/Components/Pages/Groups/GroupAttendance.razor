@@ -50,7 +50,7 @@
         <h2>Recent Occurrences</h2>
         <FluentDataGrid Items="@_occurrences.AsQueryable()">
             <PropertyColumn Property="@(static o => o.OccurrenceDate)" Title="Date" />
-            <PropertyColumn Property="@(static o => o.SundayDate)" Title="Sunday" />
+            <PropertyColumn Property="@(static o => o.WeekEndDate)" Title="Week Ending" />
             <PropertyColumn Property="@(static o => o.DidNotOccur)" Title="Did Not Meet" />
             <PropertyColumn Property="@(static o => o.PresentCount)" Title="Present" />
             <PropertyColumn Property="@(static o => o.FirstTimeCount)" Title="First Time" />

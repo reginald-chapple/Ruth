@@ -136,7 +136,7 @@ public sealed class BaselineAndSharedKernelTier2Tests(E2EContainersFixture conta
     public async Task SharedKernel_NullRequiredFields_ReturnsBadRequestProblemDetails()
     {
         const string nullFieldsJson =
-            "{\"organizationName\":null,\"timeZoneId\":null,\"primaryCampusName\":null,"
+            "{\"organizationName\":null,\"timeZoneId\":null,\"primaryBranchName\":null,"
             + "\"adminUserName\":null,\"adminEmail\":null,\"adminDisplayName\":null,"
             + "\"adminPassword\":null}";
         await AssertRejectedOnboardingJsonAsync(nullFieldsJson);

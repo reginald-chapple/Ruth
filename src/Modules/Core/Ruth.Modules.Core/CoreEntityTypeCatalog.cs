@@ -59,10 +59,10 @@ internal static class CoreEntityTypeCatalog
             supportsAttributes: false
         ),
         Create(
-            CoreSystemGuids.Campus,
-            Campus.EntityTypeKeyName,
-            nameof(Campus),
-            "Campus",
+            CoreSystemGuids.Branch,
+            Branch.EntityTypeKeyName,
+            nameof(Branch),
+            "Branch",
             isSecured: true,
             supportsAttributes: true
         ),

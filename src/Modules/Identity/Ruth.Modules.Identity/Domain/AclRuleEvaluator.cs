@@ -6,8 +6,8 @@ using Ruth.SharedKernel.Security;
 namespace Ruth.Modules.Identity.Domain;
 
 /// <summary>
-/// Pure-domain hierarchical Allow/Deny ACL evaluation engine porting Rock RMS Authorization
-/// precedence rules with cycle protection and zero external dependencies.
+/// Pure-domain hierarchical Allow/Deny ACL evaluation engine with parent-authority inheritance,
+/// cycle protection, and zero external dependencies.
 /// </summary>
 public static class AclRuleEvaluator
 {

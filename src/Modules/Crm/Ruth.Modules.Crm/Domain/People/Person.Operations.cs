@@ -114,23 +114,23 @@ public sealed partial class Person
         return Result.Success();
     }
 
-    /// <summary>Updates primary household, campus, and age classification derived from household membership.</summary>
+    /// <summary>Updates primary household, branch, and age classification derived from household membership.</summary>
     public void SyncHouseholdDerivedState(
         Guid? primaryHouseholdId,
-        Guid? primaryCampusId,
-        Guid? givingHouseholdId,
+        Guid? primaryBranchId,
+        Guid? billingHouseholdId,
         bool hasAdultRole,
         bool hasChildRole,
         DateOnly today
     )
     {
         PrimaryHouseholdId = primaryHouseholdId;
-        if (primaryCampusId.HasValue)
+        if (primaryBranchId.HasValue)
         {
-            PrimaryCampusId = primaryCampusId;
+            PrimaryBranchId = primaryBranchId;
         }
 
-        GivingHouseholdId = givingHouseholdId;
+        BillingHouseholdId = billingHouseholdId;
         var age = PersonDemographicsCalculator.CalculateAge(
             BirthYear,
             BirthMonth,
@@ -300,7 +300,7 @@ public sealed partial class Person
         EmailPreference = input.EmailPreference;
         CommunicationPreference = input.CommunicationPreference;
         PhotoBinaryFileId = input.PhotoBinaryFileId;
-        PrimaryCampusId = input.PrimaryCampusId;
+        PrimaryBranchId = input.PrimaryBranchId;
 
         var today = DateOnly.FromDateTime(nowUtc.UtcDateTime);
         var age = PersonDemographicsCalculator.CalculateAge(

@@ -149,7 +149,7 @@ internal sealed class MergePeopleCommandHandler(
             surviving.Id,
             mergeBatchId,
             nowUtc,
-            command.LegacyPersonAliasGuid,
+            command.ExternalRecordGuid,
             command.MergedByUserId
         );
         _ = dbContext.PersonRedirects.Add(redirect);
@@ -165,8 +165,8 @@ internal sealed class MergePeopleCommandHandler(
             cancellationToken
         );
 
-        Guid[] legacyAliases = command.LegacyPersonAliasGuid.HasValue
-            ? [command.LegacyPersonAliasGuid.Value]
+        Guid[] externalGuids = command.ExternalRecordGuid.HasValue
+            ? [command.ExternalRecordGuid.Value]
             : [];
 
         dbContext.EnqueueIntegrationEvent(
@@ -175,7 +175,7 @@ internal sealed class MergePeopleCommandHandler(
                 nowUtc,
                 surviving.Id.Value,
                 retired.Id.Value,
-                legacyAliases,
+                externalGuids,
                 hadMultipleEmails
             )
         );

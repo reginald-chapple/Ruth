@@ -3,7 +3,7 @@ using Ruth.Modules.Crm.Contracts.Badges;
 
 namespace Ruth.Modules.Crm.Domain.Badges;
 
-/// <summary>Evaluates a badge summarizing a person's completed assessments (DISC, Spiritual Gifts, etc.).</summary>
+/// <summary>Evaluates a badge summarizing a person's completed assessments (DISC, Team Strengths, etc.).</summary>
 public sealed class AssessmentSummaryBadgeEvaluator : IPersonBadgeEvaluator
 {
     /// <summary>Unique badge component key.</summary>

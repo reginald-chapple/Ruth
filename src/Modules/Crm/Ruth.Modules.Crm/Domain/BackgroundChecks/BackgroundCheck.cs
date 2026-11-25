@@ -74,7 +74,7 @@ public sealed class BackgroundCheck
     /// <summary>Gets whether an adverse record was found (true = consider, false = clear, null = pending).</summary>
     public bool? RecordFound { get; private set; }
 
-    /// <summary>Gets the human-readable Rock-style recommendation string.</summary>
+    /// <summary>Gets the human-readable screening recommendation summary.</summary>
     public string Recommendation { get; private set; } = string.Empty;
 
     /// <summary>Gets the raw JSON payload of the most recent provider response.</summary>
@@ -133,7 +133,7 @@ public sealed class BackgroundCheck
         );
     }
 
-    /// <summary>Applies an inbound verified webhook event with Rock's out-of-order terminal status guard.</summary>
+    /// <summary>Applies an inbound verified webhook event with an out-of-order terminal status guard.</summary>
     public void ApplyWebhookEvent(BackgroundCheckWebhookEvent webhookEvent, DateTimeOffset nowUtc)
     {
         ArgumentNullException.ThrowIfNull(webhookEvent);
@@ -192,7 +192,7 @@ public sealed class BackgroundCheck
         PersonId = targetPersonId;
     }
 
-    /// <summary>Maps a normalized status to Rock's recommendation text.</summary>
+    /// <summary>Maps a normalized screening status to a human-readable recommendation label.</summary>
     public static string MapRecommendation(BackgroundCheckStatus status)
     {
         return status switch

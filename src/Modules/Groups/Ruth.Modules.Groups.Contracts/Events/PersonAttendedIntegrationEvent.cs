@@ -14,11 +14,11 @@ public sealed record PersonAttendedIntegrationEvent(
     Guid PersonId,
     Guid? GroupId,
     Guid? GroupTypeId,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? LocationId,
     Guid? ScheduleId,
     DateOnly OccurrenceDate,
-    DateOnly SundayDate,
+    DateOnly WeekEndDate,
     bool IsFirstTime,
-    bool CountsAsWeekendService
+    bool CountsTowardHeadlineAttendance
 ) : IIntegrationEvent;

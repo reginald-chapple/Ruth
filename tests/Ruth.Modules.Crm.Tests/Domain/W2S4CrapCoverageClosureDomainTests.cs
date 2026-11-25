@@ -125,7 +125,7 @@ public sealed class W2S4CrapCoverageClosureDomainTests
             Gender.Male,
             MaritalStatus.Married,
             new DateOnly(1985, 3, 10),
-            PrimaryCampusId: null,
+            PrimaryBranchId: null,
             Guid.CreateVersion7(),
             HouseholdRole.Adult,
             PrimaryHomeLocationId: null,

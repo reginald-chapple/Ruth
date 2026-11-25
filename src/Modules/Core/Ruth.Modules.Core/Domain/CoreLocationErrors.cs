@@ -4,53 +4,53 @@ namespace Ruth.Modules.Core.Domain;
 
 internal static class CoreLocationErrors
 {
-    public static readonly DomainError CampusNameRequired = DomainError.Validation(
-        "Core.CampusNameRequired",
-        "Campus name is required."
+    public static readonly DomainError BranchNameRequired = DomainError.Validation(
+        "Core.BranchNameRequired",
+        "Branch name is required."
     );
 
-    public static readonly DomainError CampusNameTooLong = DomainError.Validation(
-        "Core.CampusNameTooLong",
-        "Campus name cannot exceed 100 characters."
+    public static readonly DomainError BranchNameTooLong = DomainError.Validation(
+        "Core.BranchNameTooLong",
+        "Branch name cannot exceed 100 characters."
     );
 
-    public static readonly DomainError CampusDuplicateName = DomainError.Conflict(
-        "Core.CampusDuplicateName",
-        "A campus with that name already exists."
+    public static readonly DomainError BranchDuplicateName = DomainError.Conflict(
+        "Core.BranchDuplicateName",
+        "A branch with that name already exists."
     );
 
-    public static readonly DomainError CampusNotFound = DomainError.NotFound(
-        "Core.CampusNotFound",
-        "Campus was not found."
+    public static readonly DomainError BranchNotFound = DomainError.NotFound(
+        "Core.BranchNotFound",
+        "Branch was not found."
     );
 
-    public static readonly DomainError CampusLastCannotDelete = DomainError.Conflict(
-        "Core.CampusLastCannotDelete",
-        "Cannot delete the last remaining campus."
+    public static readonly DomainError BranchLastCannotDelete = DomainError.Conflict(
+        "Core.BranchLastCannotDelete",
+        "Cannot delete the last remaining branch."
     );
 
-    public static readonly DomainError CampusUrlInvalid = DomainError.Validation(
-        "Core.CampusUrlInvalid",
-        "Campus URL must be an absolute HTTP or HTTPS URI."
+    public static readonly DomainError BranchUrlInvalid = DomainError.Validation(
+        "Core.BranchUrlInvalid",
+        "Branch URL must be an absolute HTTP or HTTPS URI."
     );
 
-    public static readonly DomainError CampusTimeZoneInvalid = DomainError.Validation(
-        "Core.CampusTimeZoneInvalid",
-        "Campus time zone identifier is not recognized."
+    public static readonly DomainError BranchTimeZoneInvalid = DomainError.Validation(
+        "Core.BranchTimeZoneInvalid",
+        "Branch time zone identifier is not recognized."
     );
 
-    public static readonly DomainError CampusDateRangeInvalid = DomainError.Validation(
-        "Core.CampusDateRangeInvalid",
-        "Campus closed date cannot be earlier than opened date."
+    public static readonly DomainError BranchDateRangeInvalid = DomainError.Validation(
+        "Core.BranchDateRangeInvalid",
+        "Branch closed date cannot be earlier than opened date."
     );
 
-    public static readonly DomainError CampusTopicEmailInvalid = DomainError.Validation(
-        "Core.CampusTopicEmailInvalid",
-        "Campus topic email must be a valid email address."
+    public static readonly DomainError BranchTopicEmailInvalid = DomainError.Validation(
+        "Core.BranchTopicEmailInvalid",
+        "Branch topic email must be a valid email address."
     );
 
-    public static readonly DomainError CampusBeaconInvalid = DomainError.Validation(
-        "Core.CampusBeaconInvalid",
+    public static readonly DomainError BranchBeaconInvalid = DomainError.Validation(
+        "Core.BranchBeaconInvalid",
         "Beacon identifier must be between 0 and 65535."
     );
 

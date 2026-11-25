@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.CheckIn</RootNamespace>
+    <AssemblyName>Ruth.Modules.CheckIn</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ruth.Modules.CheckIn.Tests" />
+    <InternalsVisibleTo Include="Ruth.Host.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Ruth.Persistence\Ruth.Persistence.csproj" />
+    <ProjectReference Include="..\..\..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\Groups\Ruth.Modules.Groups.Contracts\Ruth.Modules.Groups.Contracts.csproj" />
+    <ProjectReference Include="..\Ruth.Modules.CheckIn.Contracts\Ruth.Modules.CheckIn.Contracts.csproj" />
+  </ItemGroup>
+</Project>

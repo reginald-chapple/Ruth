@@ -4,15 +4,15 @@ namespace Ruth.Persistence.Scheduling;
 
 /// <summary>
 /// Pure-C# 5-field and 6-field cron expression parser and DST-aware occurrence calculator.
-/// Supports standard macros (@hourly, @daily, @never, etc.) and Rock's sentinel expression.
+/// Supports standard macros (@hourly, @daily, @never, etc.).
 /// </summary>
 public sealed class CronExpression
 {
     /// <summary>Sentinel cron expression representing an on-demand-only job that never runs on a schedule.</summary>
     public const string NeverExpression = "@never";
 
-    /// <summary>Legacy Rock sentinel cron expression treated identically to <see cref="NeverExpression" />.</summary>
-    public const string LegacyNeverExpression = "0 0 0 1 1 ? 2200";
+    /// <summary>Alternate manual-only macro treated identically to <see cref="NeverExpression" />.</summary>
+    public const string ManualExpression = "@manual";
 
     private static readonly Dictionary<string, string> _macros = new(
         StringComparer.OrdinalIgnoreCase
@@ -151,6 +151,6 @@ public sealed class CronExpression
     private static bool IsNeverSentinel(string trimmed)
     {
         return string.Equals(trimmed, NeverExpression, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, LegacyNeverExpression, StringComparison.OrdinalIgnoreCase);
+            || string.Equals(trimmed, ManualExpression, StringComparison.OrdinalIgnoreCase);
     }
 }

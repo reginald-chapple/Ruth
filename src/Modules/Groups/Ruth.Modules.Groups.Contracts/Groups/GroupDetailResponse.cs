@@ -6,7 +6,7 @@ public sealed record GroupDetailResponse(
     Guid GroupTypeId,
     string GroupTypeName,
     Guid? ParentGroupId,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? ScheduleId,
     string Name,
     string? Description,

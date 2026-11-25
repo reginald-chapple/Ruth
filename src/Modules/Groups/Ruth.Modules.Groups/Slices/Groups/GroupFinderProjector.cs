@@ -87,7 +87,7 @@ internal static class GroupFinderProjector
             groupTypeName,
             group.Name,
             group.Description,
-            group.CampusId,
+            group.BranchId,
             group.ScheduleId,
             group.MeetingStyle,
             activeCount,

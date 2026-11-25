@@ -45,7 +45,7 @@ public sealed class W2S6PersonMergeConsumerIntegrationTests(GroupsPostgresContai
             OccurredOnUtc: DateTimeOffset.UtcNow,
             SurvivingPersonId: survivingPersonId,
             RetiredPersonId: retiredPersonId,
-            LegacyAliasGuids: [],
+            ExternalRecordGuids: [],
             HadMultipleDistinctEmails: false
         );
 

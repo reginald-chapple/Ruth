@@ -39,8 +39,8 @@ public sealed class InMemoryBackgroundCheckProvider : IBackgroundCheckProvider
             ),
             new BackgroundCheckPackageResponse(
                 Key,
-                "youth-ministry-enhanced",
-                "Youth Ministry Enhanced",
+                "youth-vulnerable-enhanced",
+                "Youth & Vulnerable Populations Enhanced",
                 "Simulated enhanced multi-jurisdiction screening package."
             ),
         ];

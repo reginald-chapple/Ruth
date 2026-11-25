@@ -79,9 +79,9 @@ internal sealed class SearchPeopleQueryHandler(CrmDbContext dbContext, IClock cl
             q = q.Where(p => p.ConnectionStatus == query.ConnectionStatus.Value);
         }
 
-        if (query.PrimaryCampusId.HasValue)
+        if (query.PrimaryBranchId.HasValue)
         {
-            q = q.Where(p => p.PrimaryCampusId == query.PrimaryCampusId.Value);
+            q = q.Where(p => p.PrimaryBranchId == query.PrimaryBranchId.Value);
         }
 
         return q;

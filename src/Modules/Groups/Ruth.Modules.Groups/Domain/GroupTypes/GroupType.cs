@@ -61,8 +61,8 @@ public sealed partial class GroupType
     /// <summary>Gets whether groups of this type expose a MeetingStyle.</summary>
     public bool IsMeetingStyleEnabled { get; private set; }
 
-    /// <summary>Gets whether groups of this type must have a CampusId.</summary>
-    public bool GroupsRequireCampus { get; private set; }
+    /// <summary>Gets whether groups of this type must have a BranchId.</summary>
+    public bool GroupsRequireBranch { get; private set; }
 
     /// <summary>Gets whether SCD Type-2 GroupHistorical and GroupMemberHistorical snapshots are maintained.</summary>
     public bool EnableGroupHistory { get; private set; }
@@ -70,8 +70,8 @@ public sealed partial class GroupType
     /// <summary>Gets whether groups of this type support taking attendance.</summary>
     public bool TakesAttendance { get; private set; }
 
-    /// <summary>Gets whether attendance counts toward weekend service totals.</summary>
-    public bool AttendanceCountsAsWeekendService { get; private set; }
+    /// <summary>Gets whether attendance counts toward organization headline attendance totals.</summary>
+    public bool CountsTowardHeadlineAttendance { get; private set; }
 
     /// <summary>Gets whether attendance reminders are enabled for leaders.</summary>
     public bool SendAttendanceReminder { get; private set; }

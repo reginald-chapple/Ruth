@@ -39,10 +39,10 @@ public sealed class PersonDuplicate : AggregateRoot<PersonDuplicateId>, IAuditab
     /// <summary>Gets the populated field capacity of the pair.</summary>
     public int Capacity { get; private set; }
 
-    /// <summary>Gets the maximum total scoring capacity (29).</summary>
+    /// <summary>Gets the maximum possible linkage weight (100).</summary>
     public int TotalCapacity { get; private set; }
 
-    /// <summary>Gets the geometric-mean confidence score (0–100).</summary>
+    /// <summary>Gets the completeness-adjusted confidence percentage (0–100).</summary>
     public decimal ConfidenceScore { get; private set; }
 
     /// <summary>Gets the pipe-delimited breakdown of matching criteria.</summary>

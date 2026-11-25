@@ -18,7 +18,7 @@ public sealed record PersonSummaryResponse(
     string? Email,
     string? PrimaryPhoneFormatted,
     Guid? PhotoBinaryFileId,
-    Guid? PrimaryCampusId,
+    Guid? PrimaryBranchId,
     Guid? PrimaryHouseholdId,
     bool IsDeceased,
     Guid? TopSignalId,

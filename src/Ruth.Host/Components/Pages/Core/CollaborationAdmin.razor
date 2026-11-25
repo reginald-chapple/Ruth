@@ -21,7 +21,7 @@
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
             <h2>Note Types</h2>
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                <FluentTextInput @bind-Value="_noteTypeName" Label="Note Type Name" Placeholder="Pastoral Care" />
+                <FluentTextInput @bind-Value="_noteTypeName" Label="Note Type Name" Placeholder="Member Support" />
                 <FluentCheckbox @bind-Value="_requiresApprovals" Label="Requires Approvals" />
                 <FluentCheckbox @bind-Value="_allowsReplies" Label="Allows Replies" />
                 <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateNoteTypeAsync">

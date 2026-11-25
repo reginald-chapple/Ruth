@@ -4,7 +4,7 @@ using Ruth.Modules.Crm.Domain.People;
 
 namespace Ruth.Modules.Crm.Domain.Duplicates;
 
-/// <summary>Immutable snapshot of person attributes used for fast pairwise duplicate scoring.</summary>
+/// <summary>Immutable snapshot of person attributes used for pairwise duplicate linkage scoring.</summary>
 public sealed record DuplicateCandidateProfile(
     PersonId PersonId,
     string FirstName,
@@ -15,7 +15,7 @@ public sealed record DuplicateCandidateProfile(
     Gender Gender,
     MaritalStatus MaritalStatus,
     DateOnly? BirthDate,
-    Guid? PrimaryCampusId,
+    Guid? PrimaryBranchId,
     Guid? PrimaryHouseholdId,
     HouseholdRole? PrimaryHouseholdRole,
     Guid? PrimaryHomeLocationId,

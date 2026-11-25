@@ -56,8 +56,8 @@ Content-Type: application/json
 
 {
   "entityTypeId": "{{entityTypeId}}",
-  "name": "Ministry Lookups",
-  "description": "Categories for ministry DefinedTypes",
+  "name": "Program Lookups",
+  "description": "Categories for operational DefinedTypes",
   "highlightColor": "#2563EB"
 }
 
@@ -115,7 +115,7 @@ Content-Type: application/json
 }
 
 
-### --- W1-S5: Campuses, PostGIS Locations & Devices ---
+### --- W1-S5: Branches, PostGIS Locations & Devices ---
 
 ### Create a PostGIS Location with coordinates and geofence
 POST {{baseUrl}}/api/core/locations
@@ -123,7 +123,7 @@ Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "name": "Main Campus Building",
+  "name": "Headquarters Building",
   "address": {
     "street1": "3120 E Cholla St",
     "city": "Phoenix",
@@ -140,8 +140,8 @@ Content-Type: application/json
 GET {{baseUrl}}/api/core/locations/within-radius?latitude=33.59&longitude=-112.01&radiusMeters=5000
 Authorization: Bearer {{accessToken}}
 
-### List campuses
-GET {{baseUrl}}/api/core/campuses
+### List branches
+GET {{baseUrl}}/api/core/branches
 Authorization: Bearer {{accessToken}}
 
 ### List physical devices
@@ -150,13 +150,13 @@ Authorization: Bearer {{accessToken}}
 
 ### --- W1-S6: Schedules & iCalendar Recurrence ---
 
-### Create a weekly Sunday service schedule
+### Create a weekly session schedule
 POST {{baseUrl}}/api/core/schedules
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "name": "Sunday 9:00 AM Service",
+  "name": "Weekly Session 9:00 AM",
   "iCalendarContent": "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;TZID=America/Denver:20261129T090000\nDTEND;TZID=America/Denver:20261129T101500\nRRULE:FREQ=WEEKLY;BYDAY=SU\nEND:VEVENT\nEND:VCALENDAR",
   "checkInStartOffsetMinutes": 60,
   "checkInEndOffsetMinutes": 30

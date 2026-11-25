@@ -1,6 +1,6 @@
 namespace Ruth.Modules.Crm.Contracts.People;
 
-/// <summary>Standard Rock RMS demographic age brackets.</summary>
+/// <summary>Standard demographic age brackets for reporting and segmentation.</summary>
 public enum AgeBracket
 {
     /// <summary>Age unknown.</summary>

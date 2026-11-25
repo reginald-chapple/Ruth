@@ -56,10 +56,10 @@ public sealed class Wave2GroupsEndpointsIntegrationTests(HostContainersFixture c
             new Uri("/api/onboarding", UriKind.Relative),
             new
             {
-                organizationName = "Ruth Groups Test Church",
+                organizationName = "Ruth Groups Test Organization",
                 timeZoneId = "America/Denver",
-                primaryCampusName = "Main Campus",
-                primaryCampusShortCode = "MAIN",
+                primaryBranchName = "Main Branch",
+                primaryBranchShortCode = "MAIN",
                 adminUserName = "admin",
                 adminEmail = "admin@ruth.test",
                 adminDisplayName = "System Admin",
@@ -116,7 +116,7 @@ public sealed class Wave2GroupsEndpointsIntegrationTests(HostContainersFixture c
                     groupTerm = "Group",
                     groupMemberTerm = "Member",
                     takesAttendance = true,
-                    attendanceCountsAsWeekendService = true,
+                    countsTowardHeadlineAttendance = true,
                     isSchedulingEnabled = true,
                     enableLocationSchedules = true,
                     initialRoles = new[]

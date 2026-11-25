@@ -56,9 +56,9 @@ internal static class PersonMapper
             person.CommunicationPreference,
             person.CanReceiveEmail(isBulk: true),
             person.PhotoBinaryFileId,
-            person.PrimaryCampusId,
+            person.PrimaryBranchId,
             person.PrimaryHouseholdId,
-            person.GivingHouseholdId,
+            person.BillingHouseholdId,
             person.TopSignalId,
             person.TopSignalColor,
             person.TopSignalIcon,
@@ -107,7 +107,7 @@ internal static class PersonMapper
             person.Email,
             primaryPhone?.ToString(),
             person.PhotoBinaryFileId,
-            person.PrimaryCampusId,
+            person.PrimaryBranchId,
             person.PrimaryHouseholdId,
             person.IsDeceased,
             person.TopSignalId,
@@ -148,7 +148,7 @@ internal static class PersonMapper
             command.CommunicationPreference,
             command.AccountProtectionProfile,
             command.PhotoBinaryFileId,
-            command.PrimaryCampusId
+            command.PrimaryBranchId
         );
     }
 
@@ -183,7 +183,7 @@ internal static class PersonMapper
             command.CommunicationPreference,
             command.AccountProtectionProfile,
             command.PhotoBinaryFileId,
-            command.PrimaryCampusId
+            command.PrimaryBranchId
         );
     }
 

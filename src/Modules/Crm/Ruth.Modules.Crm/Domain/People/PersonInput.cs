@@ -32,5 +32,5 @@ public sealed record PersonInput(
     CommunicationPreference CommunicationPreference = CommunicationPreference.Email,
     AccountProtectionProfile AccountProtectionProfile = AccountProtectionProfile.Low,
     Guid? PhotoBinaryFileId = null,
-    Guid? PrimaryCampusId = null
+    Guid? PrimaryBranchId = null
 );

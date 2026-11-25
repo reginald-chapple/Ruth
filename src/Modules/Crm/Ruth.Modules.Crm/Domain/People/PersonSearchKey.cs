@@ -80,7 +80,7 @@ public sealed class PersonSearchKey : Entity<PersonSearchKeyId>, IAuditableEntit
             );
     }
 
-    /// <summary>Generates a Rock-style 14-hex-character AlternateId formatted as xxxxxxx-xxxxxxx.</summary>
+    /// <summary>Generates a 14-hex-character AlternateId formatted as xxxxxxx-xxxxxxx.</summary>
     public static string GenerateAlternateId()
     {
         var hex = Guid.CreateVersion7().ToString("N");

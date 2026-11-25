@@ -206,9 +206,9 @@ internal sealed class FindGroupsQueryHandler(GroupsDbContext dbContext)
             groupsQuery = groupsQuery.Where(g => g.GroupTypeId == typeId);
         }
 
-        if (query.CampusId.HasValue)
+        if (query.BranchId.HasValue)
         {
-            groupsQuery = groupsQuery.Where(g => g.CampusId == query.CampusId.Value);
+            groupsQuery = groupsQuery.Where(g => g.BranchId == query.BranchId.Value);
         }
 
         if (query.MeetingStyle.HasValue)

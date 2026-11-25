@@ -1,6 +1,8 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Ruth.Host;
+using Ruth.Modules.CheckIn;
+using Ruth.Modules.CheckIn.Contracts;
 using Ruth.Modules.Communication;
 using Ruth.Modules.Communication.Contracts;
 using Ruth.Modules.Core;
@@ -27,6 +29,7 @@ public sealed class ModularMonolithArchitectureTests
             CoreModuleAssembly.Instance,
             CrmModuleAssembly.Instance,
             GroupsModuleAssembly.Instance,
+            CheckInModuleAssembly.Instance,
             CommunicationModuleAssembly.Instance,
         ];
 
@@ -52,6 +55,7 @@ public sealed class ModularMonolithArchitectureTests
             CoreContractsAssembly.Instance,
             CrmContractsAssembly.Instance,
             GroupsContractsAssembly.Instance,
+            CheckInContractsAssembly.Instance,
             CommunicationContractsAssembly.Instance,
         ];
 
@@ -217,6 +221,9 @@ public sealed class ModularMonolithArchitectureTests
                     "Ruth.Modules.Groups.Domain",
                     "Ruth.Modules.Groups.Infrastructure",
                     "Ruth.Modules.Groups.Slices",
+                    "Ruth.Modules.CheckIn.Domain",
+                    "Ruth.Modules.CheckIn.Infrastructure",
+                    "Ruth.Modules.CheckIn.Slices",
                     "Ruth.Modules.Communication.Domain",
                     "Ruth.Modules.Communication.Infrastructure",
                     "Ruth.Modules.Communication.Slices"
@@ -254,6 +261,9 @@ public sealed class ModularMonolithArchitectureTests
                 "Ruth.Modules.Groups.Domain",
                 "Ruth.Modules.Groups.Infrastructure",
                 "Ruth.Modules.Groups.Slices",
+                "Ruth.Modules.CheckIn.Domain",
+                "Ruth.Modules.CheckIn.Infrastructure",
+                "Ruth.Modules.CheckIn.Slices",
                 "Ruth.Modules.Communication.Domain",
                 "Ruth.Modules.Communication.Infrastructure",
                 "Ruth.Modules.Communication.Slices"

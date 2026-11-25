@@ -7,7 +7,7 @@ public sealed record AttendanceRecordResponse(
     Guid Id,
     Guid OccurrenceId,
     Guid? PersonId,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? DeviceId,
     DateTimeOffset StartDateTimeUtc,
     DateTimeOffset? EndDateTimeUtc,

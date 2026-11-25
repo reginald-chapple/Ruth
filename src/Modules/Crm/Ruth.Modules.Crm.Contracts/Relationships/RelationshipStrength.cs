@@ -1,6 +1,6 @@
 namespace Ruth.Modules.Crm.Contracts.Relationships;
 
-/// <summary>Base relationship strength weight for peer-network scoring (Rock RMS parity).</summary>
+/// <summary>Base relationship strength weight for peer-network scoring.</summary>
 public enum RelationshipStrength
 {
     /// <summary>No relationship weight (excluded).</summary>

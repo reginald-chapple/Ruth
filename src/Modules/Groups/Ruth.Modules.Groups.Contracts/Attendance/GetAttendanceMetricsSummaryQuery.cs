@@ -2,12 +2,12 @@ using Ruth.SharedKernel.Messaging;
 
 namespace Ruth.Modules.Groups.Contracts.Attendance;
 
-/// <summary>Computes Campus/Service attendance metrics across a date range.</summary>
+/// <summary>Computes Branch and program attendance metrics across a date range.</summary>
 public sealed record GetAttendanceMetricsSummaryQuery(
     DateOnly StartDate,
     DateOnly EndDate,
-    Guid? CampusId = null,
+    Guid? BranchId = null,
     Guid? GroupTypeId = null,
     Guid? GroupId = null,
-    bool WeekendServicesOnly = false
+    bool HeadlineAttendanceOnly = false
 ) : IQuery<AttendanceMetricsSummaryResponse>;

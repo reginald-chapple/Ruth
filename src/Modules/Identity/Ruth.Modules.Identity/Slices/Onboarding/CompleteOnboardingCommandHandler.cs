@@ -58,8 +58,8 @@ internal sealed class CompleteOnboardingCommandHandler(
         var orgResult = OrganizationProfile.CompleteInitialOnboarding(
             command.OrganizationName,
             command.TimeZoneId,
-            command.PrimaryCampusName,
-            command.PrimaryCampusShortCode,
+            command.PrimaryBranchName,
+            command.PrimaryBranchShortCode,
             utcNow
         );
 

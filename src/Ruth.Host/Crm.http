@@ -64,14 +64,15 @@ Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "name": "Decker Family",
-  "combineGivingByDefault": true,
+  "name": "Decker Household",
+  "combineContributionsByDefault": true,
   "members": [
     {
       "personId": "{{personId}}",
       "role": "Adult",
       "householdOrder": 0,
-      "isCombinedGivingMember": true
+      "isCombinedContributionMember": true,
+      "isPrimaryContact": true
     }
   ]
 }

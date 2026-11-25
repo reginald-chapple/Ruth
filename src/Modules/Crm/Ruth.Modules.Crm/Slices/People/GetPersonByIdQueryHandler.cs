@@ -54,8 +54,7 @@ internal sealed class GetPersonByIdQueryHandler(CrmDbContext dbContext, IClock c
                 .Where(r =>
                     r.SourcePersonId == current
                     || (
-                        r.LegacyPersonAliasGuid.HasValue
-                        && r.LegacyPersonAliasGuid.Value == current.Value
+                        r.ExternalRecordGuid.HasValue && r.ExternalRecordGuid.Value == current.Value
                     )
                 )
                 .Select(static r => r.TargetPersonId)

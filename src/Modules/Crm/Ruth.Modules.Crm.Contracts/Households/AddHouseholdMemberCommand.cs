@@ -8,5 +8,6 @@ public sealed record AddHouseholdMemberCommand(
     Guid PersonId,
     HouseholdRole Role = HouseholdRole.Adult,
     int HouseholdOrder = 0,
-    bool IsCombinedGivingMember = true
+    bool IsCombinedContributionMember = true,
+    bool? IsPrimaryContact = null
 ) : ICommand<HouseholdResponse>;

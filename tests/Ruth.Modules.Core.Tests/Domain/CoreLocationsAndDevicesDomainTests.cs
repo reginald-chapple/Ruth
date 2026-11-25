@@ -1,4 +1,4 @@
-using Ruth.Modules.Core.Contracts.Campuses;
+using Ruth.Modules.Core.Contracts.Branches;
 using Ruth.Modules.Core.Contracts.Devices;
 using Ruth.Modules.Core.Contracts.Locations;
 using Ruth.Modules.Core.Domain;
@@ -9,35 +9,37 @@ namespace Ruth.Modules.Core.Tests.Domain;
 public sealed class CoreLocationsAndDevicesDomainTests
 {
     [Fact]
-    public void Campus_Enforces_Validation_CondensedName_And_LocalTime()
+    public void Branch_Enforces_Validation_CondensedName_And_LocalTime()
     {
-        var created = Campus.Create(
-            new CampusInput(
-                "Main Campus",
+        var created = Branch.Create(
+            new BranchInput(
+                "Main Branch",
                 "Primary site",
                 ShortCode: null,
                 IsActive: true,
-                Url: "https://ruth.church",
+                Url: "https://civic.example.org",
                 PhoneNumber: "602-555-0100",
                 TimeZoneId: "America/Denver",
                 LocationId: null,
                 LeaderPersonId: null,
-                CampusStatusValueId: null,
-                CampusTypeValueId: null,
+                BranchStatusValueId: null,
+                BranchTypeValueId: null,
                 PhotoId: null,
                 OpenedDate: new DateOnly(2020, 1, 1),
                 ClosedDate: null,
-                TitheMetric: 98.5m,
-                AverageWeekendAttendance: 1200,
                 BeaconId: 42,
                 Order: 0,
                 Schedules:
                 [
-                    new CampusScheduleDto(Guid.CreateVersion7(), ScheduleTypeValueId: null, 0),
+                    new BranchScheduleDto(Guid.CreateVersion7(), ScheduleTypeValueId: null, 0),
                 ],
                 Topics:
                 [
-                    new CampusTopicDto(Guid.CreateVersion7(), "info@ruth.church", IsPublic: true),
+                    new BranchTopicDto(
+                        Guid.CreateVersion7(),
+                        "info@civic.example.org",
+                        IsPublic: true
+                    ),
                 ]
             )
         );
@@ -49,8 +51,33 @@ public sealed class CoreLocationsAndDevicesDomainTests
         var summerUtc = new DateTimeOffset(2026, 7, 1, 18, 0, 0, TimeSpan.Zero);
         Assert.Equal(TimeSpan.FromHours(-6), created.Value.GetCurrentLocalTime(summerUtc).Offset);
 
-        var badUrl = Campus.Create(
-            new CampusInput(
+        var siteNamed = Branch.Create(
+            new BranchInput(
+                "West Site",
+                Description: null,
+                ShortCode: null,
+                IsActive: true,
+                Url: null,
+                PhoneNumber: null,
+                TimeZoneId: null,
+                LocationId: null,
+                LeaderPersonId: null,
+                BranchStatusValueId: null,
+                BranchTypeValueId: null,
+                PhotoId: null,
+                OpenedDate: null,
+                ClosedDate: null,
+                BeaconId: null,
+                Order: 1,
+                Schedules: null,
+                Topics: null
+            )
+        );
+        Assert.True(siteNamed.IsSuccess);
+        Assert.Equal("West", siteNamed.Value.CondensedName);
+
+        var badUrl = Branch.Create(
+            new BranchInput(
                 "Bad",
                 Description: null,
                 ShortCode: null,
@@ -60,13 +87,11 @@ public sealed class CoreLocationsAndDevicesDomainTests
                 TimeZoneId: null,
                 LocationId: null,
                 LeaderPersonId: null,
-                CampusStatusValueId: null,
-                CampusTypeValueId: null,
+                BranchStatusValueId: null,
+                BranchTypeValueId: null,
                 PhotoId: null,
                 OpenedDate: null,
                 ClosedDate: null,
-                TitheMetric: null,
-                AverageWeekendAttendance: null,
                 BeaconId: null,
                 0,
                 Schedules: null,
@@ -74,10 +99,10 @@ public sealed class CoreLocationsAndDevicesDomainTests
             )
         );
         Assert.True(badUrl.IsFailure);
-        Assert.Equal(CoreLocationErrors.CampusUrlInvalid.Code, badUrl.PrimaryError.Code);
+        Assert.Equal(CoreLocationErrors.BranchUrlInvalid.Code, badUrl.PrimaryError.Code);
 
-        var badDates = Campus.Create(
-            new CampusInput(
+        var badDates = Branch.Create(
+            new BranchInput(
                 "Dates",
                 Description: null,
                 ShortCode: null,
@@ -87,13 +112,11 @@ public sealed class CoreLocationsAndDevicesDomainTests
                 TimeZoneId: null,
                 LocationId: null,
                 LeaderPersonId: null,
-                CampusStatusValueId: null,
-                CampusTypeValueId: null,
+                BranchStatusValueId: null,
+                BranchTypeValueId: null,
                 PhotoId: null,
                 new DateOnly(2025, 5, 1),
                 new DateOnly(2025, 4, 1),
-                TitheMetric: null,
-                AverageWeekendAttendance: null,
                 BeaconId: null,
                 0,
                 Schedules: null,
@@ -101,7 +124,7 @@ public sealed class CoreLocationsAndDevicesDomainTests
             )
         );
         Assert.True(badDates.IsFailure);
-        Assert.Equal(CoreLocationErrors.CampusDateRangeInvalid.Code, badDates.PrimaryError.Code);
+        Assert.Equal(CoreLocationErrors.BranchDateRangeInvalid.Code, badDates.PrimaryError.Code);
     }
 
     [Fact]

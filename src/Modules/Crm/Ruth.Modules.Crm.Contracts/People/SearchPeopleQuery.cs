@@ -7,7 +7,7 @@ public sealed record SearchPeopleQuery(
     string? Query = null,
     PersonRecordStatus? RecordStatus = null,
     PersonConnectionStatus? ConnectionStatus = null,
-    Guid? PrimaryCampusId = null,
+    Guid? PrimaryBranchId = null,
     bool IncludeDeceased = false,
     bool IncludeBusinesses = false,
     int MaxResults = 25

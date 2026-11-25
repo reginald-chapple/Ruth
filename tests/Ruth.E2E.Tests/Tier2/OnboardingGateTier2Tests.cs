@@ -75,14 +75,14 @@ public sealed class OnboardingGateTier2Tests(E2EContainersFixture containers)
     }
 
     [Fact]
-    public async Task Onboarding_PrimaryCampusShortCodeNullAndWhitespace_HandledCleanly()
+    public async Task Onboarding_PrimaryBranchShortCodeNullAndWhitespace_HandledCleanly()
     {
         await Tier2TestHelpers.RunWithIsolatedDatabaseAsync(_containers, async (_, conn, _) =>
         {
             await using var factory = RuthHostFactory.Create(_containers, conn);
             using var client = factory.CreateNoRedirectClient();
             var nullShortCode = TestOnboardingPayloads.CreateValidPayload(
-                primaryCampusShortCode: null
+                primaryBranchShortCode: null
             );
             await Tier2TestHelpers.CompleteOnboardingAsync(client, nullShortCode);
         });
@@ -92,7 +92,7 @@ public sealed class OnboardingGateTier2Tests(E2EContainersFixture containers)
             await using var factory = RuthHostFactory.Create(_containers, conn);
             using var client = factory.CreateNoRedirectClient();
             var whitespaceCode = TestOnboardingPayloads.CreateValidPayload(
-                primaryCampusShortCode: "   "
+                primaryBranchShortCode: "   "
             );
             using var resp = await Tier2TestHelpers.PostOnboardingAsync(client, whitespaceCode);
             Assert.True(

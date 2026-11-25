@@ -48,10 +48,10 @@ internal static class DuplicateAndMergeEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
         _ = group
-            .MapGet("/redirects/{personOrAliasId:guid}", ResolveRedirectAsync)
+            .MapGet("/redirects/{personOrExternalId:guid}", ResolveRedirectAsync)
             .WithName("CrmResolveCanonicalPersonId")
             .WithSummary(
-                "Resolve a retired PersonId or legacy PersonAlias GUID to its canonical PersonId"
+                "Resolve a retired PersonId or external record GUID to its canonical PersonId"
             )
             .Produces<CanonicalPersonResolutionResponse>(StatusCodes.Status200OK);
 
@@ -143,7 +143,7 @@ internal static class DuplicateAndMergeEndpoints
     private static async Task<
         Results<Ok<CanonicalPersonResolutionResponse>, ProblemHttpResult>
     > ResolveRedirectAsync(
-        Guid personOrAliasId,
+        Guid personOrExternalId,
         IQueryDispatcher dispatcher,
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -152,7 +152,7 @@ internal static class DuplicateAndMergeEndpoints
         var result = await dispatcher.QueryAsync<
             ResolveCanonicalPersonIdQuery,
             CanonicalPersonResolutionResponse
-        >(new ResolveCanonicalPersonIdQuery(personOrAliasId), cancellationToken);
+        >(new ResolveCanonicalPersonIdQuery(personOrExternalId), cancellationToken);
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : CrmProblemResultMapper.ToProblemResult(result, httpContext);

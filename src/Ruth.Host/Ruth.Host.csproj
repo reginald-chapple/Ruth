@@ -10,6 +10,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Modules\CheckIn\Ruth.Modules.CheckIn.Contracts\Ruth.Modules.CheckIn.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\CheckIn\Ruth.Modules.CheckIn\Ruth.Modules.CheckIn.csproj" />
     <ProjectReference Include="..\Modules\Communication\Ruth.Modules.Communication.Contracts\Ruth.Modules.Communication.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Communication\Ruth.Modules.Communication\Ruth.Modules.Communication.csproj" />
     <ProjectReference Include="..\Modules\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />

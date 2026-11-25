@@ -538,16 +538,16 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
-                    b.Property<string>("PrimaryCampusName")
+                    b.Property<string>("PrimaryBranchName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("primary_campus_name");
+                        .HasColumnName("primary_branch_name");
 
-                    b.Property<string>("PrimaryCampusShortCode")
+                    b.Property<string>("PrimaryBranchShortCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
-                        .HasColumnName("primary_campus_short_code");
+                        .HasColumnName("primary_branch_short_code");
 
                     b.Property<bool>("SelfRegistrationLocked")
                         .HasColumnType("boolean")

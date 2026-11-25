@@ -1,7 +1,7 @@
 namespace Ruth.SharedKernel.Time;
 
 /// <summary>
-/// Testable clock abstraction backed by <see cref="TimeProvider" /> replacing legacy static RockDateTime.
+/// Testable clock abstraction backed by <see cref="TimeProvider" /> for deterministic UTC and local time evaluation.
 /// </summary>
 public interface IClock
 {

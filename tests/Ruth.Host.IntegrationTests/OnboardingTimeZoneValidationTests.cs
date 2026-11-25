@@ -51,13 +51,13 @@ public sealed class OnboardingTimeZoneValidationTests
     {
         return new OnboardingFormModel
         {
-            OrganizationName = "Grace Fellowship",
+            OrganizationName = "Civic Foundation",
             TimeZoneId = "UTC",
-            PrimaryCampusName = "Main Campus",
-            PrimaryCampusShortCode = "MAIN",
-            AdminDisplayName = "Grace Admin",
+            PrimaryBranchName = "Main Branch",
+            PrimaryBranchShortCode = "MAIN",
+            AdminDisplayName = "Civic Admin",
             AdminUserName = "admin",
-            AdminEmail = "admin@grace.org",
+            AdminEmail = "admin@civic.org",
             AdminPassword = "StrongPass#2026!",
             ConfirmPassword = "StrongPass#2026!",
         };

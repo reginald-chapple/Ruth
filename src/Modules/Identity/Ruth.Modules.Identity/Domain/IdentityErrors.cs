@@ -24,19 +24,19 @@ internal static class IdentityErrors
         "A valid system or IANA time zone identifier is required."
     );
 
-    public static readonly DomainError PrimaryCampusNameRequired = DomainError.Validation(
-        "Identity.PrimaryCampusNameRequired",
-        "Primary campus name is required."
+    public static readonly DomainError PrimaryBranchNameRequired = DomainError.Validation(
+        "Identity.PrimaryBranchNameRequired",
+        "Primary branch name is required."
     );
 
-    public static readonly DomainError PrimaryCampusNameTooLong = DomainError.Validation(
-        "Identity.PrimaryCampusNameTooLong",
-        $"Primary campus name cannot exceed {OnboardingPolicy.CampusNameMaxLength} characters."
+    public static readonly DomainError PrimaryBranchNameTooLong = DomainError.Validation(
+        "Identity.PrimaryBranchNameTooLong",
+        $"Primary branch name cannot exceed {OnboardingPolicy.BranchNameMaxLength} characters."
     );
 
-    public static readonly DomainError PrimaryCampusShortCodeTooLong = DomainError.Validation(
-        "Identity.PrimaryCampusShortCodeTooLong",
-        $"Primary campus short code cannot exceed {OnboardingPolicy.CampusShortCodeMaxLength} characters."
+    public static readonly DomainError PrimaryBranchShortCodeTooLong = DomainError.Validation(
+        "Identity.PrimaryBranchShortCodeTooLong",
+        $"Primary branch short code cannot exceed {OnboardingPolicy.BranchShortCodeMaxLength} characters."
     );
 
     public static readonly DomainError UserNameRequired = DomainError.Validation(

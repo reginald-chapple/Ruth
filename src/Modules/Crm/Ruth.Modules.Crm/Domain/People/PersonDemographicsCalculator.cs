@@ -4,7 +4,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Crm.Domain.People;
 
-/// <summary>Pure domain service implementing Rock RMS birth-date, age, age-classification, and school-grade calculations.</summary>
+/// <summary>Pure domain service implementing birth-date, age, age-classification, and school-grade calculations.</summary>
 public static class PersonDemographicsCalculator
 {
     /// <summary>Default school grade transition month (June).</summary>
@@ -90,7 +90,7 @@ public static class PersonDemographicsCalculator
         return age;
     }
 
-    /// <summary>Maps an age in years to the standard Rock RMS <see cref="AgeBracket" />.</summary>
+    /// <summary>Maps an age in years to the standard demographic <see cref="AgeBracket" />.</summary>
     public static AgeBracket CalculateAgeBracket(int? age)
     {
         return age switch
@@ -108,7 +108,7 @@ public static class PersonDemographicsCalculator
         };
     }
 
-    /// <summary>Formats age in years, months, or days matching Rock RMS behavior.</summary>
+    /// <summary>Formats age in years, months, or days.</summary>
     public static string FormatAge(
         int? birthYear,
         int? birthMonth,
@@ -221,7 +221,7 @@ public static class PersonDemographicsCalculator
         return "Preschool";
     }
 
-    /// <summary>Resolves Adult vs. Child classification using Rock's lock, age, and household role precedence.</summary>
+    /// <summary>Resolves Adult vs. Child classification using child-lock, age, and household role precedence.</summary>
     public static AgeClassification ResolveAgeClassification(
         int? age,
         bool isLockedAsChild,

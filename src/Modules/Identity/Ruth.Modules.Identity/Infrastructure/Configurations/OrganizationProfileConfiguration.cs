@@ -41,14 +41,14 @@ internal sealed class OrganizationProfileConfiguration
             .HasMaxLength(OnboardingPolicy.TimeZoneIdMaxLength)
             .IsRequired();
         _ = builder
-            .Property(x => x.PrimaryCampusName)
-            .HasColumnName("primary_campus_name")
-            .HasMaxLength(OnboardingPolicy.CampusNameMaxLength)
+            .Property(x => x.PrimaryBranchName)
+            .HasColumnName("primary_branch_name")
+            .HasMaxLength(OnboardingPolicy.BranchNameMaxLength)
             .IsRequired();
         _ = builder
-            .Property(x => x.PrimaryCampusShortCode)
-            .HasColumnName("primary_campus_short_code")
-            .HasMaxLength(OnboardingPolicy.CampusShortCodeMaxLength);
+            .Property(x => x.PrimaryBranchShortCode)
+            .HasColumnName("primary_branch_short_code")
+            .HasMaxLength(OnboardingPolicy.BranchShortCodeMaxLength);
     }
 
     private static void ConfigureAuditProperties(EntityTypeBuilder<OrganizationProfile> builder)

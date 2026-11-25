@@ -34,11 +34,11 @@
             </FluentStack>
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
                 <FluentCheckbox @bind-Value="_takesAttendance" Label="Takes Attendance" />
-                <FluentCheckbox @bind-Value="_countsAsWeekend" Label="Weekend Service" />
-                <FluentCheckbox @bind-Value="_isSchedulingEnabled" Label="Serving Scheduler" />
+                <FluentCheckbox @bind-Value="_countsTowardHeadline" Label="Headline KPI Attendance" />
+                <FluentCheckbox @bind-Value="_isSchedulingEnabled" Label="Shift Scheduler" />
                 <FluentCheckbox @bind-Value="_enableHistory" Label="Track History" />
                 <FluentCheckbox @bind-Value="_allowMultipleLocations" Label="Multiple Locations" />
-                <FluentCheckbox @bind-Value="_groupsRequireCampus" Label="Require Campus" />
+                <FluentCheckbox @bind-Value="_groupsRequireBranch" Label="Require Branch" />
             </FluentStack>
             <div>
                 <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateGroupTypeAsync">
@@ -103,11 +103,11 @@
     private string _memberTerm = "Member";
     private GroupCapacityRule _capacityRule = GroupCapacityRule.Soft;
     private bool _takesAttendance = true;
-    private bool _countsAsWeekend;
+    private bool _countsTowardHeadline;
     private bool _isSchedulingEnabled;
     private bool _enableHistory = true;
     private bool _allowMultipleLocations;
-    private bool _groupsRequireCampus;
+    private bool _groupsRequireBranch;
     private string _newRoleName = string.Empty;
     private bool _newRoleIsLeader;
     private string? _statusMessage;
@@ -141,10 +141,10 @@
                 GroupMemberTerm: _memberTerm,
                 AllowMultipleLocations: _allowMultipleLocations,
                 IsMeetingStyleEnabled: true,
-                GroupsRequireCampus: _groupsRequireCampus,
+                GroupsRequireBranch: _groupsRequireBranch,
                 EnableGroupHistory: _enableHistory,
                 TakesAttendance: _takesAttendance,
-                AttendanceCountsAsWeekendService: _countsAsWeekend,
+                CountsTowardHeadlineAttendance: _countsTowardHeadline,
                 GroupCapacityRule: _capacityRule,
                 IsSchedulingEnabled: _isSchedulingEnabled
             )

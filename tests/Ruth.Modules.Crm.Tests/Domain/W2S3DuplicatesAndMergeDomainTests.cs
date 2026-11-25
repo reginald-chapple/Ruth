@@ -15,7 +15,7 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
     [Fact]
     public void PersonDuplicateScorer_ScoresMatchingProfiles_AndIgnoresSameHouseholdPhone()
     {
-        var campusId = Guid.CreateVersion7();
+        var branchId = Guid.CreateVersion7();
         var homeLocId = Guid.CreateVersion7();
 
         var p1 = new DuplicateCandidateProfile(
@@ -28,7 +28,7 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
             Gender.Male,
             MaritalStatus.Married,
             new DateOnly(1984, 4, 15),
-            campusId,
+            branchId,
             Guid.CreateVersion7(),
             HouseholdRole.Adult,
             homeLocId,
@@ -53,6 +53,18 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
         Assert.Contains("CellPhone", eval.ScoreDetail, StringComparison.Ordinal);
         Assert.Contains("Address", eval.ScoreDetail, StringComparison.Ordinal);
         Assert.Contains("Birthdate", eval.ScoreDetail, StringComparison.Ordinal);
+        Assert.Contains("Branch", eval.ScoreDetail, StringComparison.Ordinal);
+
+        var conflictingSuffix = p2 with
+        {
+            Suffix = "Sr",
+            NormalizedEmail = null,
+            CellPhoneKeys = [],
+            PrimaryHomeLocationId = null,
+            BirthDate = null,
+            PrimaryBranchId = null,
+        };
+        Assert.False(PersonDuplicateScorer.Evaluate(p1, conflictingSuffix).IsCandidateMatch);
     }
 
     [Fact]
@@ -62,9 +74,9 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
         var b = PersonId.Create();
         var eval1 = new DuplicateScoreEvaluation(
             IsCandidateMatch: true,
-            Score: 10,
-            Capacity: 15,
-            TotalCapacity: 29,
+            Score: 50,
+            Capacity: 70,
+            TotalCapacity: PersonDuplicateScorer.MaxPossibleWeight,
             ConfidenceScore: 71.9m,
             "Email|FirstName|LastName"
         );
@@ -77,9 +89,9 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
 
         var eval2 = new DuplicateScoreEvaluation(
             IsCandidateMatch: true,
-            Score: 15,
-            Capacity: 18,
-            TotalCapacity: 29,
+            Score: 70,
+            Capacity: 80,
+            TotalCapacity: PersonDuplicateScorer.MaxPossibleWeight,
             ConfidenceScore: 85.0m,
             "Email|FirstName|LastName|CellPhone"
         );
@@ -94,9 +106,9 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
         var highProtected = Person
             .Create(
                 new PersonInput(
-                    "Pastor",
+                    "Director",
                     "Smith",
-                    Email: "pastor@church.org",
+                    Email: "director@civic.org",
                     AccountProtectionProfile: AccountProtectionProfile.High
                 ),
                 _nowUtc
@@ -138,7 +150,7 @@ public sealed class W2S3DuplicatesAndMergeDomainTests
             )
         );
         Assert.Equal("John", mergedInput.FirstName);
-        Assert.Equal("pastor@church.org", mergedInput.Email);
+        Assert.Equal("director@civic.org", mergedInput.Email);
         Assert.Equal(AccountProtectionProfile.High, mergedInput.AccountProtectionProfile);
     }
 }

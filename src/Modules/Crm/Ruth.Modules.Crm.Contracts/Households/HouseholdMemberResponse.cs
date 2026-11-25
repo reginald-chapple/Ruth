@@ -7,5 +7,6 @@ public sealed record HouseholdMemberResponse(
     string FullName,
     HouseholdRole Role,
     int HouseholdOrder,
-    bool IsCombinedGivingMember
+    bool IsCombinedContributionMember,
+    bool IsPrimaryContact
 );

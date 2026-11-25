@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Ruth.Modules.Core.Contracts.Campuses;
+using Ruth.Modules.Core.Contracts.Branches;
 using Ruth.Modules.Crm.Contracts.Duplicates;
 using Ruth.Modules.Crm.Contracts.People;
 using Ruth.Modules.Crm.Slices.Duplicates;
@@ -29,9 +29,9 @@ public sealed class W2S3DuplicatesMergeAndOutboxIntegrationTests(
         var queries = scope.ServiceProvider.GetRequiredService<IQueryDispatcher>();
 
         var (survivorId, retiredId) = await SeedDuplicatePairAsync(commands);
-        var campusId = (
-            await commands.SendAsync<CreateCampusCommand, CampusResponse>(
-                new CreateCampusCommand("West Campus", LeaderPersonId: retiredId)
+        var branchId = (
+            await commands.SendAsync<CreateBranchCommand, BranchResponse>(
+                new CreateBranchCommand("West Branch", LeaderPersonId: retiredId)
             )
         )
             .Value
@@ -39,10 +39,10 @@ public sealed class W2S3DuplicatesMergeAndOutboxIntegrationTests(
 
         await RunDuplicateJobAndVerifyPairAsync(provider, queries);
         await MergeAndVerifyRedirectsAsync(commands, queries, survivorId, retiredId);
-        await DispatchOutboxAndVerifyCoreCampusRepointedAsync(
+        await DispatchOutboxAndVerifyCoreBranchRepointedAsync(
             provider,
             queries,
-            campusId,
+            branchId,
             survivorId
         );
     }
@@ -131,9 +131,9 @@ public sealed class W2S3DuplicatesMergeAndOutboxIntegrationTests(
         Guid retiredId
     )
     {
-        var legacyAliasGuid = Guid.CreateVersion7();
+        var externalRecordGuid = Guid.CreateVersion7();
         var mergeResult = await commands.SendAsync<MergePeopleCommand, PersonMergeResponse>(
-            new MergePeopleCommand(survivorId, retiredId, LegacyPersonAliasGuid: legacyAliasGuid)
+            new MergePeopleCommand(survivorId, retiredId, ExternalRecordGuid: externalRecordGuid)
         );
         Assert.True(mergeResult.IsSuccess);
 
@@ -145,20 +145,20 @@ public sealed class W2S3DuplicatesMergeAndOutboxIntegrationTests(
         Assert.Equal(survivorId, loadedViaRetired.Id);
         Assert.True(loadedViaRetired.PhoneNumbers[0].IsMessagingEnabled);
 
-        var resolvedLegacy = (
+        var resolvedExternal = (
             await queries.QueryAsync<
                 ResolveCanonicalPersonIdQuery,
                 CanonicalPersonResolutionResponse
-            >(new ResolveCanonicalPersonIdQuery(legacyAliasGuid))
+            >(new ResolveCanonicalPersonIdQuery(externalRecordGuid))
         ).Value;
-        Assert.True(resolvedLegacy.WasRedirected);
-        Assert.Equal(survivorId, resolvedLegacy.CanonicalPersonId);
+        Assert.True(resolvedExternal.WasRedirected);
+        Assert.Equal(survivorId, resolvedExternal.CanonicalPersonId);
     }
 
-    private static async Task DispatchOutboxAndVerifyCoreCampusRepointedAsync(
+    private static async Task DispatchOutboxAndVerifyCoreBranchRepointedAsync(
         ServiceProvider provider,
         IQueryDispatcher queries,
-        Guid campusId,
+        Guid branchId,
         Guid survivorId
     )
     {
@@ -170,11 +170,11 @@ public sealed class W2S3DuplicatesMergeAndOutboxIntegrationTests(
 
         Assert.True(totalDispatched >= 1);
 
-        var updatedCampus = (
-            await queries.QueryAsync<GetCampusByIdQuery, CampusResponse>(
-                new GetCampusByIdQuery(campusId)
+        var updatedBranch = (
+            await queries.QueryAsync<GetBranchByIdQuery, BranchResponse>(
+                new GetBranchByIdQuery(branchId)
             )
         ).Value;
-        Assert.Equal(survivorId, updatedCampus.LeaderPersonId);
+        Assert.Equal(survivorId, updatedBranch.LeaderPersonId);
     }
 }

@@ -6,7 +6,7 @@ public sealed record GroupTreeNodeResponse(
     Guid GroupTypeId,
     string GroupTypeName,
     Guid? ParentGroupId,
-    Guid? CampusId,
+    Guid? BranchId,
     string Name,
     bool IsActive,
     bool IsPublic,

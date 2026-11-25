@@ -15,5 +15,5 @@ public sealed record PersonMergeFieldSelections(
     PersonMergeFieldChoice GraduationYear = PersonMergeFieldChoice.Surviving,
     PersonMergeFieldChoice ConnectionStatus = PersonMergeFieldChoice.Surviving,
     PersonMergeFieldChoice Photo = PersonMergeFieldChoice.Surviving,
-    PersonMergeFieldChoice PrimaryCampus = PersonMergeFieldChoice.Surviving
+    PersonMergeFieldChoice PrimaryBranch = PersonMergeFieldChoice.Surviving
 );

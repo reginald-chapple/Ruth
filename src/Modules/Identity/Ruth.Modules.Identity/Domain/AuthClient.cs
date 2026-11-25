@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Identity.Domain;
 
-/// <summary>Registered OAuth/OIDC client application (modernized from Rock AuthClient).</summary>
+/// <summary>Registered OAuth/OIDC client application.</summary>
 public sealed class AuthClient : AggregateRoot<AuthClientId>, IAuditableEntity, IHasConcurrencyToken
 {
     private AuthClient() { }

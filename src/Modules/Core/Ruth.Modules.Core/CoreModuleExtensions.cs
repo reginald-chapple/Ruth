@@ -12,7 +12,7 @@ using Ruth.Modules.Core.Infrastructure.Imaging;
 using Ruth.Modules.Core.Infrastructure.Storage;
 using Ruth.Modules.Core.Slices.AttributeMatrices;
 using Ruth.Modules.Core.Slices.Attributes;
-using Ruth.Modules.Core.Slices.Campuses;
+using Ruth.Modules.Core.Slices.Branches;
 using Ruth.Modules.Core.Slices.Categories;
 using Ruth.Modules.Core.Slices.DefinedTypes;
 using Ruth.Modules.Core.Slices.Devices;
@@ -76,7 +76,7 @@ public static class CoreModuleExtensions
         _ = endpoints.MapCategoryEndpoints();
         _ = endpoints.MapAttributeEndpoints();
         _ = endpoints.MapAttributeMatrixEndpoints();
-        _ = endpoints.MapCampusEndpoints();
+        _ = endpoints.MapBranchEndpoints();
         _ = endpoints.MapLocationEndpoints();
         _ = endpoints.MapDeviceEndpoints();
         _ = endpoints.MapScheduleEndpoints();
@@ -115,7 +115,7 @@ public static class CoreModuleExtensions
         CoreSliceRegistration.RegisterEntityAndDefinedTypeHandlers(services);
         CoreSliceRegistration.RegisterCategoryAndAttributeHandlers(services);
         CoreSliceRegistration.RegisterMatrixHandlers(services);
-        CoreLocationsAndSchedulesRegistration.RegisterCampusAndLocationHandlers(services);
+        CoreLocationsAndSchedulesRegistration.RegisterBranchAndLocationHandlers(services);
         CoreFilesAndCollaborationRegistration.RegisterFilesHandlers(services);
         CoreFilesAndCollaborationRegistration.RegisterCollaborationHandlers(services);
     }

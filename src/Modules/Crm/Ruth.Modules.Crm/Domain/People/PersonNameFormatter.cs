@@ -2,7 +2,7 @@ using Ruth.Modules.Crm.Contracts.People;
 
 namespace Ruth.Modules.Crm.Domain.People;
 
-/// <summary>Formats display names and initials for a <see cref="Person" /> matching Rock RMS rules.</summary>
+/// <summary>Formats display names and initials for a <see cref="Person" /> across individual and organization records.</summary>
 public static class PersonNameFormatter
 {
     /// <summary>Formats standard display full name (NickName LastName [Suffix]).</summary>

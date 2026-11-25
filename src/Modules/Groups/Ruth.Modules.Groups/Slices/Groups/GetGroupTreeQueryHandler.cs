@@ -32,9 +32,9 @@ internal sealed class GetGroupTreeQueryHandler(GroupsDbContext dbContext)
             groupsQuery = groupsQuery.Where(g => g.GroupTypeId == typeId);
         }
 
-        if (query.CampusId.HasValue)
+        if (query.BranchId.HasValue)
         {
-            groupsQuery = groupsQuery.Where(g => g.CampusId == query.CampusId.Value);
+            groupsQuery = groupsQuery.Where(g => g.BranchId == query.BranchId.Value);
         }
 
         if (!query.IncludeInactive)
@@ -125,7 +125,7 @@ internal sealed class GetGroupTreeQueryHandler(GroupsDbContext dbContext)
             group.GroupTypeId.Value,
             typeName,
             group.ParentGroupId?.Value,
-            group.CampusId,
+            group.BranchId,
             group.Name,
             group.IsActive,
             group.IsPublic,

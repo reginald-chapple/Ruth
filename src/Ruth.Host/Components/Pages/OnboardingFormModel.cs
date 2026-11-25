@@ -15,14 +15,14 @@ public sealed class OnboardingFormModel
     [StringLength(50, ErrorMessage = "Time zone identifier cannot exceed 50 characters.")]
     public string TimeZoneId { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the primary campus name.</summary>
-    [Required(ErrorMessage = "Primary campus name is required.")]
-    [StringLength(100, ErrorMessage = "Primary campus name cannot exceed 100 characters.")]
-    public string PrimaryCampusName { get; set; } = string.Empty;
+    /// <summary>Gets or sets the primary branch or site name.</summary>
+    [Required(ErrorMessage = "Primary branch name is required.")]
+    [StringLength(100, ErrorMessage = "Primary branch name cannot exceed 100 characters.")]
+    public string PrimaryBranchName { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the optional primary campus short code.</summary>
-    [StringLength(50, ErrorMessage = "Primary campus short code cannot exceed 50 characters.")]
-    public string? PrimaryCampusShortCode { get; set; }
+    /// <summary>Gets or sets the optional primary branch or site short code.</summary>
+    [StringLength(50, ErrorMessage = "Primary branch short code cannot exceed 50 characters.")]
+    public string? PrimaryBranchShortCode { get; set; }
 
     /// <summary>Gets or sets the administrator display name.</summary>
     [Required(ErrorMessage = "Administrator display name is required.")]

@@ -1,6 +1,6 @@
 namespace Ruth.Modules.Crm.Contracts.Assessments;
 
-/// <summary>Represents a configured assessment type (e.g., Spiritual Gifts, DISC, Conflict, Motivators, EQ).</summary>
+/// <summary>Represents a configured assessment type (e.g., Team Strengths, DISC, Conflict, Motivators, EQ).</summary>
 public sealed record AssessmentTypeResponse(
     Guid Id,
     string Key,

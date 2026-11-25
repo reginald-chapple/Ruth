@@ -115,7 +115,7 @@ public sealed class PhoneNumber : Entity<PhoneNumberId>, IAuditableEntity
             );
     }
 
-    /// <summary>Updates the phone number enforcing Rock RMS SMS consent and opt-out reset invariants.</summary>
+    /// <summary>Updates the phone number enforcing SMS consent and opt-out reset invariants.</summary>
     public Result Update(PhoneNumberInputDto input)
     {
         ArgumentNullException.ThrowIfNull(input);

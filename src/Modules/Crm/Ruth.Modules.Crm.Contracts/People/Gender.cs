@@ -1,6 +1,6 @@
 namespace Ruth.Modules.Crm.Contracts.People;
 
-/// <summary>Biological/profile gender classification matching Rock RMS semantics.</summary>
+/// <summary>Optional demographic gender classification.</summary>
 public enum Gender
 {
     /// <summary>Gender not specified.</summary>

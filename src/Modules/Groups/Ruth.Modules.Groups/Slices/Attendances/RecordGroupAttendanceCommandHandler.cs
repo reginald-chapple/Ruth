@@ -43,7 +43,7 @@ internal sealed class RecordGroupAttendanceCommandHandler(GroupsDbContext dbCont
             var entryResult = await ApplyRosterEntriesAsync(
                 occurrence,
                 group,
-                groupType.AttendanceCountsAsWeekendService,
+                groupType.CountsTowardHeadlineAttendance,
                 command,
                 cancellationToken
             );
@@ -119,7 +119,7 @@ internal sealed class RecordGroupAttendanceCommandHandler(GroupsDbContext dbCont
     private async Task<Result> ApplyRosterEntriesAsync(
         AttendanceOccurrence occurrence,
         Group group,
-        bool countsAsWeekendService,
+        bool countsTowardHeadlineAttendance,
         RecordGroupAttendanceCommand command,
         CancellationToken cancellationToken
     )
@@ -146,12 +146,12 @@ internal sealed class RecordGroupAttendanceCommandHandler(GroupsDbContext dbCont
             var isFirstTime = !previouslyAttended.Contains(entry.PersonId);
             var recorded = occurrence.RecordPersonAttendance(
                 entry.PersonId,
-                group.CampusId,
+                group.BranchId,
                 entry.DidAttend,
                 isFirstTime,
                 entry.Note,
                 command.CheckedInByPersonId,
-                countsAsWeekendService,
+                countsTowardHeadlineAttendance,
                 nowUtc
             );
             if (recorded.IsFailure)

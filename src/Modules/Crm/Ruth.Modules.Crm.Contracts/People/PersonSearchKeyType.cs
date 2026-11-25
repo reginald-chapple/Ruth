@@ -12,7 +12,7 @@ public enum PersonSearchKeyType
     /// <summary>Check-in or membership barcode.</summary>
     Barcode = 2,
 
-    /// <summary>Legacy system identifier (e.g., Rock RMS PersonAlias GUID or ID).</summary>
+    /// <summary>Imported legacy system identifier.</summary>
     LegacyId = 3,
 
     /// <summary>External system identifier.</summary>

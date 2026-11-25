@@ -43,7 +43,7 @@ public sealed class Location
     /// <summary>Gets whether this location is active.</summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>Gets whether this is a named location (building, room, campus).</summary>
+    /// <summary>Gets whether this is a named location (building, room, branch/site).</summary>
     public bool IsNamedLocation => !string.IsNullOrWhiteSpace(Name);
 
     /// <summary>Gets the optional location type defined value identifier.</summary>
@@ -318,7 +318,7 @@ public sealed class Location
                 && input.SoftRoomThreshold.Value > input.FirmRoomThreshold.Value
             )
                 ? (Result)CoreLocationErrors.LocationThresholdsInvalid
-            : input.BeaconId is < 0 or > ushort.MaxValue ? CoreLocationErrors.CampusBeaconInvalid
+            : input.BeaconId is < 0 or > ushort.MaxValue ? CoreLocationErrors.BranchBeaconInvalid
             : Result.Success();
     }
 

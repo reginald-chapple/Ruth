@@ -5,7 +5,7 @@ namespace Ruth.Modules.Groups.Contracts.Groups;
 /// <summary>PostGIS spatial and attribute GroupFinder query supporting radius, polygon, geofence, and capacity filters.</summary>
 public sealed record FindGroupsQuery(
     Guid? GroupTypeId = null,
-    Guid? CampusId = null,
+    Guid? BranchId = null,
     MeetingStyle? MeetingStyle = null,
     string? SearchText = null,
     bool PublicOnly = true,

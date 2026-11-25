@@ -34,9 +34,9 @@ internal sealed class UpdateHouseholdCommandHandler(
 
         var updated = household.Update(
             command.Name,
-            command.CampusId,
+            command.BranchId,
             command.IsActive,
-            command.CombineGivingByDefault
+            command.CombineContributionsByDefault
         );
         if (updated.IsFailure)
         {

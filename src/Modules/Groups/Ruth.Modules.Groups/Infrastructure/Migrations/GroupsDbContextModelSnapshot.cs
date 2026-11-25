@@ -30,7 +30,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CampusId")
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("CheckedInByPersonId")
@@ -103,7 +103,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CampusId");
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("OccurrenceId");
 
@@ -178,7 +178,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("ShowDeclineReasons")
                         .HasColumnType("boolean");
 
-                    b.Property<DateOnly>("SundayDate")
+                    b.Property<DateOnly>("WeekEndDate")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
@@ -187,7 +187,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasIndex("OccurrenceDateKey");
 
-                    b.HasIndex("SundayDate");
+                    b.HasIndex("WeekEndDate");
 
                     b.HasIndex("GroupId", "LocationId", "ScheduleId", "OccurrenceDate")
                         .IsUnique();
@@ -205,9 +205,6 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("AllowMultipleLocations")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("AttendanceCountsAsWeekendService")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("AttendanceRule")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -221,6 +218,9 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("CountsTowardHeadlineAttendance")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset>("CreatedOnUtc")
                         .HasColumnType("timestamp with time zone");
@@ -259,7 +259,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<bool>("GroupsRequireCampus")
+                    b.Property<bool>("GroupsRequireBranch")
                         .HasColumnType("boolean");
 
                     b.Property<string>("IconCssClass")
@@ -424,7 +424,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("attributes");
 
-                    b.Property<Guid?>("CampusId")
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ConcurrencyStamp")
@@ -513,7 +513,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
 
-                    b.HasIndex("CampusId");
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("GroupTypeId");
 
@@ -626,7 +626,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("ArchivedDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("CampusId")
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedOnUtc")

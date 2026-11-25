@@ -205,27 +205,23 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.ToTable("attribute_matrix_templates", "core");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.Campus", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.Branch", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int?>("AverageWeekendAttendance")
-                        .HasColumnType("integer")
-                        .HasColumnName("average_weekend_attendance");
-
                     b.Property<int?>("BeaconId")
                         .HasColumnType("integer")
                         .HasColumnName("beacon_id");
 
-                    b.Property<Guid?>("CampusStatusValueId")
+                    b.Property<Guid?>("BranchStatusValueId")
                         .HasColumnType("uuid")
-                        .HasColumnName("campus_status_value_id");
+                        .HasColumnName("branch_status_value_id");
 
-                    b.Property<Guid?>("CampusTypeValueId")
+                    b.Property<Guid?>("BranchTypeValueId")
                         .HasColumnType("uuid")
-                        .HasColumnName("campus_type_value_id");
+                        .HasColumnName("branch_type_value_id");
 
                     b.Property<DateOnly?>("ClosedDate")
                         .HasColumnType("date")
@@ -312,11 +308,6 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("time_zone_id");
 
-                    b.Property<decimal?>("TitheMetric")
-                        .HasPrecision(8, 2)
-                        .HasColumnType("numeric(8,2)")
-                        .HasColumnName("tithe_metric");
-
                     b.Property<string>("Url")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)")
@@ -330,18 +321,18 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.HasIndex("SystemGuid")
                         .IsUnique();
 
-                    b.ToTable("campuses", "core");
+                    b.ToTable("branches", "core");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.CampusSchedule", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.BranchSchedule", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CampusId")
+                    b.Property<Guid>("BranchId")
                         .HasColumnType("uuid")
-                        .HasColumnName("campus_id");
+                        .HasColumnName("branch_id");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer")
@@ -357,20 +348,20 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CampusId", "Order");
+                    b.HasIndex("BranchId", "Order");
 
-                    b.ToTable("campus_schedules", "core");
+                    b.ToTable("branch_schedules", "core");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.CampusTopic", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.BranchTopic", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CampusId")
+                    b.Property<Guid>("BranchId")
                         .HasColumnType("uuid")
-                        .HasColumnName("campus_id");
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -388,9 +379,9 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CampusId");
+                    b.HasIndex("BranchId");
 
-                    b.ToTable("campus_topics", "core");
+                    b.ToTable("branch_topics", "core");
                 });
 
             modelBuilder.Entity("Ruth.Modules.Core.Domain.Category", b =>
@@ -2390,20 +2381,20 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.ToTable("outbox_messages", "core");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.CampusSchedule", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.BranchSchedule", b =>
                 {
-                    b.HasOne("Ruth.Modules.Core.Domain.Campus", null)
+                    b.HasOne("Ruth.Modules.Core.Domain.Branch", null)
                         .WithMany("Schedules")
-                        .HasForeignKey("CampusId")
+                        .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.CampusTopic", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.BranchTopic", b =>
                 {
-                    b.HasOne("Ruth.Modules.Core.Domain.Campus", null)
+                    b.HasOne("Ruth.Modules.Core.Domain.Branch", null)
                         .WithMany("Topics")
-                        .HasForeignKey("CampusId")
+                        .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -2461,7 +2452,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Core.Domain.Campus", b =>
+            modelBuilder.Entity("Ruth.Modules.Core.Domain.Branch", b =>
                 {
                     b.Navigation("Schedules");
 

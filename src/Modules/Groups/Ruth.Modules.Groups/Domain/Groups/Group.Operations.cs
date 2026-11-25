@@ -150,9 +150,9 @@ public sealed partial class Group
             return GroupsErrors.ParentGroupCycle;
         }
 
-        if (groupType.GroupsRequireCampus && !input.CampusId.HasValue)
+        if (groupType.GroupsRequireBranch && !input.BranchId.HasValue)
         {
-            return GroupsErrors.CampusRequired;
+            return GroupsErrors.BranchRequired;
         }
 
         if (input.GroupCapacity is < 0)
@@ -171,7 +171,7 @@ public sealed partial class Group
         var wasActive = IsActive;
         Name = nameResult.Value;
         ParentGroupId = input.ParentGroupId;
-        CampusId = input.CampusId;
+        BranchId = input.BranchId;
         ScheduleId = input.ScheduleId;
         Description = descResult.Value;
         PhotoId = input.PhotoId;

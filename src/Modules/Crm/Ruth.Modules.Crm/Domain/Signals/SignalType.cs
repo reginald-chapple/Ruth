@@ -14,7 +14,7 @@ public sealed class SignalType
     /// <summary>Canonical entity type key for SignalType.</summary>
     public const string EntityTypeKeyName = "Ruth.Crm.SignalType";
 
-    /// <summary>Fallback icon name matching Rock RMS default flag icon.</summary>
+    /// <summary>Default fallback icon name when none is specified.</summary>
     public const string DefaultSignalIcon = "flag";
 
     private SignalType() { }

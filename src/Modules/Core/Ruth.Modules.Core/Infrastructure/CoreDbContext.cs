@@ -37,8 +37,8 @@ public sealed class CoreDbContext(DbContextOptions<CoreDbContext> options)
     public DbSet<AttributeMatrixTemplate> AttributeMatrixTemplates =>
         Set<AttributeMatrixTemplate>();
 
-    /// <summary>Gets the campuses table.</summary>
-    public DbSet<Campus> Campuses => Set<Campus>();
+    /// <summary>Gets the branches (operating sites/chapters/centers) table.</summary>
+    public DbSet<Branch> Branches => Set<Branch>();
 
     /// <summary>Gets the PostGIS-enabled locations table.</summary>
     public DbSet<Location> Locations => Set<Location>();

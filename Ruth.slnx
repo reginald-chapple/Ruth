@@ -4,6 +4,10 @@
     <Project Path="src/Ruth.Persistence/Ruth.Persistence.csproj" />
     <Project Path="src/Ruth.SharedKernel/Ruth.SharedKernel.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/CheckIn/">
+    <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn.Contracts/Ruth.Modules.CheckIn.Contracts.csproj" />
+    <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn/Ruth.Modules.CheckIn.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Communication/">
     <Project Path="src/Modules/Communication/Ruth.Modules.Communication.Contracts/Ruth.Modules.Communication.Contracts.csproj" />
     <Project Path="src/Modules/Communication/Ruth.Modules.Communication/Ruth.Modules.Communication.csproj" />
@@ -32,6 +36,7 @@
     <Project Path="tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj" />
     <Project Path="tests/Ruth.E2E.Tests/Ruth.E2E.Tests.csproj" />
     <Project Path="tests/Ruth.Host.IntegrationTests/Ruth.Host.IntegrationTests.csproj" />
+    <Project Path="tests/Ruth.Modules.CheckIn.Tests/Ruth.Modules.CheckIn.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Communication.Tests/Ruth.Modules.Communication.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Core.Tests/Ruth.Modules.Core.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Crm.Tests/Ruth.Modules.Crm.Tests.csproj" />

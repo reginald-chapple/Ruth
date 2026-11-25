@@ -47,7 +47,8 @@ internal sealed class AddHouseholdMemberCommandHandler(
             personId,
             command.Role,
             command.HouseholdOrder,
-            command.IsCombinedGivingMember
+            command.IsCombinedContributionMember,
+            command.IsPrimaryContact
         );
         if (added.IsFailure)
         {

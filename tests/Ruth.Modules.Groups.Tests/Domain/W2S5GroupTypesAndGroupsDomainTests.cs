@@ -14,7 +14,7 @@ public sealed class W2S5GroupTypesAndGroupsDomainTests
     private static GroupTypeInput CreateTypeInput(
         string name = "Small Group",
         bool allowMultipleLocations = false,
-        bool groupsRequireCampus = false,
+        bool groupsRequireBranch = false,
         GroupCapacityRule capacityRule = GroupCapacityRule.Soft
     )
     {
@@ -29,10 +29,10 @@ public sealed class W2S5GroupTypesAndGroupsDomainTests
             ShowInNavigation: true,
             allowMultipleLocations,
             IsMeetingStyleEnabled: true,
-            groupsRequireCampus,
+            groupsRequireBranch,
             EnableGroupHistory: true,
             TakesAttendance: true,
-            AttendanceCountsAsWeekendService: false,
+            CountsTowardHeadlineAttendance: false,
             SendAttendanceReminder: false,
             GroupAttendanceRequiresLocation: false,
             GroupAttendanceRequiresSchedule: false,
@@ -51,7 +51,7 @@ public sealed class W2S5GroupTypesAndGroupsDomainTests
     private static GroupInput CreateGroupInput(
         string name = "Downtown Group",
         GroupId? parentId = null,
-        Guid? campusId = null,
+        Guid? branchId = null,
         int? capacity = 12,
         bool isActive = true
     )
@@ -59,9 +59,9 @@ public sealed class W2S5GroupTypesAndGroupsDomainTests
         return new GroupInput(
             name,
             parentId,
-            campusId,
+            branchId,
             ScheduleId: null,
-            Description: "Weekly Bible study",
+            Description: "Weekly community meetup",
             PhotoId: null,
             MeetingStyle.Hybrid,
             isActive,
@@ -123,29 +123,29 @@ public sealed class W2S5GroupTypesAndGroupsDomainTests
     }
 
     [Fact]
-    public void Group_EnforcesCampusRequirement_Capacity_Archive_AndSingleLocationLimit()
+    public void Group_EnforcesBranchRequirement_Capacity_Archive_AndSingleLocationLimit()
     {
         var gt = GroupType
-            .Create(CreateTypeInput(allowMultipleLocations: false, groupsRequireCampus: true))
+            .Create(CreateTypeInput(allowMultipleLocations: false, groupsRequireBranch: true))
             .Value;
 
-        var missingCampus = Group.Create(gt, CreateGroupInput(campusId: null), _now);
-        Assert.True(missingCampus.IsFailure);
-        Assert.Equal(GroupsErrors.CampusRequired.Code, missingCampus.PrimaryError.Code);
+        var missingBranch = Group.Create(gt, CreateGroupInput(branchId: null), _now);
+        Assert.True(missingBranch.IsFailure);
+        Assert.Equal(GroupsErrors.BranchRequired.Code, missingBranch.PrimaryError.Code);
 
-        var campusId = Guid.CreateVersion7();
+        var branchId = Guid.CreateVersion7();
         var badCapacity = Group.Create(
             gt,
-            CreateGroupInput(campusId: campusId, capacity: -1),
+            CreateGroupInput(branchId: branchId, capacity: -1),
             _now
         );
         Assert.True(badCapacity.IsFailure);
         Assert.Equal(GroupsErrors.InvalidCapacity.Code, badCapacity.PrimaryError.Code);
 
-        var group = Group.Create(gt, CreateGroupInput(campusId: campusId), _now).Value;
+        var group = Group.Create(gt, CreateGroupInput(branchId: branchId), _now).Value;
         var selfCycle = group.Update(
             gt,
-            CreateGroupInput(parentId: group.Id, campusId: campusId),
+            CreateGroupInput(parentId: group.Id, branchId: branchId),
             _now
         );
         Assert.True(selfCycle.IsFailure);

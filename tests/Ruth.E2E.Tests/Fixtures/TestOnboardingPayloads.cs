@@ -9,8 +9,8 @@ public static class TestOnboardingPayloads
     public static JsonObject CreateValidPayload(
         string organizationName = "Grace Community Church",
         string timeZoneId = "America/New_York",
-        string primaryCampusName = "Main Campus",
-        string? primaryCampusShortCode = "MAIN",
+        string primaryBranchName = "Main Branch",
+        string? primaryBranchShortCode = "MAIN",
         string adminUserName = "admin",
         string adminEmail = "admin@gracechurch.test",
         string adminDisplayName = "System Administrator",
@@ -21,8 +21,8 @@ public static class TestOnboardingPayloads
         {
             ["organizationName"] = organizationName,
             ["timeZoneId"] = timeZoneId,
-            ["primaryCampusName"] = primaryCampusName,
-            ["primaryCampusShortCode"] = primaryCampusShortCode,
+            ["primaryBranchName"] = primaryBranchName,
+            ["primaryBranchShortCode"] = primaryBranchShortCode,
             ["adminUserName"] = adminUserName,
             ["adminEmail"] = adminEmail,
             ["adminDisplayName"] = adminDisplayName,
@@ -70,8 +70,8 @@ public static class TestOnboardingPayloads
     {
         return CreateValidPayload(
             organizationName: "O'Reilly & Sons <Church> \"Hope\" 🚀",
-            primaryCampusName: "North & East Campus — Building #1",
-            primaryCampusShortCode: "NE-1",
+            primaryBranchName: "North & East Branch — Building #1",
+            primaryBranchShortCode: "NE-1",
             adminDisplayName: "José O'Connor <Admin>"
         );
     }

@@ -15,13 +15,13 @@ public sealed class OnboardingSliceUnitTests
         var validator = new CompleteOnboardingCommandValidator();
 
         var valid = new CompleteOnboardingCommand(
-            "Grace Fellowship",
+            "Civic Foundation",
             "UTC",
-            "Main Campus",
+            "Main Branch",
             "MAIN",
             "admin",
-            "admin@grace.org",
-            "Grace Admin",
+            "admin@civic.org",
+            "Civic Admin",
             "StrongPass#2026!"
         );
         var validErrors = await validator.ValidateAsync(valid);
@@ -49,10 +49,10 @@ public sealed class OnboardingSliceUnitTests
         var command = new CompleteOnboardingCommand(
             "Org\0Name",
             "UTC\0",
-            "Main\0Campus",
+            "Main\0Branch",
             "SC\01",
             "admin\0evil",
-            "admin\0@grace.org",
+            "admin\0@civic.org",
             "Admin\0Name",
             "StrongPass#2026!"
         );

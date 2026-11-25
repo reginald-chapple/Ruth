@@ -1,15 +1,25 @@
-using Ruth.Modules.Crm.Contracts.People;
-
 namespace Ruth.Modules.Crm.Domain.Duplicates;
 
 /// <summary>
-/// Pure domain scoring engine implementing Rock RMS duplicate weights (TotalCapacity = 29)
-/// and geometric-mean ConfidenceScore (0–100) with nickname/metaphone awareness.
+/// Pure domain record-linkage scorer evaluating pairwise identity similarity across anchor identifiers
+/// and corroborating demographics on a 100-point completeness-adjusted scale, including suffix collision penalties.
 /// </summary>
 public static class PersonDuplicateScorer
 {
-    /// <summary>Rock RMS maximum weighted capacity across all scored demographic fields.</summary>
-    public const int TotalCapacity = 29;
+    /// <summary>Maximum possible linkage weight across all identity attributes.</summary>
+    public const int MaxPossibleWeight = 100;
+
+    private const int EmailWeight = 30;
+    private const int MobilePhoneWeight = 20;
+    private const int LandlinePhoneWeight = 8;
+    private const int HomeAddressWeight = 7;
+    private const int NameAnchorWeight = 5;
+    private const int FirstNameWeight = 10;
+    private const int LastNameWeight = 10;
+    private const int BirthDateWeight = 15;
+    private const int BranchWeight = 5;
+    private const int SuffixMatchWeight = 5;
+    private const int SuffixConflictPenalty = 35;
 
     /// <summary>Evaluates duplicate likelihood between <paramref name="left" /> and <paramref name="right" />.</summary>
     public static DuplicateScoreEvaluation Evaluate(
@@ -20,105 +30,136 @@ public static class PersonDuplicateScorer
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
 
-        var tags = new List<string>(12);
-        var primaryScore = ScorePrimarySignals(left, right, tags);
-        if (primaryScore == 0)
+        var tags = new List<string>(10);
+        var anchorScore = ScoreAnchors(left, right, tags);
+        if (anchorScore == 0)
         {
-            return new DuplicateScoreEvaluation(
-                IsCandidateMatch: false,
-                Score: 0,
-                Capacity: 0,
-                TotalCapacity,
-                ConfidenceScore: 0m,
-                string.Empty
-            );
+            return EmptyEvaluation();
         }
 
-        var secondaryScore = ScoreSecondarySignals(left, right, tags);
-        var totalScore = primaryScore + secondaryScore;
-        var capacity = ComputeCapacity(left);
-        var confidence = ComputeConfidenceScore(totalScore, capacity, TotalCapacity);
+        var corroborationScore = ScoreCorroboratingAttributes(left, right, tags);
+        var earnedScore = Math.Max(0, anchorScore + corroborationScore);
+        if (earnedScore == 0)
+        {
+            return EmptyEvaluation();
+        }
+
+        var availableWeight = Math.Max(ComputeAvailableWeight(left), ComputeAvailableWeight(right));
+        var confidence = ComputeConfidenceScore(earnedScore, availableWeight, MaxPossibleWeight);
 
         return new DuplicateScoreEvaluation(
             IsCandidateMatch: true,
-            totalScore,
-            capacity,
-            TotalCapacity,
+            earnedScore,
+            availableWeight,
+            MaxPossibleWeight,
             confidence,
             string.Join('|', tags)
         );
     }
 
-    /// <summary>Computes the Rock RMS geometric-mean confidence percentage (0–100).</summary>
-    public static decimal ComputeConfidenceScore(int score, int capacity, int totalCapacity)
+    /// <summary>Computes the completeness-damped weighted confidence percentage (0–100).</summary>
+    public static decimal ComputeConfidenceScore(
+        int earnedWeight,
+        int availableWeight,
+        int maxPossibleWeight = MaxPossibleWeight
+    )
     {
-        if (score <= 0 || capacity <= 0 || totalCapacity <= 0)
+        if (earnedWeight <= 0 || availableWeight <= 0 || maxPossibleWeight <= 0)
         {
             return 0m;
         }
 
-        var capacityRatio = capacity / (totalCapacity * 0.01d);
-        var scoreRatio = score / (capacity * 0.01d);
-        var geometricMean = Math.Sqrt(capacityRatio * scoreRatio);
-        return Math.Round((decimal)Math.Min(100d, geometricMean), 2, MidpointRounding.AwayFromZero);
+        var matchRatio = Math.Clamp((double)earnedWeight / availableWeight, 0d, 1d);
+        var completenessFactor =
+            0.55d + (0.45d * Math.Clamp((double)availableWeight / maxPossibleWeight, 0d, 1d));
+        var scaled = Math.Clamp(matchRatio * completenessFactor * 100d, 0d, 100d);
+        return Math.Round((decimal)scaled, 2, MidpointRounding.AwayFromZero);
     }
 
-    private static int ScorePrimarySignals(
+    private static DuplicateScoreEvaluation EmptyEvaluation()
+    {
+        return new DuplicateScoreEvaluation(
+            IsCandidateMatch: false,
+            Score: 0,
+            Capacity: 0,
+            MaxPossibleWeight,
+            ConfidenceScore: 0m,
+            string.Empty
+        );
+    }
+
+    private static int ScoreAnchors(
         DuplicateCandidateProfile left,
         DuplicateCandidateProfile right,
         List<string> tags
     )
     {
         var score = 0;
-
         if (MatchesEmail(left, right))
         {
-            score += 4;
+            score += EmailWeight;
             tags.Add("Email");
         }
 
-        if (MatchesPartialName(left, right))
+        if (MatchesNameAnchor(left, right))
         {
-            score += 1;
-            tags.Add("PartialName");
+            score += NameAnchorWeight;
+            tags.Add("NameAnchor");
         }
 
-        var differentHousehold = AreDifferentHouseholds(left, right);
-        if (
-            differentHousehold
-            && left.Gender == right.Gender
-            && SharesAny(left.CellPhoneKeys, right.CellPhoneKeys)
-        )
+        if (AreDifferentHouseholds(left, right))
         {
-            score += 4;
+            score += ScoreCrossHouseholdContactAnchors(left, right, tags);
+        }
+
+        return score;
+    }
+
+    private static int ScoreCrossHouseholdContactAnchors(
+        DuplicateCandidateProfile left,
+        DuplicateCandidateProfile right,
+        List<string> tags
+    )
+    {
+        var score = 0;
+        if (SharesAny(left.CellPhoneKeys, right.CellPhoneKeys))
+        {
+            score += MobilePhoneWeight;
             tags.Add("CellPhone");
         }
 
-        if (
-            differentHousehold
-            && left.Gender == right.Gender
-            && SharesAny(left.HomePhoneKeys, right.HomePhoneKeys)
-        )
+        if (SharesAny(left.HomePhoneKeys, right.HomePhoneKeys))
         {
-            score += 2;
+            score += LandlinePhoneWeight;
             tags.Add("Phone");
         }
 
         if (
-            differentHousehold
-            && left.PrimaryHomeLocationId.HasValue
+            left.PrimaryHomeLocationId.HasValue
             && left.PrimaryHomeLocationId == right.PrimaryHomeLocationId
             && left.PrimaryHouseholdRole == right.PrimaryHouseholdRole
         )
         {
-            score += 2;
+            score += HomeAddressWeight;
             tags.Add("Address");
         }
 
         return score;
     }
 
-    private static int ScoreSecondarySignals(
+    private static int ScoreCorroboratingAttributes(
+        DuplicateCandidateProfile left,
+        DuplicateCandidateProfile right,
+        List<string> tags
+    )
+    {
+        var score = ScoreNameCorroboration(left, right, tags);
+        score += ScoreBirthDateAndBranch(left, right, tags);
+        score += ScoreSuffixSignal(left.Suffix, right.Suffix, tags);
+        return score;
+    }
+
+    private static int ScoreNameCorroboration(
         DuplicateCandidateProfile left,
         DuplicateCandidateProfile right,
         List<string> tags
@@ -127,126 +168,119 @@ public static class PersonDuplicateScorer
         var score = 0;
         if (MatchesFullFirstNameOrNickname(left, right))
         {
-            score += 3;
+            score += FirstNameWeight;
             tags.Add("FirstName");
         }
 
-        if (
-            !string.IsNullOrWhiteSpace(left.LastName)
-            && string.Equals(left.LastName, right.LastName, StringComparison.OrdinalIgnoreCase)
-        )
+        if (EqualsCI(left.LastName, right.LastName))
         {
-            score += 3;
+            score += LastNameWeight;
             tags.Add("LastName");
         }
 
-        if (left.BirthDate.HasValue && left.BirthDate == right.BirthDate)
-        {
-            score += 3;
-            tags.Add("Birthdate");
-        }
-
-        score += ScoreDemographicTies(left, right, tags);
         return score;
     }
 
-    private static int ScoreDemographicTies(
+    private static int ScoreBirthDateAndBranch(
         DuplicateCandidateProfile left,
         DuplicateCandidateProfile right,
         List<string> tags
     )
     {
         var score = 0;
-        if (left.Gender == right.Gender)
+        if (left.BirthDate is { } dob && right.BirthDate == dob)
         {
-            score += 1;
-            tags.Add("Gender");
+            score += BirthDateWeight;
+            tags.Add("Birthdate");
         }
 
-        if (left.PrimaryCampusId.HasValue && left.PrimaryCampusId == right.PrimaryCampusId)
+        if (left.PrimaryBranchId is { } branchId && right.PrimaryBranchId == branchId)
         {
-            score += 1;
-            tags.Add("Campus");
-        }
-
-        if (
-            left.MaritalStatus != MaritalStatus.Unknown
-            && left.MaritalStatus == right.MaritalStatus
-        )
-        {
-            score += 1;
-            tags.Add("Marital");
-        }
-
-        if (
-            !string.IsNullOrWhiteSpace(left.Suffix)
-            && string.Equals(left.Suffix, right.Suffix, StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            score += 4;
-            tags.Add("Suffix");
+            score += BranchWeight;
+            tags.Add("Branch");
         }
 
         return score;
     }
 
-    private static int ComputeCapacity(DuplicateCandidateProfile profile)
+    private static int ScoreSuffixSignal(string? leftSuffix, string? rightSuffix, List<string> tags)
     {
-        var capacity = 2; // Gender (1) + MaritalStatus (1) baseline per Rock RMS
+        if (string.IsNullOrWhiteSpace(leftSuffix) || string.IsNullOrWhiteSpace(rightSuffix))
+        {
+            return 0;
+        }
+
+        if (
+            string.Equals(leftSuffix.Trim(), rightSuffix.Trim(), StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            tags.Add("Suffix");
+            return SuffixMatchWeight;
+        }
+
+        tags.Add("SuffixConflict");
+        return -SuffixConflictPenalty;
+    }
+
+    private static int ComputeAvailableWeight(DuplicateCandidateProfile profile)
+    {
+        var weight = 0;
         if (!string.IsNullOrWhiteSpace(profile.NormalizedEmail))
         {
-            capacity += 4;
+            weight += EmailWeight;
         }
 
-        if (profile.FirstName.Length >= 2)
+        if (profile.CellPhoneKeys.Count > 0)
         {
-            capacity += 1;
+            weight += MobilePhoneWeight;
         }
 
+        if (profile.HomePhoneKeys.Count > 0)
+        {
+            weight += LandlinePhoneWeight;
+        }
+
+        if (profile.PrimaryHomeLocationId.HasValue)
+        {
+            weight += HomeAddressWeight;
+        }
+
+        weight += ComputeDemographicWeight(profile);
+        return Math.Clamp(weight, 10, MaxPossibleWeight);
+    }
+
+    private static int ComputeDemographicWeight(DuplicateCandidateProfile profile)
+    {
+        var weight = 0;
         if (
             !string.IsNullOrWhiteSpace(profile.FirstName)
             || !string.IsNullOrWhiteSpace(profile.NickName)
         )
         {
-            capacity += 3;
+            weight += FirstNameWeight + NameAnchorWeight;
         }
 
         if (!string.IsNullOrWhiteSpace(profile.LastName))
         {
-            capacity += 3;
+            weight += LastNameWeight;
         }
 
         if (profile.BirthDate.HasValue)
         {
-            capacity += 3;
+            weight += BirthDateWeight;
+        }
+
+        if (profile.PrimaryBranchId.HasValue)
+        {
+            weight += BranchWeight;
         }
 
         if (!string.IsNullOrWhiteSpace(profile.Suffix))
         {
-            capacity += 4;
+            weight += SuffixMatchWeight;
         }
 
-        if (profile.HomePhoneKeys.Count > 0)
-        {
-            capacity += 2;
-        }
-
-        if (profile.CellPhoneKeys.Count > 0)
-        {
-            capacity += 4;
-        }
-
-        if (profile.PrimaryHomeLocationId.HasValue)
-        {
-            capacity += 2;
-        }
-
-        if (profile.PrimaryCampusId.HasValue)
-        {
-            capacity += 1;
-        }
-
-        return Math.Min(TotalCapacity, capacity);
+        return weight;
     }
 
     private static bool MatchesEmail(
@@ -258,22 +292,19 @@ public static class PersonDuplicateScorer
             && string.Equals(left.NormalizedEmail, right.NormalizedEmail, StringComparison.Ordinal);
     }
 
-    private static bool MatchesPartialName(
+    private static bool MatchesNameAnchor(
         DuplicateCandidateProfile left,
         DuplicateCandidateProfile right
     )
     {
         var sameLastOrPhonetic =
-            !string.IsNullOrWhiteSpace(left.LastName)
-            && (
-                string.Equals(left.LastName, right.LastName, StringComparison.OrdinalIgnoreCase)
-                || (
-                    !string.IsNullOrWhiteSpace(left.LastNameMetaphone)
-                    && string.Equals(
-                        left.LastNameMetaphone,
-                        right.LastNameMetaphone,
-                        StringComparison.Ordinal
-                    )
+            EqualsCI(left.LastName, right.LastName)
+            || (
+                !string.IsNullOrWhiteSpace(left.LastNameMetaphone)
+                && string.Equals(
+                    left.LastNameMetaphone,
+                    right.LastNameMetaphone,
+                    StringComparison.Ordinal
                 )
             );
         if (!sameLastOrPhonetic)
@@ -317,7 +348,8 @@ public static class PersonDuplicateScorer
 
     private static bool EqualsCI(string left, string right)
     {
-        return !string.IsNullOrWhiteSpace(right)
+        return !string.IsNullOrWhiteSpace(left)
+            && !string.IsNullOrWhiteSpace(right)
             && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }
 

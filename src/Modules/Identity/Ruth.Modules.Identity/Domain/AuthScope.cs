@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Identity.Domain;
 
-/// <summary>OAuth/OIDC authorization scope definition (modernized from Rock AuthScope).</summary>
+/// <summary>OAuth/OIDC authorization scope definition.</summary>
 public sealed class AuthScope : AggregateRoot<AuthScopeId>, IAuditableEntity, IHasConcurrencyToken
 {
     private AuthScope() { }

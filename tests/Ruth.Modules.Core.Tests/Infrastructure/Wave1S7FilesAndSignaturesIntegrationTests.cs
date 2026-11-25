@@ -103,7 +103,7 @@ public sealed class Wave1S7FilesAndSignaturesIntegrationTests(
 
         var fileType = (
             await commands.SendAsync<CreateBinaryFileTypeCommand, BinaryFileTypeResponse>(
-                new CreateBinaryFileTypeCommand("Campus Docs", StorageProviderKey: "in-memory")
+                new CreateBinaryFileTypeCommand("Branch Docs", StorageProviderKey: "in-memory")
             )
         ).Value;
 
@@ -114,7 +114,7 @@ public sealed class Wave1S7FilesAndSignaturesIntegrationTests(
             await commands.SendAsync<UploadBinaryFileCommand, BinaryFileResponse>(
                 new UploadBinaryFileCommand(
                     fileType.Id,
-                    "campus.png",
+                    "branch.png",
                     "image/png",
                     ms,
                     IsTemporary: true,
@@ -123,16 +123,16 @@ public sealed class Wave1S7FilesAndSignaturesIntegrationTests(
             )
         ).Value;
 
-        var campusEntityType = (
+        var branchEntityType = (
             await queries.QueryAsync<GetEntityTypeByKeyQuery, EntityTypeResponse>(
-                new GetEntityTypeByKeyQuery(Campus.EntityTypeKeyName)
+                new GetEntityTypeByKeyQuery(Branch.EntityTypeKeyName)
             )
         ).Value;
         var docType = (
             await commands.SendAsync<CreateDocumentTypeCommand, DocumentTypeResponse>(
                 new CreateDocumentTypeCommand(
-                    "Campus Photo",
-                    campusEntityType.Id,
+                    "Branch Photo",
+                    branchEntityType.Id,
                     fileType.Id,
                     MaxDocumentsPerEntity: 1,
                     IsImage: true

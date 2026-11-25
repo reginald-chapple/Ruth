@@ -82,8 +82,8 @@ internal static class OnboardingEndpoints
         var command = new CompleteOnboardingCommand(
             request.OrganizationName,
             request.TimeZoneId,
-            request.PrimaryCampusName,
-            request.PrimaryCampusShortCode,
+            request.PrimaryBranchName,
+            request.PrimaryBranchShortCode,
             request.AdminUserName,
             request.AdminEmail,
             request.AdminDisplayName,

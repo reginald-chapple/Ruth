@@ -169,9 +169,9 @@ public sealed class IdentityDomainTests
         var completedAt = DateTimeOffset.UtcNow;
 
         var result = OrganizationProfile.CompleteInitialOnboarding(
-            "  Grace Fellowship ",
+            "  Civic Foundation ",
             "UTC",
-            "  Main Campus ",
+            "  Main Branch ",
             "   ",
             completedAt
         );
@@ -179,10 +179,10 @@ public sealed class IdentityDomainTests
         Assert.True(result.IsSuccess);
         var profile = result.Value;
         Assert.Equal(1, profile.SingletonKey);
-        Assert.Equal("Grace Fellowship", profile.Name);
+        Assert.Equal("Civic Foundation", profile.Name);
         Assert.Equal("UTC", profile.TimeZoneId);
-        Assert.Equal("Main Campus", profile.PrimaryCampusName);
-        Assert.Null(profile.PrimaryCampusShortCode);
+        Assert.Equal("Main Branch", profile.PrimaryBranchName);
+        Assert.Null(profile.PrimaryBranchShortCode);
         Assert.True(profile.IsOnboardingCompleted);
         Assert.True(profile.SelfRegistrationLocked);
         Assert.Equal(completedAt.ToUniversalTime(), profile.CompletedOnUtc);
@@ -190,7 +190,7 @@ public sealed class IdentityDomainTests
         var evt = Assert.Single(profile.IntegrationEvents);
         var onboarded = Assert.IsType<OrganizationOnboardedIntegrationEvent>(evt);
         Assert.Equal(profile.Id.Value, onboarded.OrganizationId);
-        Assert.Equal("Grace Fellowship", onboarded.OrganizationName);
+        Assert.Equal("Civic Foundation", onboarded.OrganizationName);
         Assert.Equal("UTC", onboarded.TimeZoneId);
         Assert.Equal(completedAt.ToUniversalTime(), onboarded.CompletedOnUtc);
 
@@ -226,9 +226,9 @@ public sealed class IdentityDomainTests
         Assert.True(invalid.IsFailure);
         Assert.Contains(invalid.Errors, static e => e == IdentityErrors.OrganizationNameRequired);
         Assert.Contains(invalid.Errors, static e => e == IdentityErrors.TimeZoneInvalid);
-        Assert.Contains(invalid.Errors, static e => e == IdentityErrors.PrimaryCampusNameRequired);
+        Assert.Contains(invalid.Errors, static e => e == IdentityErrors.PrimaryBranchNameRequired);
         Assert.Contains(invalid.Errors, static e =>
-            e == IdentityErrors.PrimaryCampusShortCodeTooLong
+            e == IdentityErrors.PrimaryBranchShortCodeTooLong
         );
 
         var tooLong = OrganizationProfile.CompleteInitialOnboarding(
@@ -240,7 +240,7 @@ public sealed class IdentityDomainTests
         );
         Assert.Contains(tooLong.Errors, static e => e == IdentityErrors.OrganizationNameTooLong);
         Assert.Contains(tooLong.Errors, static e => e == IdentityErrors.TimeZoneInvalid);
-        Assert.Contains(tooLong.Errors, static e => e == IdentityErrors.PrimaryCampusNameTooLong);
+        Assert.Contains(tooLong.Errors, static e => e == IdentityErrors.PrimaryBranchNameTooLong);
     }
 
     [Theory]
@@ -319,8 +319,8 @@ public sealed class IdentityDomainTests
     {
         var result = OnboardingPolicy.ValidateOptionalText(
             value,
-            OnboardingPolicy.CampusShortCodeMaxLength,
-            IdentityErrors.PrimaryCampusShortCodeTooLong
+            OnboardingPolicy.BranchShortCodeMaxLength,
+            IdentityErrors.PrimaryBranchShortCodeTooLong
         );
 
         Assert.True(result.IsFailure);
@@ -348,7 +348,7 @@ public sealed class IdentityDomainTests
         var orgResult = OrganizationProfile.CompleteInitialOnboarding(
             "Org\0Name",
             "UTC",
-            "Main\0Campus",
+            "Main\0Branch",
             "SC\01",
             DateTimeOffset.UtcNow
         );

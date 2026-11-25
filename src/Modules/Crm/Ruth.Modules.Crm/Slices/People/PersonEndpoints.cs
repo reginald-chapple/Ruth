@@ -106,7 +106,7 @@ internal static class PersonEndpoints
         string? query,
         PersonRecordStatus? recordStatus,
         PersonConnectionStatus? connectionStatus,
-        Guid? primaryCampusId,
+        Guid? primaryBranchId,
         bool? includeDeceased,
         bool? includeBusinesses,
         int? maxResults,
@@ -123,7 +123,7 @@ internal static class PersonEndpoints
                 query,
                 recordStatus,
                 connectionStatus,
-                primaryCampusId,
+                primaryBranchId,
                 includeDeceased ?? false,
                 includeBusinesses ?? false,
                 maxResults ?? 25

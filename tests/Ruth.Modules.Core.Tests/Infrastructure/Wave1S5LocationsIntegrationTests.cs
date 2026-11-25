@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Ruth.Modules.Core.Contracts.Campuses;
+using Ruth.Modules.Core.Contracts.Branches;
 using Ruth.Modules.Core.Contracts.Devices;
 using Ruth.Modules.Core.Contracts.Locations;
 using Ruth.Modules.Core.Tests.Fixtures;
@@ -35,7 +35,7 @@ public sealed class Wave1S5LocationsIntegrationTests(CorePostgresContainerFixtur
         var mainBuilding = (
             await commands.SendAsync<CreateLocationCommand, LocationResponse>(
                 new CreateLocationCommand(
-                    Name: "Main Campus Building",
+                    Name: "Main Branch Building",
                     Address: new LocationAddressDto(
                         "3120 E Cholla St",
                         Street2: null,
@@ -107,7 +107,7 @@ public sealed class Wave1S5LocationsIntegrationTests(CorePostgresContainerFixtur
     }
 
     [Fact]
-    public async Task Campuses_LastDeleteGuard_And_Devices_Ip_And_GeoFence_Match_Work()
+    public async Task Branches_LastDeleteGuard_And_Devices_Ip_And_GeoFence_Match_Work()
     {
         var cs = await postgresFixture.CreateIsolatedDatabaseAsync();
         await using var provider = await CoreTestHostFactory.BuildAndMigrateAsync(cs);
@@ -124,14 +124,14 @@ public sealed class Wave1S5LocationsIntegrationTests(CorePostgresContainerFixtur
         ];
         var building = (
             await commands.SendAsync<CreateLocationCommand, LocationResponse>(
-                new CreateLocationCommand(Name: "Campus Bldg", GeoFenceRing: fence)
+                new CreateLocationCommand(Name: "Branch Bldg", GeoFenceRing: fence)
             )
         ).Value;
 
-        var campus1 = (
-            await commands.SendAsync<CreateCampusCommand, CampusResponse>(
-                new CreateCampusCommand(
-                    "Main Campus",
+        var branch1 = (
+            await commands.SendAsync<CreateBranchCommand, BranchResponse>(
+                new CreateBranchCommand(
+                    "Main Branch",
                     ShortCode: "MAIN",
                     TimeZoneId: "America/Phoenix",
                     LocationId: building.Id
@@ -139,18 +139,18 @@ public sealed class Wave1S5LocationsIntegrationTests(CorePostgresContainerFixtur
             )
         ).Value;
 
-        var cannotDeleteLast = await commands.SendAsync<DeleteCampusCommand, bool>(
-            new DeleteCampusCommand(campus1.Id)
+        var cannotDeleteLast = await commands.SendAsync<DeleteBranchCommand, bool>(
+            new DeleteBranchCommand(branch1.Id)
         );
         Assert.True(cannotDeleteLast.IsFailure);
 
-        var campus2 = (
-            await commands.SendAsync<CreateCampusCommand, CampusResponse>(
-                new CreateCampusCommand("West Campus", ShortCode: "WEST")
+        var branch2 = (
+            await commands.SendAsync<CreateBranchCommand, BranchResponse>(
+                new CreateBranchCommand("West Branch", ShortCode: "WEST")
             )
         ).Value;
-        var deletedSecond = await commands.SendAsync<DeleteCampusCommand, bool>(
-            new DeleteCampusCommand(campus2.Id)
+        var deletedSecond = await commands.SendAsync<DeleteBranchCommand, bool>(
+            new DeleteBranchCommand(branch2.Id)
         );
         Assert.True(deletedSecond.IsSuccess);
 

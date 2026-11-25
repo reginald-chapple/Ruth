@@ -7,7 +7,7 @@ public sealed record GroupFinderItemResponse(
     string GroupTypeName,
     string Name,
     string? Description,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? ScheduleId,
     MeetingStyle? MeetingStyle,
     int ActiveMemberCount,

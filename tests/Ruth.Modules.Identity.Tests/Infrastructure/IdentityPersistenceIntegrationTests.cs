@@ -140,7 +140,9 @@ public sealed class IdentityPersistenceIntegrationTests(Postgres18ContainerFixtu
         var user = await db.UserAccounts.Include(static u => u.Roles).SingleAsync();
         var outbox = await db.OutboxMessages.SingleAsync();
 
-        Assert.Equal("Grace Fellowship", org.Name);
+        Assert.Equal("Civic Foundation", org.Name);
+        Assert.Equal("Main Branch", org.PrimaryBranchName);
+        Assert.Equal("MAIN", org.PrimaryBranchShortCode);
         Assert.True(org.IsOnboardingCompleted);
         Assert.True(org.SelfRegistrationLocked);
         Assert.Equal(SecurityRole.AdministratorsRoleId, role.Id);
@@ -156,7 +158,7 @@ public sealed class IdentityPersistenceIntegrationTests(Postgres18ContainerFixtu
         var after = await reader.GetStatusAsync();
         Assert.False(after.IsOnboardingRequired);
         Assert.True(after.IsSelfRegistrationLocked);
-        Assert.Equal("Grace Fellowship", after.OrganizationName);
+        Assert.Equal("Civic Foundation", after.OrganizationName);
 
         var cached = await reader.GetStatusAsync();
         Assert.False(cached.IsOnboardingRequired);
@@ -174,7 +176,7 @@ public sealed class IdentityPersistenceIntegrationTests(Postgres18ContainerFixtu
         _ = await outboxDispatcher.ProcessPendingOnceAsync();
 
         var received = Assert.Single(consumer.ReceivedEvents);
-        Assert.Equal("Grace Fellowship", received.OrganizationName);
+        Assert.Equal("Civic Foundation", received.OrganizationName);
 
         await using var verifyScope = provider.CreateAsyncScope();
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<IdentityDbContext>();

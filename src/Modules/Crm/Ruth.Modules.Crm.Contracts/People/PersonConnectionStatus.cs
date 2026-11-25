@@ -1,20 +1,20 @@
 namespace Ruth.Modules.Crm.Contracts.People;
 
-/// <summary>Church engagement / connection status of a person.</summary>
+/// <summary>Organization engagement / affiliation status of a person.</summary>
 public enum PersonConnectionStatus
 {
-    /// <summary>First-time or returning visitor.</summary>
+    /// <summary>First-time or returning guest/visitor.</summary>
     Visitor = 0,
 
-    /// <summary>Regular attendee.</summary>
+    /// <summary>Regular attendee or active community participant.</summary>
     Attendee = 1,
 
-    /// <summary>Formal member.</summary>
+    /// <summary>Enrolled or active member.</summary>
     Member = 2,
 
-    /// <summary>Ministry or program participant.</summary>
+    /// <summary>Program or volunteer participant.</summary>
     Participant = 3,
 
-    /// <summary>Prospective connection.</summary>
+    /// <summary>Prospective member or lead.</summary>
     Prospect = 4,
 }

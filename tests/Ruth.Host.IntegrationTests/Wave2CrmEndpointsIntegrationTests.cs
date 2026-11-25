@@ -44,10 +44,10 @@ public sealed class Wave2CrmEndpointsIntegrationTests(HostContainersFixture cont
             new Uri("/api/onboarding", UriKind.Relative),
             new
             {
-                organizationName = "Ruth CRM Test Church",
+                organizationName = "Ruth CRM Test Organization",
                 timeZoneId = "America/Denver",
-                primaryCampusName = "Main Campus",
-                primaryCampusShortCode = "MAIN",
+                primaryBranchName = "Main Branch",
+                primaryBranchShortCode = "MAIN",
                 adminUserName = "admin",
                 adminEmail = "admin@ruth.test",
                 adminDisplayName = "System Admin",

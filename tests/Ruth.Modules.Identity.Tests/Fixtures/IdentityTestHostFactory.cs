@@ -63,18 +63,18 @@ internal static class IdentityTestHostFactory
 
     public static CompleteOnboardingCommand CreateValidCommand(
         string userName = "admin",
-        string email = "admin@grace.org",
+        string email = "admin@civic.org",
         string password = "StrongPass#2026!"
     )
     {
         return new CompleteOnboardingCommand(
-            "Grace Fellowship",
+            "Civic Foundation",
             "UTC",
-            "Main Campus",
+            "Main Branch",
             "MAIN",
             userName,
             email,
-            "Grace Admin",
+            "Civic Admin",
             password
         );
     }

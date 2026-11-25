@@ -13,6 +13,6 @@ internal sealed class PersonRedirectConfiguration : IEntityTypeConfiguration<Per
 
         _ = builder.HasIndex(static r => r.SourcePersonId).IsUnique();
         _ = builder.HasIndex(static r => r.TargetPersonId);
-        _ = builder.HasIndex(static r => r.LegacyPersonAliasGuid);
+        _ = builder.HasIndex(static r => r.ExternalRecordGuid);
     }
 }

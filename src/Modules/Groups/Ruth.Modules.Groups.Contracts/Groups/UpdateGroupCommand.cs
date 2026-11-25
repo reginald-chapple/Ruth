@@ -7,7 +7,7 @@ public sealed record UpdateGroupCommand(
     Guid GroupId,
     string Name,
     Guid? ParentGroupId = null,
-    Guid? CampusId = null,
+    Guid? BranchId = null,
     Guid? ScheduleId = null,
     string? Description = null,
     Guid? PhotoId = null,

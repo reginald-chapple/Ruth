@@ -181,9 +181,9 @@ public sealed class Wave1AuthenticationIntegrationTests(Postgres18ContainerFixtu
         var fakeOidc = new FakeExternalOidcClient(
             new ExternalOidcUserInfo(
                 "ext-sub-123",
-                "admin@grace.org",
+                "admin@civic.org",
                 EmailVerified: true,
-                "Grace Admin"
+                "Civic Admin"
             )
         );
 

@@ -2,10 +2,10 @@
 @inject IQueryDispatcher QueryDispatcher
 @inject ICommandDispatcher CommandDispatcher
 
-<PageTitle>Ministry Serving Scheduler — Ruth RMS</PageTitle>
+<PageTitle>Shift &amp; Volunteer Scheduler — Ruth RMS</PageTitle>
 
 <div class="ruth-page-header">
-    <h1>Coordinator Serving Schedule Grid</h1>
+    <h1>Coordinator Shift &amp; Volunteer Schedule Grid</h1>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_statusMessage))
@@ -24,7 +24,7 @@
                 Load 4-Week Grid
             </FluentButton>
             <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AutoPopulateAsync">
-                Auto-Populate Next Sunday
+                Auto-Populate Next Week
             </FluentButton>
         </FluentStack>
     </FluentCard>
@@ -96,16 +96,15 @@
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var daysUntilSunday = ((int)DayOfWeek.Sunday - (int)today.DayOfWeek + 7) % 7;
-        var nextSunday = today.AddDays(daysUntilSunday == 0 ? 7 : daysUntilSunday);
+        var nextOccurrenceDate = today.AddDays(7);
 
         var result = await CommandDispatcher.SendAsync<
             AutoPopulateServingScheduleCommand,
             AutoPopulateScheduleResponse
-        >(new AutoPopulateServingScheduleCommand(groupId, nextSunday));
+        >(new AutoPopulateServingScheduleCommand(groupId, nextOccurrenceDate));
         if (result.IsSuccess)
         {
-            _statusMessage = $"Auto-populated {result.Value.VolunteersScheduled} volunteers for {nextSunday:yyyy-MM-dd}.";
+            _statusMessage = $"Auto-populated {result.Value.VolunteersScheduled} volunteers for {nextOccurrenceDate:yyyy-MM-dd}.";
             _isError = false;
             await LoadGridAsync();
             return;

@@ -6,7 +6,7 @@ namespace Ruth.Modules.Groups.Domain.Groups;
 internal sealed record GroupInput(
     string Name,
     GroupId? ParentGroupId,
-    Guid? CampusId,
+    Guid? BranchId,
     Guid? ScheduleId,
     string? Description,
     Guid? PhotoId,

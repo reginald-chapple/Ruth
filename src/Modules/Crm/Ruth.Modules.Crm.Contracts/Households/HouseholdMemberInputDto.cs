@@ -5,5 +5,6 @@ public sealed record HouseholdMemberInputDto(
     Guid PersonId,
     HouseholdRole Role = HouseholdRole.Adult,
     int HouseholdOrder = 0,
-    bool IsCombinedGivingMember = true
+    bool IsCombinedContributionMember = true,
+    bool? IsPrimaryContact = null
 );

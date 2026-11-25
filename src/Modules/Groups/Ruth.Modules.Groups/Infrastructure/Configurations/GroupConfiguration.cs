@@ -39,7 +39,7 @@ internal sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
 
         _ = builder.HasIndex(static g => g.GroupTypeId);
         _ = builder.HasIndex(static g => g.ParentGroupId);
-        _ = builder.HasIndex(static g => g.CampusId);
+        _ = builder.HasIndex(static g => g.BranchId);
         _ = builder.HasIndex(static g => new
         {
             g.IsActive,

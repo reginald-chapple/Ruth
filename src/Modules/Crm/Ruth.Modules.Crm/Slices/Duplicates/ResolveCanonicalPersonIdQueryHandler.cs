@@ -15,7 +15,7 @@ internal sealed class ResolveCanonicalPersonIdQueryHandler(CrmDbContext dbContex
         CancellationToken cancellationToken = default
     )
     {
-        var current = PersonId.From(query.PersonOrAliasId);
+        var current = PersonId.From(query.PersonOrExternalId);
         var visited = new HashSet<PersonId> { current };
         var hops = 0;
 
@@ -26,8 +26,7 @@ internal sealed class ResolveCanonicalPersonIdQueryHandler(CrmDbContext dbContex
                 .Where(r =>
                     r.SourcePersonId == current
                     || (
-                        r.LegacyPersonAliasGuid.HasValue
-                        && r.LegacyPersonAliasGuid.Value == current.Value
+                        r.ExternalRecordGuid.HasValue && r.ExternalRecordGuid.Value == current.Value
                     )
                 )
                 .Select(static r => r.TargetPersonId)
@@ -44,7 +43,7 @@ internal sealed class ResolveCanonicalPersonIdQueryHandler(CrmDbContext dbContex
 
         return Result.Success(
             new CanonicalPersonResolutionResponse(
-                query.PersonOrAliasId,
+                query.PersonOrExternalId,
                 current.Value,
                 hops > 0,
                 hops

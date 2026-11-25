@@ -15,11 +15,11 @@ public sealed class OnboardingControlCharacterRegressionTests(HostContainersFixt
         new()
         {
             { "OrganizationName", () => CreatePayload(organizationName: "Org\0Name") },
-            { "PrimaryCampusName", () => CreatePayload(primaryCampusName: "Main\0Campus") },
-            { "PrimaryCampusShortCode", () => CreatePayload(primaryCampusShortCode: "SC\01") },
+            { "PrimaryBranchName", () => CreatePayload(primaryBranchName: "Main\0Branch") },
+            { "PrimaryBranchShortCode", () => CreatePayload(primaryBranchShortCode: "SC\01") },
             { "AdminUserName", () => CreatePayload(adminUserName: "admin\0evil") },
             { "AdminDisplayName", () => CreatePayload(adminDisplayName: "Admin\0Name") },
-            { "AdminEmail", () => CreatePayload(adminEmail: "admin\0@grace.org") },
+            { "AdminEmail", () => CreatePayload(adminEmail: "admin\0@civic.org") },
             { "TimeZoneId", () => CreatePayload(timeZoneId: "UTC\0") },
         };
 
@@ -83,21 +83,21 @@ public sealed class OnboardingControlCharacterRegressionTests(HostContainersFixt
     }
 
     private static object CreatePayload(
-        string organizationName = "Grace Fellowship",
+        string organizationName = "Civic Foundation",
         string timeZoneId = "UTC",
-        string primaryCampusName = "Main Campus",
-        string? primaryCampusShortCode = "MAIN",
+        string primaryBranchName = "Main Branch",
+        string? primaryBranchShortCode = "MAIN",
         string adminUserName = "admin",
-        string adminEmail = "admin@grace.org",
-        string adminDisplayName = "Grace Admin"
+        string adminEmail = "admin@civic.org",
+        string adminDisplayName = "Civic Admin"
     )
     {
         return new
         {
             organizationName,
             timeZoneId,
-            primaryCampusName,
-            primaryCampusShortCode,
+            primaryBranchName,
+            primaryBranchShortCode,
             adminUserName,
             adminEmail,
             adminDisplayName,

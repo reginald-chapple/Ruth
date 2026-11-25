@@ -7,8 +7,8 @@ internal static class OnboardingPolicy
 {
     public const int OrganizationNameMaxLength = 200;
     public const int TimeZoneIdMaxLength = 50;
-    public const int CampusNameMaxLength = 100;
-    public const int CampusShortCodeMaxLength = 50;
+    public const int BranchNameMaxLength = 100;
+    public const int BranchShortCodeMaxLength = 50;
     public const int UserNameMaxLength = 100;
     public const int EmailMaxLength = 256;
     public const int DisplayNameMaxLength = 150;

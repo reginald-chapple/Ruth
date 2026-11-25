@@ -76,31 +76,32 @@ public sealed class W2S2HouseholdsAndApacheAgeIntegrationTests(CrmPostgresContai
         Guid parentB
     )
     {
-        var campusId = Guid.CreateVersion7();
+        var branchId = Guid.CreateVersion7();
         var hhResult = await commands.SendAsync<CreateHouseholdCommand, HouseholdResponse>(
             new CreateHouseholdCommand(
                 "Reed Family",
-                CampusId: campusId,
+                BranchId: branchId,
                 Members:
                 [
                     new HouseholdMemberInputDto(
                         parentA,
                         HouseholdRole.Adult,
                         HouseholdOrder: 0,
-                        IsCombinedGivingMember: true
+                        IsCombinedContributionMember: true,
+                        IsPrimaryContact: true
                     ),
                     new HouseholdMemberInputDto(
                         parentB,
                         HouseholdRole.Adult,
                         HouseholdOrder: 0,
-                        IsCombinedGivingMember: true
+                        IsCombinedContributionMember: true
                     ),
                 ]
             )
         );
         Assert.True(hhResult.IsSuccess);
         Assert.Equal("Daniel & Sarah Reed", hhResult.Value.Salutation);
-        Assert.Equal(parentA, hhResult.Value.GivingLeaderPersonId);
+        Assert.Equal(parentA, hhResult.Value.PrimaryContactPersonId);
 
         var refreshedA = (
             await queries.QueryAsync<GetPersonByIdQuery, PersonDetailResponse>(
@@ -108,7 +109,7 @@ public sealed class W2S2HouseholdsAndApacheAgeIntegrationTests(CrmPostgresContai
             )
         ).Value;
         Assert.Equal(hhResult.Value.Id, refreshedA.PrimaryHouseholdId);
-        Assert.Equal(campusId, refreshedA.PrimaryCampusId);
+        Assert.Equal(branchId, refreshedA.PrimaryBranchId);
         Assert.Equal(AgeClassification.Adult, refreshedA.AgeClassification);
 
         var loc1 = Guid.CreateVersion7();

@@ -185,10 +185,10 @@ public sealed partial class GroupType
         ShowInNavigation = input.ShowInNavigation;
         AllowMultipleLocations = input.AllowMultipleLocations;
         IsMeetingStyleEnabled = input.IsMeetingStyleEnabled;
-        GroupsRequireCampus = input.GroupsRequireCampus;
+        GroupsRequireBranch = input.GroupsRequireBranch;
         EnableGroupHistory = input.EnableGroupHistory;
         TakesAttendance = input.TakesAttendance;
-        AttendanceCountsAsWeekendService = input.AttendanceCountsAsWeekendService;
+        CountsTowardHeadlineAttendance = input.CountsTowardHeadlineAttendance;
         SendAttendanceReminder = input.SendAttendanceReminder;
         GroupAttendanceRequiresLocation = input.GroupAttendanceRequiresLocation;
         GroupAttendanceRequiresSchedule = input.GroupAttendanceRequiresSchedule;

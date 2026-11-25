@@ -30,7 +30,7 @@ public sealed record CreatePersonCommand(
     CommunicationPreference CommunicationPreference = CommunicationPreference.Email,
     AccountProtectionProfile AccountProtectionProfile = AccountProtectionProfile.Low,
     Guid? PhotoBinaryFileId = null,
-    Guid? PrimaryCampusId = null,
+    Guid? PrimaryBranchId = null,
     IReadOnlyList<PhoneNumberInputDto>? PhoneNumbers = null,
     IReadOnlyDictionary<string, string?>? Attributes = null
 ) : ICommand<PersonDetailResponse>;

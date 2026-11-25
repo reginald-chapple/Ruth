@@ -399,12 +399,12 @@ else
         }
 
         var name = string.IsNullOrWhiteSpace(_newHouseholdName)
-            ? $"{_person.LastName} Family"
+            ? $"{_person.LastName} Household"
             : _newHouseholdName;
         var result = await CommandDispatcher.SendAsync<CreateHouseholdCommand, HouseholdResponse>(
             new CreateHouseholdCommand(
                 name,
-                _person.PrimaryCampusId,
+                _person.PrimaryBranchId,
                 Members: [new HouseholdMemberInputDto(_person.Id, HouseholdRole.Adult)]
             )
         );

@@ -39,7 +39,7 @@ internal sealed class HouseholdConfiguration : IEntityTypeConfiguration<Househol
             .Navigation(static h => h.Locations)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        _ = builder.HasIndex(static h => h.CampusId);
+        _ = builder.HasIndex(static h => h.BranchId);
         _ = builder.HasIndex(static h => h.IsArchived);
     }
 }

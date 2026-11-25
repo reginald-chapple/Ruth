@@ -196,7 +196,7 @@ internal sealed class PersonDuplicateScannerService(CrmDbContext dbContext, IClo
             person.Gender,
             person.MaritalStatus,
             person.BirthDate,
-            person.PrimaryCampusId,
+            person.PrimaryBranchId,
             person.PrimaryHouseholdId ?? hh.Household?.Id.Value,
             hh.Member?.Role,
             homeLocation?.LocationId,

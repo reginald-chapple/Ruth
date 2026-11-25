@@ -5,15 +5,18 @@ using Ruth.Modules.Crm.Domain.People;
 namespace Ruth.Modules.Crm.Domain.Households;
 
 /// <summary>
-/// Pure domain service implementing Rock RMS household salutations, giving-leader precedence,
-/// and spouse resolution rules.
+/// Pure domain service implementing gender-neutral household salutations, primary/billing contact resolution,
+/// and married partner resolution rules.
 /// </summary>
 public static class HouseholdDomainService
 {
     private const int SalutationMaxLength = 250;
 
-    /// <summary>Resolves the household Giving Leader using Rock's exact precedence: Living -> Adult -> Gender -> Oldest.</summary>
-    public static PersonId? ResolveGivingLeaderId(
+    /// <summary>
+    /// Resolves the household primary/billing contact using gender-neutral precedence:
+    /// Living -> Explicit Primary Contact -> Adult Role -> HouseholdOrder -> Earliest BirthDate -> PersonId.
+    /// </summary>
+    public static PersonId? ResolvePrimaryContactId(
         Household household,
         IReadOnlyDictionary<PersonId, Person> peopleById
     )
@@ -22,11 +25,14 @@ public static class HouseholdDomainService
         ArgumentNullException.ThrowIfNull(peopleById);
 
         var candidates = household
-            .Members.Where(m => m.IsCombinedGivingMember && peopleById.ContainsKey(m.PersonId))
+            .Members.Where(m =>
+                m.IsCombinedContributionMember && peopleById.ContainsKey(m.PersonId)
+            )
             .Select(m => (Member: m, Person: peopleById[m.PersonId]))
             .OrderBy(static x => x.Person.IsDeceased ? 1 : 0)
+            .ThenByDescending(static x => x.Member.IsPrimaryContact)
             .ThenBy(static x => (int)x.Member.Role)
-            .ThenBy(static x => (int)x.Person.Gender)
+            .ThenBy(static x => x.Member.HouseholdOrder)
             .ThenBy(static x => x.Person.BirthYear ?? int.MaxValue)
             .ThenBy(static x => x.Person.BirthMonth ?? int.MaxValue)
             .ThenBy(static x => x.Person.BirthDay ?? int.MaxValue)
@@ -36,12 +42,11 @@ public static class HouseholdDomainService
         return candidates.Person?.Id;
     }
 
-    /// <summary>Resolves a person's spouse within their households matching Rock RMS marital and adult rules.</summary>
+    /// <summary>Resolves a married adult's spouse/partner within their active households without gender filtering.</summary>
     public static Person? ResolveSpouse(
         Person person,
         IReadOnlyList<Household> households,
-        IReadOnlyDictionary<PersonId, Person> peopleById,
-        bool strictOppositeGender = true
+        IReadOnlyDictionary<PersonId, Person> peopleById
     )
     {
         ArgumentNullException.ThrowIfNull(person);
@@ -56,31 +61,7 @@ public static class HouseholdDomainService
         var candidates = new List<(int HouseholdOrder, int AgeGapDays, Person Candidate)>();
         foreach (var household in households.Where(static h => !h.IsArchived))
         {
-            var selfMember = household.Members.FirstOrDefault(m => m.PersonId == person.Id);
-            if (selfMember is null || selfMember.Role != HouseholdRole.Adult)
-            {
-                continue;
-            }
-
-            foreach (var otherMember in household.Members)
-            {
-                if (
-                    otherMember.PersonId == person.Id
-                    || otherMember.Role != HouseholdRole.Adult
-                    || !peopleById.TryGetValue(otherMember.PersonId, out var other)
-                )
-                {
-                    continue;
-                }
-
-                if (!IsEligibleSpouse(person, other, strictOppositeGender))
-                {
-                    continue;
-                }
-
-                var gap = ComputeBirthDateGapDays(person.BirthDate, other.BirthDate);
-                candidates.Add((selfMember.HouseholdOrder, gap, other));
-            }
+            CollectHouseholdSpouseCandidates(person, household, peopleById, candidates);
         }
 
         return candidates
@@ -91,7 +72,51 @@ public static class HouseholdDomainService
             .FirstOrDefault();
     }
 
-    /// <summary>Computes a concise or full household salutation matching Rock's shared-last-name rules.</summary>
+    private static void CollectHouseholdSpouseCandidates(
+        Person person,
+        Household household,
+        IReadOnlyDictionary<PersonId, Person> peopleById,
+        List<(int HouseholdOrder, int AgeGapDays, Person Candidate)> candidates
+    )
+    {
+        var selfMember = household.Members.FirstOrDefault(m => m.PersonId == person.Id);
+        if (selfMember is null || selfMember.Role != HouseholdRole.Adult)
+        {
+            return;
+        }
+
+        foreach (var otherMember in household.Members)
+        {
+            if (IsEligibleSpouseCandidate(person, otherMember, peopleById, out var other))
+            {
+                var gap = ComputeBirthDateGapDays(person.BirthDate, other.BirthDate);
+                candidates.Add((selfMember.HouseholdOrder, gap, other));
+            }
+        }
+    }
+
+    private static bool IsEligibleSpouseCandidate(
+        Person self,
+        HouseholdMember otherMember,
+        IReadOnlyDictionary<PersonId, Person> peopleById,
+        out Person candidate
+    )
+    {
+        if (
+            otherMember.PersonId == self.Id
+            || otherMember.Role != HouseholdRole.Adult
+            || !peopleById.TryGetValue(otherMember.PersonId, out var resolved)
+        )
+        {
+            candidate = null!;
+            return false;
+        }
+
+        candidate = resolved;
+        return !resolved.IsDeceased && resolved.MaritalStatus == MaritalStatus.Married;
+    }
+
+    /// <summary>Computes a concise or full household salutation using primary-contact and member-order sorting.</summary>
     public static string ComputeSalutation(
         Household household,
         IReadOnlyDictionary<PersonId, Person> peopleById,
@@ -108,7 +133,9 @@ public static class HouseholdDomainService
             .ToList();
 
         var pool = allMembers
-            .Where(static x => x.Person.RecordStatus == PersonRecordStatus.Active)
+            .Where(static x =>
+                x.Person.RecordStatus == PersonRecordStatus.Active && !x.Person.IsDeceased
+            )
             .ToList();
         if (pool.Count == 0)
         {
@@ -121,13 +148,15 @@ public static class HouseholdDomainService
         }
 
         var adults = pool.Where(static x => x.Member.Role == HouseholdRole.Adult)
-            .OrderBy(static x => (int)x.Person.Gender)
+            .OrderByDescending(static x => x.Member.IsPrimaryContact)
+            .ThenBy(static x => x.Member.HouseholdOrder)
             .ThenBy(static x => x.Person.Id.Value)
             .Select(static x => x.Person)
             .ToList();
 
         var children = pool.Where(static x => x.Member.Role == HouseholdRole.Child)
             .OrderBy(static x => x.Person.BirthYear ?? int.MaxValue)
+            .ThenBy(static x => x.Member.HouseholdOrder)
             .ThenBy(static x => x.Person.Id.Value)
             .Select(static x => x.Person)
             .ToList();
@@ -151,18 +180,6 @@ public static class HouseholdDomainService
             .OrderByDescending(static l => l.IsMappedLocation)
             .ThenByDescending(static l => l.Id.Value)
             .FirstOrDefault();
-    }
-
-    private static bool IsEligibleSpouse(Person person, Person other, bool strictOppositeGender)
-    {
-        return !other.IsDeceased
-            && other.MaritalStatus == MaritalStatus.Married
-            && (
-                !strictOppositeGender
-                || person.Gender == Gender.Unknown
-                || other.Gender == Gender.Unknown
-                || person.Gender != other.Gender
-            );
     }
 
     private static int ComputeBirthDateGapDays(DateOnly? left, DateOnly? right)
