@@ -1,0 +1,59 @@
+@implements IRuthBlock
+@inject IQueryDispatcher QueryDispatcher
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey">
+    <h3>@Block.Name</h3>
+    @if (_elements.Count == 0)
+    {
+        <p class="ruth-cms-empty-note">No synced media elements found.</p>
+    }
+    else
+    {
+        <div class="ruth-cms-feed-grid">
+            @foreach (var item in _elements)
+            {
+                <article class="ruth-cms-feed-card" @key="item.Id">
+                    <h4>@item.Name</h4>
+                    <small>Duration: @(item.DurationSeconds)s</small>
+                    @if (!string.IsNullOrWhiteSpace(item.HlsManifestUrl ?? item.PlaybackUrl))
+                    {
+                        <div>
+                            <a href="@(item.HlsManifestUrl ?? item.PlaybackUrl)" target="_blank" rel="noopener noreferrer">
+                                Open Stream
+                            </a>
+                        </div>
+                    }
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    public string BlockKey => "cms.media-gallery";
+    public string DisplayName => "Media Gallery";
+    public string Category => "Media";
+    public string? Description => "Displays synced Vimeo/YouTube/HLS MediaElements.";
+    public bool RequiresInteractivity => true;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    private IReadOnlyList<MediaElementResponse> _elements = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Guid? folderId = Guid.TryParse(
+            Block.Settings.GetValueOrDefault("MediaFolderId"),
+            out var parsed
+        )
+            ? parsed
+            : null;
+
+        var res = await QueryDispatcher.QueryAsync<
+            GetMediaElementsQuery,
+            IReadOnlyList<MediaElementResponse>
+        >(new GetMediaElementsQuery(MediaFolderId: folderId));
+        _elements = res.IsSuccess ? res.Value : [];
+    }
+}

@@ -26,6 +26,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\CheckIn\Ruth.Modules.CheckIn.Contracts\Ruth.Modules.CheckIn.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\CheckIn\Ruth.Modules.CheckIn\Ruth.Modules.CheckIn.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Cms\Ruth.Modules.Cms.Contracts\Ruth.Modules.Cms.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Cms\Ruth.Modules.Cms\Ruth.Modules.Cms.csproj" />
     <ProjectReference Include="..\..\src\Modules\Commerce\Ruth.Modules.Commerce.Contracts\Ruth.Modules.Commerce.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Commerce\Ruth.Modules.Commerce\Ruth.Modules.Commerce.csproj" />
     <ProjectReference Include="..\..\src\Modules\Communication\Ruth.Modules.Communication.Contracts\Ruth.Modules.Communication.Contracts.csproj" />

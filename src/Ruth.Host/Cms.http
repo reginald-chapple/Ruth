@@ -1,0 +1,85 @@
+@baseUrl = https://localhost:7142
+@token = REPLACE_WITH_JWT
+
+### W6-S1: Create CSS Custom-Property Theme
+POST {{baseUrl}}/api/cms/themes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Portal Theme",
+  "slug": "community-portal-theme",
+  "cssCustomProperties": {
+    "--cms-accent": "#0F6CBD",
+    "--cms-surface": "#FFFFFF"
+  }
+}
+
+### W6-S1: Create Multi-Host Site
+POST {{baseUrl}}/api/cms/sites
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Public Portal",
+  "slug": "public-portal",
+  "domains": ["portal.ruth.local"]
+}
+
+### W6-S1: Resolve Public CMS Page
+GET {{baseUrl}}/api/cms/public/resolve?siteSlug=public-portal&path=
+
+### W6-S1: ShortLink QR SVG
+GET {{baseUrl}}/api/cms/public/shortlinks/join/qr.svg
+
+### W6-S2: RSS 2.0 & JSON Feed 1.1
+GET {{baseUrl}}/api/cms/channels/community-stories/feed.rss
+
+###
+GET {{baseUrl}}/api/cms/channels/community-stories/feed.json
+
+### W6-S2: Cached PersistedDataset
+GET {{baseUrl}}/api/cms/datasets/public-stories-feed
+
+### W6-S3: High-Throughput Buffered Interaction Ingest
+POST {{baseUrl}}/api/cms/public/interactions/ingest
+Content-Type: application/json
+
+{
+  "flushImmediately": true,
+  "items": [
+    {
+      "channelKey": "member-portal",
+      "componentKey": "home-page",
+      "componentName": "Home Page",
+      "operation": "View"
+    }
+  ]
+}
+
+### W6-S3: Resolve Adaptive Message
+POST {{baseUrl}}/api/cms/public/adaptive-messages/hero-callout/resolve
+Content-Type: application/json
+
+{
+  "host": "portal.ruth.local",
+  "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile"
+}
+
+### W6-S4: Mobile v1 Bootstrap, Hydrated Page & DeepLink
+GET {{baseUrl}}/api/v1/mobile/apps/member-companion/bootstrap?clientVersion=1.2.0
+
+###
+GET {{baseUrl}}/api/v1/mobile/apps/member-companion/pages/home
+
+###
+GET {{baseUrl}}/api/v1/mobile/apps/member-companion/deeplinks/resolve?path=/open/home
+
+### W6-S4: Digital Signage, Apple TV & Roku Feeds
+GET {{baseUrl}}/api/v1/signage/lobby-display/feed
+
+###
+GET {{baseUrl}}/api/v1/signage/lobby-display/apple-tv
+
+###
+GET {{baseUrl}}/api/v1/signage/lobby-display/roku

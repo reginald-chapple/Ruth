@@ -1,0 +1,52 @@
+@implements IRuthBlock
+@inject IQueryDispatcher QueryDispatcher
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey">
+    @if (_resolved?.SelectedAdaptation is { } adaptation)
+    {
+        <div class="ruth-cms-adaptive-banner">
+            <h3>@adaptation.Headline</h3>
+            <p>@adaptation.BodyMarkup</p>
+            @if (
+                !string.IsNullOrWhiteSpace(adaptation.CallToActionText)
+                && !string.IsNullOrWhiteSpace(adaptation.CallToActionUrl)
+            )
+            {
+                <a href="@adaptation.CallToActionUrl" class="ruth-header-link">@adaptation.CallToActionText</a>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="ruth-cms-empty-note">@(_resolved?.ResolutionReason ?? "No adaptive message configured.")</p>
+    }
+</section>
+
+@code {
+    public string BlockKey => "cms.adaptive-message";
+    public string DisplayName => "Adaptive Message Banner";
+    public string Category => "Personalization";
+    public string? Description => "Displays the highest-priority segment-targeted adaptation.";
+    public bool RequiresInteractivity => true;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    private ResolvedAdaptiveMessageResponse? _resolved;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = Block.Settings.GetValueOrDefault("AdaptiveMessageKey");
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            _resolved = null;
+            return;
+        }
+
+        var res = await QueryDispatcher.QueryAsync<
+            ResolveAdaptiveMessageQuery,
+            ResolvedAdaptiveMessageResponse
+        >(new ResolveAdaptiveMessageQuery(key));
+        _resolved = res.IsSuccess ? res.Value : null;
+    }
+}

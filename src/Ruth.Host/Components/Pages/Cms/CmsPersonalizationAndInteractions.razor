@@ -1,0 +1,67 @@
+@page "/cms/personalization"
+@rendermode InteractiveServer
+
+<PageTitle>Interactions, Personalization Segments &amp; Adaptive Content — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Interactions, Personalization Segments &amp; Adaptive Messages</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. High-Throughput Buffered Interactions</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_interactionChannelKey" Label="Channel Key" />
+                <FluentTextInput @bind-Value="_interactionComponentKey" Label="Component Key" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@IngestAndFlushAsync">
+                    Ingest &amp; Flush Sample Interaction
+                </FluentButton>
+            </FluentStack>
+            <small>Recent persisted interactions: @_interactions.Count</small>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Personalization Segments (Redis Bitset / Set Cache)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_segmentName" Label="Segment Name" />
+                <FluentTextInput @bind-Value="_segmentKey" Label="Segment Key" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateSegmentAsync">
+                    Create &amp; Evaluate Segment
+                </FluentButton>
+            </FluentStack>
+            @foreach (var seg in _segments)
+            {
+                <small @key="seg.Id">@seg.Name (@seg.SegmentKey) — Cached Members: @seg.CachedMemberCount</small>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>3. Adaptive Messages &amp; Targeted Adaptations</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_messageName" Label="Message Name" />
+                <FluentTextInput @bind-Value="_messageKey" Label="Message Key" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAdaptiveMessageAsync">
+                    Create Adaptive Message + Default Variant
+                </FluentButton>
+            </FluentStack>
+            @foreach (var msg in _messages)
+            {
+                <small @key="msg.Id">@msg.Name (@msg.Key) — Adaptations: @msg.Adaptations.Count</small>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

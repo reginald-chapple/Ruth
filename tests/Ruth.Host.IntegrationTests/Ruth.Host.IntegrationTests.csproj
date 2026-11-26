@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Cms\Ruth.Modules.Cms.Contracts\Ruth.Modules.Cms.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />

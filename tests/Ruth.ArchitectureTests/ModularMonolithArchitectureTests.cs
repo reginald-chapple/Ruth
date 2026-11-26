@@ -3,6 +3,8 @@ using NetArchTest.Rules;
 using Ruth.Host;
 using Ruth.Modules.CheckIn;
 using Ruth.Modules.CheckIn.Contracts;
+using Ruth.Modules.Cms;
+using Ruth.Modules.Cms.Contracts;
 using Ruth.Modules.Commerce;
 using Ruth.Modules.Commerce.Contracts;
 using Ruth.Modules.Communication;
@@ -71,6 +73,9 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.VirtualRooms.Domain",
         "Ruth.Modules.VirtualRooms.Infrastructure",
         "Ruth.Modules.VirtualRooms.Slices",
+        "Ruth.Modules.Cms.Domain",
+        "Ruth.Modules.Cms.Infrastructure",
+        "Ruth.Modules.Cms.Slices",
     ];
 
     private static Assembly[] GetModuleAssemblies()
@@ -89,6 +94,7 @@ public sealed class ModularMonolithArchitectureTests
             EngagementModuleAssembly.Instance,
             WorkflowModuleAssembly.Instance,
             VirtualRoomsModuleAssembly.Instance,
+            CmsModuleAssembly.Instance,
         ];
 
         return
@@ -121,6 +127,7 @@ public sealed class ModularMonolithArchitectureTests
             EngagementContractsAssembly.Instance,
             WorkflowContractsAssembly.Instance,
             VirtualRoomsContractsAssembly.Instance,
+            CmsContractsAssembly.Instance,
         ];
 
         return

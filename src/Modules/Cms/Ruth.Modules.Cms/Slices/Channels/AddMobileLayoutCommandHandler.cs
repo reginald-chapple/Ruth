@@ -1,0 +1,46 @@
+using Microsoft.EntityFrameworkCore;
+using Ruth.Modules.Cms.Contracts.Channels;
+using Ruth.Modules.Cms.Domain;
+using Ruth.Modules.Cms.Infrastructure;
+using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Results;
+
+namespace Ruth.Modules.Cms.Slices.Channels;
+
+internal sealed class AddMobileLayoutCommandHandler(CmsDbContext db)
+    : ICommandHandler<AddMobileLayoutCommand, MobileApplicationResponse>
+{
+    public async Task<Result<MobileApplicationResponse>> HandleAsync(
+        AddMobileLayoutCommand command,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var appId = MobileApplicationId.From(command.MobileApplicationId);
+        var app = await db
+            .MobileApplications.Include(static a => a.Layouts)
+            .Include(static a => a.Pages)
+            .Include(static a => a.DeepLinks)
+            .FirstOrDefaultAsync(a => a.Id == appId, cancellationToken);
+        if (app is null)
+        {
+            return Result.Failure<MobileApplicationResponse>(
+                CmsErrors.NotFound("MobileApplication", command.MobileApplicationId.ToString("D"))
+            );
+        }
+
+        var res = app.AddLayout(
+            command.Name,
+            command.LayoutKey,
+            command.ShellMarkup,
+            command.Order
+        );
+        if (res.IsFailure)
+        {
+            return Result.Failure<MobileApplicationResponse>(res.PrimaryError);
+        }
+
+        _ = db.MobileLayouts.Add(res.Value);
+        _ = await db.SaveChangesAsync(cancellationToken);
+        return Result.Success(CmsChannelProjectionMapper.ToResponse(app));
+    }
+}

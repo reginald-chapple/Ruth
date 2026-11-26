@@ -1,0 +1,43 @@
+@implements IRuthBlock
+@inject IQueryDispatcher QueryDispatcher
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey">
+    <h3>@(_dataset?.Name ?? Block.Name)</h3>
+    @if (_dataset is not null && !string.IsNullOrWhiteSpace(_dataset.ResultDataJson))
+    {
+        <pre class="ruth-zpl-code">@_dataset.ResultDataJson</pre>
+    }
+    else
+    {
+        <p class="ruth-cms-empty-note">Configure an AccessKey setting to display a cached PersistedDataset.</p>
+    }
+</section>
+
+@code {
+    public string BlockKey => "cms.persisted-dataset";
+    public string DisplayName => "Persisted Dataset View";
+    public string Category => "CMS";
+    public string? Description => "Renders cached JSON output from a PersistedDataset.";
+    public bool RequiresInteractivity => false;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    private PersistedDatasetResponse? _dataset;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = Block.Settings.GetValueOrDefault("AccessKey");
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            _dataset = null;
+            return;
+        }
+
+        var res = await QueryDispatcher.QueryAsync<
+            GetPersistedDatasetByKeyQuery,
+            PersistedDatasetResponse
+        >(new GetPersistedDatasetByKeyQuery(key));
+        _dataset = res.IsSuccess ? res.Value : null;
+    }
+}

@@ -434,22 +434,22 @@ flowchart TD
 ### Wave 6 — CMS, Reporting, LMS, Channels & Universal Search
 *Goal: Deliver external website/member-portal CMS, declarative DataViews/Reporting, Operational & Financial Analytics, LMS, Mobile/Display backends, and deterministic PostgreSQL full-text Spotlight Search. (AI features are intentionally deferred post-MVP so requirements can emerge naturally from real platform workflows.)*
 
-#### `W6-S1` — Dynamic CMS Engine (`Site -> Layout -> Page -> Zone -> Block`)
+#### `W6-S1` — Dynamic CMS Engine (`Site -> Layout -> Page -> Zone -> Block`) ✅ *(Completed)*
 * **Scope:** `Cms` module (`cms` schema): `Site`, `SiteDomain` multi-host routing, `Theme` (CSS custom-property bundles), `Layout`, `Page`, `PageRoute`, `PageContext`, `BlockType`, `Block`, `HtmlContent` (versioned + approval), `<CmsPageHost />` (`Static SSR` + interactive `<DynamicComponent>` islands implementing `IRuthBlock`), admin inline Zone/Block configurator, `PageShortLink` URL shortener + QR generator, and `RequestFilter`.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `entity-framework-core`, `stylelint`, `htmlhint`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `stylelint`, `htmlhint`, `webhint`, `complexity`, `crap-score`.
 
-#### `W6-S2` — Content Channels, Media Accounts, Bookmarks & Persisted Datasets
+#### `W6-S2` — Content Channels, Media Accounts, Bookmarks & Persisted Datasets ✅ *(Completed)*
 * **Scope:** `ContentChannelType`, `ContentChannel`, `ContentChannelItem` (`Slug`, `Association`, scheduled publishing, RSS/JSON feeds), `ContentTopic`, `MediaAccount` / `MediaFolder` / `MediaElement` (Vimeo/YouTube/HLS sync provider), `PersonalLinkSection` / `PersonalLink` staff bookmarks bar, and `PersistedDataset` cached JSON/query datasets consumed by Razor CMS blocks and typed Minimal API endpoints.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S3` — Interactions, Personalization Segments & Adaptive Content
+#### `W6-S3` — Interactions, Personalization Segments & Adaptive Content ✅ *(Completed)*
 * **Scope:** High-throughput buffered `Interaction` ingestion (`InteractionChannel`, `InteractionComponent`, `InteractionSession`), `PersonalizationSegment` (affinity, request filters, DataView membership cached in Redis bitsets/sets), and `AdaptiveMessage` targeted content delivery.
 * **Authoring Skills:** `architecture`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W6-S4` — Mobile & Digital Signage / TV Application Backends
+#### `W6-S4` — Mobile & Digital Signage / TV Application Backends ✅ *(Completed)*
 * **Scope:** Mobile app configuration (`MobileApplication`, `MobileLayout`, `MobilePage`, `MobileDeepLink`) + versioned Minimal API contract for native mobile shells, and Digital Signage / Apple TV / Roku feed endpoints.
 * **Authoring Skills:** `architecture`, `dotnet-webapi`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.

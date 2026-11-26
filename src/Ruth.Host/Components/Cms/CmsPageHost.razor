@@ -1,0 +1,62 @@
+@page "/cms/site/{*CmsPath}"
+@page "/cms/preview/{SiteSlug}/{*CmsPath}"
+
+<PageTitle>@(_resolved?.Page.BrowserTitle ?? "CMS Page") — Ruth</PageTitle>
+
+@if (_resolved?.Theme is not null)
+{
+    <style>@((MarkupString)_resolved.Theme.RenderedCssBundle)</style>
+}
+
+@if (_resolved is null)
+{
+    <section class="ruth-cms-shell">
+        <h1>CMS Page Not Found</h1>
+        <p>@(_errorMessage ?? "No published CMS site or page matched this route.")</p>
+    </section>
+}
+else
+{
+    <div class="ruth-cms-shell" data-cms-site="@_resolved.Site.Slug" data-cms-layout="@_resolved.Layout.FileName">
+        <header class="ruth-cms-page-banner">
+            <div>
+                <h1>@_resolved.Page.PageTitle</h1>
+                <small>Site: @_resolved.Site.Name · Layout: @_resolved.Layout.Name · Route: /@_resolved.MatchedRoute</small>
+            </div>
+        </header>
+
+        @foreach (var zone in _resolved.Layout.Zones)
+        {
+            var zoneBlocks = _resolved.BlocksByZone.TryGetValue(zone, out var list)
+                ? list
+                : [];
+            <section class="ruth-cms-zone" data-cms-zone="@zone" @key="zone">
+                @foreach (var block in zoneBlocks)
+                {
+                    @if (!string.IsNullOrWhiteSpace(block.PreHtml))
+                    {
+                        @((MarkupString)block.PreHtml)
+                    }
+
+                    @if (BlockRegistry.TryGetDescriptor(block.BlockTypeKey, out var descriptor) && descriptor is not null)
+                    {
+                        <DynamicComponent Type="@descriptor.ComponentType"
+                                          Parameters="@BuildBlockParameters(block, descriptor)"
+                                          @key="block.Id" />
+                    }
+                    else
+                    {
+                        <div class="ruth-cms-block" @key="block.Id">
+                            <strong>@block.Name</strong> (@block.BlockTypeKey)
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(block.PostHtml))
+                    {
+                        @((MarkupString)block.PostHtml)
+                    }
+                }
+            </section>
+        }
+    </div>
+}

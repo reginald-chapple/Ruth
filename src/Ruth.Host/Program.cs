@@ -1,12 +1,14 @@
 using System.Text.Json.Serialization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Ruth.Host.Components;
+using Ruth.Host.Components.Cms;
 using Ruth.Host.DependencyInjection;
 using Ruth.Host.Endpoints;
 using Ruth.Host.Health;
 using Ruth.Host.Middleware;
 using Ruth.Host.Observability;
 using Ruth.Modules.CheckIn;
+using Ruth.Modules.Cms;
 using Ruth.Modules.Commerce;
 using Ruth.Modules.Communication;
 using Ruth.Modules.Core;
@@ -49,6 +51,8 @@ builder.Services.AddEngagementModule(builder.Configuration);
 builder.Services.AddWorkflowModule(builder.Configuration);
 builder.Services.AddVirtualRoomsModule(builder.Configuration);
 builder.Services.AddLiveKitVirtualRoomProvider(builder.Configuration);
+builder.Services.AddCmsModule(builder.Configuration);
+builder.Services.AddSingleton<RuthBlockComponentRegistry>();
 builder.Services.AddRuthJwtConfiguration();
 
 builder.Services.AddProblemDetails();
@@ -149,5 +153,6 @@ app.MapCommerceModuleEndpoints();
 app.MapEngagementModuleEndpoints();
 app.MapWorkflowModuleEndpoints();
 app.MapVirtualRoomsModuleEndpoints();
+app.MapCmsModuleEndpoints();
 
 await app.RunAsync();

@@ -1,0 +1,90 @@
+@page "/cms/content"
+@rendermode InteractiveServer
+
+<PageTitle>Content Channels, Media Accounts, Bookmarks &amp; Datasets — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Content Channels, Media Sync, Staff Bookmarks &amp; Persisted Datasets</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+<PersonalLinksBar />
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Content Channels &amp; Scheduled Items (RSS 2.0 / JSON Feed 1.1)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_channelName" Label="Channel Name" />
+                <FluentTextInput @bind-Value="_channelSlug" Label="Channel Slug" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateChannelAsync">
+                    Create Channel
+                </FluentButton>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_itemTitle" Label="Item Title" />
+                <FluentTextInput @bind-Value="_itemSlug" Label="Item Slug" />
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@PublishItemAsync">
+                    Publish Item to Latest Channel
+                </FluentButton>
+            </FluentStack>
+            @foreach (var ch in _channels)
+            {
+                <div class="ruth-kiosk-member-row" @key="ch.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@ch.Name (@ch.Slug)</strong>
+                        <a href="/api/cms/channels/@ch.Slug/feed.rss" target="_blank" class="ruth-header-link">RSS 2.0</a>
+                        <a href="/api/cms/channels/@ch.Slug/feed.json" target="_blank" class="ruth-header-link">JSON Feed 1.1</a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Media Accounts (Vimeo / YouTube / HLS) &amp; Sync</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_mediaName" Label="Account Name" />
+                <FluentTextInput @bind-Value="_mediaProvider" Label="Provider (vimeo/youtube/hls/in-memory)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAndSyncMediaAsync">
+                    Create &amp; Sync Media Account
+                </FluentButton>
+            </FluentStack>
+            @foreach (var acc in _mediaAccounts)
+            {
+                <small @key="acc.Id">
+                    @acc.Name [@acc.ProviderKey] — Folders: @acc.FolderCount · Elements: @acc.ElementCount
+                </small>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>3. Persisted Datasets (Cached JSON for Razor Blocks &amp; APIs)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_datasetKey" Label="AccessKey" />
+                <FluentTextInput @bind-Value="_datasetName" Label="Dataset Name" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateDatasetAsync">
+                    Materialize Dataset
+                </FluentButton>
+            </FluentStack>
+            @foreach (var ds in _datasets)
+            {
+                <div class="ruth-kiosk-member-row" @key="ds.Id">
+                    <strong>@ds.Name (@ds.AccessKey)</strong>
+                    <small>Kind: @ds.DataSourceKind · Build: @(ds.TimeToBuildMs)ms</small>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

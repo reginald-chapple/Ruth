@@ -1,0 +1,33 @@
+@inject IQueryDispatcher QueryDispatcher
+
+@if (_sections.Count > 0)
+{
+    <nav class="ruth-bookmarks-bar" aria-label="Staff bookmarks">
+        @foreach (var section in _sections)
+        {
+            <div class="ruth-bookmarks-group" @key="section.Id">
+                <strong class="ruth-bookmarks-title">@(section.Name):</strong>
+                @foreach (var link in section.Links)
+                {
+                    <a href="@link.Url" class="ruth-bookmarks-pill" @key="link.Id">@link.Name</a>
+                }
+            </div>
+        }
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public Guid? PersonId { get; set; }
+
+    private IReadOnlyList<PersonalLinkSectionResponse> _sections = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var res = await QueryDispatcher.QueryAsync<
+            GetPersonalLinkSectionsQuery,
+            IReadOnlyList<PersonalLinkSectionResponse>
+        >(new GetPersonalLinkSectionsQuery(PersonId, IncludeShared: true));
+        _sections = res.IsSuccess ? res.Value : [];
+    }
+}

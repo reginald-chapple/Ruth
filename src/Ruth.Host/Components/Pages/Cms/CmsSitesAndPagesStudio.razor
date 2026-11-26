@@ -1,0 +1,106 @@
+@page "/cms/sites"
+@rendermode InteractiveServer
+
+<PageTitle>CMS Sites, Layouts, Zones, Blocks &amp; ShortLinks — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Dynamic CMS Engine (Sites, Themes, Layouts, Pages, Zones &amp; ShortLinks)</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. CSS Theme Bundle &amp; Multi-Host Site</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_themeName" Label="Theme Name" />
+                <FluentTextInput @bind-Value="_themeSlug" Label="Theme Slug" />
+                <FluentTextInput @bind-Value="_brandAccentColor" Label="--cms-accent" />
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CreateThemeAsync">
+                    Create Theme
+                </FluentButton>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_siteName" Label="Site Name" />
+                <FluentTextInput @bind-Value="_siteSlug" Label="Site Slug" />
+                <FluentTextInput @bind-Value="_siteDomain" Label="Primary Host Domain" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateSiteAsync">
+                    Create Site + Default Layout &amp; Home Page
+                </FluentButton>
+            </FluentStack>
+            @foreach (var site in _sites)
+            {
+                <div class="ruth-kiosk-member-row" @key="site.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@site.Name (@site.Slug)</strong>
+                        <span class="ruth-room-status-pill">@site.SiteType · Domains: @site.Domains.Count</span>
+                        <a href="/cms/preview/@site.Slug/" class="ruth-header-link">Preview CMS Site</a>
+                        <FluentButton Size="ButtonSize.Small" OnClick="@(() => SelectSiteAsync(site.Id))">
+                            Configure Pages &amp; Blocks
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_selectedSiteId is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>2. Inline Zone / Block Configurator &amp; Versioned HTML Approval</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_blockName" Label="Block Name" />
+                    <FluentTextInput @bind-Value="_blockZone" Label="Zone (Hero/Main/Sidebar)" />
+                    <FluentTextInput @bind-Value="_blockTypeKey" Label="BlockType Key" />
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@AddBlockAsync">
+                        Add Block to Selected Page
+                    </FluentButton>
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_htmlMarkup" Label="HTML / Merge Markup" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SaveAndApproveHtmlAsync">
+                        Publish Approved HTML Revision
+                    </FluentButton>
+                </FluentStack>
+                @foreach (var block in _blocks)
+                {
+                    <div class="ruth-kiosk-member-row" @key="block.Id">
+                        <span>
+                            <strong>[@block.Zone] @block.Name</strong> (@block.BlockTypeKey · Order @block.Order)
+                        </span>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>3. ShortLinks, QR SVG Generator &amp; RequestFilters</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_shortToken" Label="Short Token" />
+                    <FluentTextInput @bind-Value="_shortTargetUrl" Label="Target URL" />
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateShortLinkAsync">
+                        Create ShortLink &amp; QR
+                    </FluentButton>
+                </FluentStack>
+                @if (!string.IsNullOrWhiteSpace(_qrSvgPreview))
+                {
+                    <div class="ruth-cms-qr-preview">@((MarkupString)_qrSvgPreview)</div>
+                }
+                @foreach (var sl in _shortLinks)
+                {
+                    <small @key="sl.Id">/go/@sl.Token &rarr; @sl.TargetUrl (Clicks: @sl.ClickCount)</small>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

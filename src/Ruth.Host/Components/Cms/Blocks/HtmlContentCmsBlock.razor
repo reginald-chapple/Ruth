@@ -1,0 +1,58 @@
+@implements IRuthBlock
+@inject IMergeTemplateEngine MergeEngine
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey">
+    @if (!string.IsNullOrWhiteSpace(_renderedHtml))
+    {
+        <div class="ruth-cms-html-body">@((MarkupString)_renderedHtml)</div>
+    }
+    else
+    {
+        <p class="ruth-cms-empty-note">No approved HTML content is published for @Block.Name yet.</p>
+    }
+</section>
+
+@code {
+    public string BlockKey => "cms.html-content";
+    public string DisplayName => "HTML Content";
+    public string Category => "CMS";
+    public string? Description => "Renders versioned, approved HTML & safe merge-token markup.";
+    public bool RequiresInteractivity => false;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    [Parameter]
+    public HtmlContentResponse? ActiveHtml { get; set; }
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? RouteParameters { get; set; }
+
+    private string _renderedHtml = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var raw = ActiveHtml?.Content;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            _renderedHtml = string.Empty;
+            return;
+        }
+
+        var ctx = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BlockName"] = Block.Name,
+            ["Zone"] = Block.Zone,
+        };
+        if (RouteParameters is not null)
+        {
+            foreach (var (k, v) in RouteParameters)
+            {
+                ctx[k] = v;
+            }
+        }
+
+        var rendered = await MergeEngine.RenderAsync(raw, ctx);
+        _renderedHtml = rendered.IsSuccess ? rendered.Value.RenderedContent : raw;
+    }
+}

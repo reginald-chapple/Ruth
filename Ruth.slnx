@@ -8,6 +8,10 @@
     <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn.Contracts/Ruth.Modules.CheckIn.Contracts.csproj" />
     <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn/Ruth.Modules.CheckIn.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Cms/">
+    <Project Path="src/Modules/Cms/Ruth.Modules.Cms.Contracts/Ruth.Modules.Cms.Contracts.csproj" />
+    <Project Path="src/Modules/Cms/Ruth.Modules.Cms/Ruth.Modules.Cms.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Commerce/">
     <Project Path="src/Modules/Commerce/Ruth.Modules.Commerce.Contracts/Ruth.Modules.Commerce.Contracts.csproj" />
     <Project Path="src/Modules/Commerce/Ruth.Modules.Commerce/Ruth.Modules.Commerce.csproj" />
@@ -65,6 +69,7 @@
     <Project Path="tests/Ruth.E2E.Tests/Ruth.E2E.Tests.csproj" />
     <Project Path="tests/Ruth.Host.IntegrationTests/Ruth.Host.IntegrationTests.csproj" />
     <Project Path="tests/Ruth.Modules.CheckIn.Tests/Ruth.Modules.CheckIn.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Cms.Tests/Ruth.Modules.Cms.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Commerce.Tests/Ruth.Modules.Commerce.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Communication.Tests/Ruth.Modules.Communication.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Core.Tests/Ruth.Modules.Core.Tests.csproj" />

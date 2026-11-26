@@ -1,0 +1,49 @@
+@implements IRuthBlock
+@inject IQueryDispatcher QueryDispatcher
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey">
+    <h3>@Block.Name</h3>
+    @if (_items.Count == 0)
+    {
+        <p class="ruth-cms-empty-note">No published items available in this channel.</p>
+    }
+    else
+    {
+        <div class="ruth-cms-feed-grid">
+            @foreach (var item in _items)
+            {
+                <article class="ruth-cms-feed-card" @key="item.Id">
+                    <h4>@item.Title</h4>
+                    @if (!string.IsNullOrWhiteSpace(item.Summary))
+                    {
+                        <p>@item.Summary</p>
+                    }
+                    <small>@item.StartDateTimeUtc.ToString("yyyy-MM-dd")</small>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    public string BlockKey => "cms.channel-feed";
+    public string DisplayName => "Content Channel List";
+    public string Category => "CMS";
+    public string? Description => "Lists published items from a CMS ContentChannel.";
+    public bool RequiresInteractivity => false;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    private IReadOnlyList<ContentChannelItemResponse> _items = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var slug = Block.Settings.GetValueOrDefault("ChannelSlug");
+        var res = await QueryDispatcher.QueryAsync<
+            GetContentChannelItemsQuery,
+            IReadOnlyList<ContentChannelItemResponse>
+        >(new GetContentChannelItemsQuery(ChannelSlug: slug, PublishedOnly: true));
+        _items = res.IsSuccess ? res.Value : [];
+    }
+}

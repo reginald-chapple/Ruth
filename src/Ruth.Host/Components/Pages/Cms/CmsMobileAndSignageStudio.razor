@@ -1,0 +1,69 @@
+@page "/cms/apps"
+@rendermode InteractiveServer
+
+<PageTitle>Mobile &amp; Digital Signage / TV Backends — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Mobile Shell &amp; Digital Signage / Apple TV / Roku Backends</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Native Mobile Applications (Versioned /api/v1/mobile Contract)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_mobileName" Label="App Name" />
+                <FluentTextInput @bind-Value="_mobileSlug" Label="App Slug" />
+                <FluentTextInput @bind-Value="_bundleId" Label="Bundle Identifier" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateMobileAppAsync">
+                    Create Mobile App + Home Screen
+                </FluentButton>
+            </FluentStack>
+            @foreach (var app in _mobileApps)
+            {
+                <div class="ruth-kiosk-member-row" @key="app.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@app.Name (@app.Slug)</strong>
+                        <span class="ruth-room-status-pill">v@app.ApiVersion · Pages: @app.Pages.Count · DeepLinks: @app.DeepLinks.Count</span>
+                        <a href="/api/v1/mobile/apps/@app.Slug/bootstrap" target="_blank" class="ruth-header-link">
+                            v1 Bootstrap JSON
+                        </a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Digital Signage, Apple TV &amp; Roku Feeds (/api/v1/signage)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_signageName" Label="Signage App Name" />
+                <FluentTextInput @bind-Value="_signageSlug" Label="Signage Slug" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateSignageAppAsync">
+                    Create Signage / TV Feed
+                </FluentButton>
+            </FluentStack>
+            @foreach (var sig in _signageApps)
+            {
+                <div class="ruth-kiosk-member-row" @key="sig.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@sig.Name (@sig.Slug)</strong>
+                        <a href="/api/v1/signage/@sig.Slug/feed" target="_blank" class="ruth-header-link">Signage JSON</a>
+                        <a href="/api/v1/signage/@sig.Slug/apple-tv" target="_blank" class="ruth-header-link">Apple TV</a>
+                        <a href="/api/v1/signage/@sig.Slug/roku" target="_blank" class="ruth-header-link">Roku Direct Publisher</a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>
