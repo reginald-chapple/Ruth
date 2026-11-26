@@ -52,7 +52,10 @@ internal static class PipelineProjectionMapper
                         a.IsActive
                     )),
             ],
-            new Dictionary<string, string?>(entity.AttributeValues, StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, string?>(
+                entity.AttributeValues,
+                StringComparer.OrdinalIgnoreCase
+            ),
             entity.CreatedOnUtc
         );
     }
@@ -82,18 +85,19 @@ internal static class PipelineProjectionMapper
                 )),
             ],
             [
-                .. entity.PlacementGroupConfigs.Select(static p =>
-                    new OpportunityPlacementGroupDto(
-                        p.GroupId,
-                        p.GroupRoleId,
-                        p.BranchId,
-                        p.UseAllGroupsOfType
-                    )
-                ),
+                .. entity.PlacementGroupConfigs.Select(static p => new OpportunityPlacementGroupDto(
+                    p.GroupId,
+                    p.GroupRoleId,
+                    p.BranchId,
+                    p.UseAllGroupsOfType
+                )),
             ],
             entity.IsActive,
             entity.IsPublic,
-            new Dictionary<string, string?>(entity.AttributeValues, StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, string?>(
+                entity.AttributeValues,
+                StringComparer.OrdinalIgnoreCase
+            ),
             entity.CreatedOnUtc
         );
     }

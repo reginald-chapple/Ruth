@@ -2,16 +2,171 @@ namespace Ruth.Modules.Engagement.Domain;
 
 internal static class EngagementSystemGuids
 {
-    public static readonly Guid PipelineType = new("01967500-0001-7000-8000-000000000501");
-    public static readonly Guid EngagementOpportunity = new("01967500-0002-7000-8000-000000000502");
-    public static readonly Guid EngagementRequest = new("01967500-0003-7000-8000-000000000503");
-    public static readonly Guid JourneyProgram = new("01967500-0004-7000-8000-000000000504");
-    public static readonly Guid PersonMilestone = new("01967500-0005-7000-8000-000000000505");
-    public static readonly Guid StreakType = new("01967500-0006-7000-8000-000000000506");
-    public static readonly Guid AchievementType = new("01967500-0007-7000-8000-000000000507");
-    public static readonly Guid SupportCategory = new("01967500-0008-7000-8000-000000000508");
-    public static readonly Guid SupportRequest = new("01967500-0009-7000-8000-000000000509");
-    public static readonly Guid ReminderType = new("01967500-000a-7000-8000-00000000050a");
-    public static readonly Guid ConstituentContact = new("01967500-000b-7000-8000-00000000050b");
-    public static readonly Guid Touchpoint = new("01967500-000c-7000-8000-00000000050c");
+    public static readonly Guid PipelineType = new(
+        0x01967500,
+        0x0001,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x01
+    );
+
+    public static readonly Guid EngagementOpportunity = new(
+        0x01967500,
+        0x0002,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x02
+    );
+
+    public static readonly Guid EngagementRequest = new(
+        0x01967500,
+        0x0003,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x03
+    );
+
+    public static readonly Guid JourneyProgram = new(
+        0x01967500,
+        0x0004,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x04
+    );
+
+    public static readonly Guid PersonMilestone = new(
+        0x01967500,
+        0x0005,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x05
+    );
+
+    public static readonly Guid StreakType = new(
+        0x01967500,
+        0x0006,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x06
+    );
+
+    public static readonly Guid AchievementType = new(
+        0x01967500,
+        0x0007,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x07
+    );
+
+    public static readonly Guid SupportCategory = new(
+        0x01967500,
+        0x0008,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x08
+    );
+
+    public static readonly Guid SupportRequest = new(
+        0x01967500,
+        0x0009,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x09
+    );
+
+    public static readonly Guid ReminderType = new(
+        0x01967500,
+        0x000a,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x0a
+    );
+
+    public static readonly Guid ConstituentContact = new(
+        0x01967500,
+        0x000b,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x0b
+    );
+
+    public static readonly Guid Touchpoint = new(
+        0x01967500,
+        0x000c,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x05,
+        0x0c
+    );
 }

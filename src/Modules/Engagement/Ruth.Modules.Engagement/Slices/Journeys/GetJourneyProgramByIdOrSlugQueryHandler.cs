@@ -22,6 +22,7 @@ internal sealed class GetJourneyProgramByIdOrSlugQueryHandler(EngagementDbContex
         }
 
         var token = query.IdOrSlug.Trim();
+        var slug = token.ToLowerInvariant();
         var q = dbContext
             .JourneyPrograms.AsNoTracking()
             .Include(static p => p.Statuses)
@@ -32,10 +33,7 @@ internal sealed class GetJourneyProgramByIdOrSlugQueryHandler(EngagementDbContex
                 p => p.Id == JourneyProgramId.From(parsed),
                 cancellationToken
             )
-            : await q.FirstOrDefaultAsync(
-                p => p.Slug == token.ToLowerInvariant(),
-                cancellationToken
-            );
+            : await q.FirstOrDefaultAsync(p => p.Slug == slug, cancellationToken);
 
         return program is null
             ? EngagementErrors.JourneyProgramNotFound

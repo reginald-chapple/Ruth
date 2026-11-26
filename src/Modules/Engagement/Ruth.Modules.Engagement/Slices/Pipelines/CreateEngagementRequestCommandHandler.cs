@@ -39,28 +39,30 @@ internal sealed class CreateEngagementRequestCommandHandler(
                 p => p.Id == PipelineTypeId.From(opp.PipelineTypeId),
                 cancellationToken
             );
-        if (pipeline is null)
-        {
-            return EngagementErrors.PipelineTypeNotFound;
-        }
+        return pipeline is null
+            ? EngagementErrors.PipelineTypeNotFound
+            : await CreateAndSaveAsync(command, pipeline, opp, cancellationToken);
+    }
 
+    private async Task<Result<EngagementRequestResponse>> CreateAndSaveAsync(
+        CreateEngagementRequestCommand command,
+        PipelineType pipeline,
+        EngagementOpportunity opp,
+        CancellationToken cancellationToken
+    )
+    {
         var now = clock.UtcNow;
         var today = DateOnly.FromDateTime(now.UtcDateTime);
-        var created = EngagementRequest.Create(
-            pipeline,
-            opp,
-            new EngagementRequestCreationSpec(
-                command.RequesterPersonId,
-                command.BranchId,
-                command.AssignedConnectorPersonId,
-                command.PlacementGroupId,
-                command.PlacementGroupRoleId,
-                command.FollowUpDate,
-                command.Comments
-            ),
-            today,
-            now
+        var spec = new EngagementRequestCreationSpec(
+            command.RequesterPersonId,
+            command.BranchId,
+            command.AssignedConnectorPersonId,
+            command.PlacementGroupId,
+            command.PlacementGroupRoleId,
+            command.FollowUpDate,
+            command.Comments
         );
+        var created = EngagementRequest.Create(pipeline, opp, spec, today, now);
         if (created.IsFailure)
         {
             return Result.Failure<EngagementRequestResponse>(created.Errors);

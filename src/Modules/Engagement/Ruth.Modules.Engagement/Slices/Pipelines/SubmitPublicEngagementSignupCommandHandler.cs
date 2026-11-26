@@ -22,24 +22,10 @@ internal sealed class SubmitPublicEngagementSignupCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (string.IsNullOrWhiteSpace(command.OpportunityIdOrSlug))
-        {
-            return EngagementErrors.OpportunityNotFound;
-        }
-
-        var token = command.OpportunityIdOrSlug.Trim();
-        var oppQuery = dbContext
-            .EngagementOpportunities.AsNoTracking()
-            .Where(static o => o.IsActive && o.IsPublic);
-        var opp = Guid.TryParse(token, out var oppId)
-            ? await oppQuery.FirstOrDefaultAsync(
-                o => o.Id == EngagementOpportunityId.From(oppId),
-                cancellationToken
-            )
-            : await oppQuery.FirstOrDefaultAsync(
-                o => o.Slug == token.ToLowerInvariant(),
-                cancellationToken
-            );
+        var opp = await ResolvePublicOpportunityAsync(
+            command.OpportunityIdOrSlug,
+            cancellationToken
+        );
         if (opp is null)
         {
             return EngagementErrors.OpportunityNotFound;
@@ -61,18 +47,50 @@ internal sealed class SubmitPublicEngagementSignupCommandHandler(
             command,
             cancellationToken
         );
-        if (personRes.IsFailure)
+        return personRes.IsFailure
+            ? Result.Failure<EngagementRequestResponse>(personRes.Errors)
+            : await PersistSignupAsync(command, pipeline, opp, personRes.Value, cancellationToken);
+    }
+
+    private async Task<EngagementOpportunity?> ResolvePublicOpportunityAsync(
+        string? rawToken,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrWhiteSpace(rawToken))
         {
-            return Result.Failure<EngagementRequestResponse>(personRes.Errors);
+            return null;
         }
 
+        var token = rawToken.Trim();
+        var slug = token.ToLowerInvariant();
+        var oppQuery = dbContext
+            .EngagementOpportunities.AsNoTracking()
+            .Where(static o => o.IsActive && o.IsPublic);
+
+        return Guid.TryParse(token, out var oppId)
+            ? await oppQuery.FirstOrDefaultAsync(
+                o => o.Id == EngagementOpportunityId.From(oppId),
+                cancellationToken
+            )
+            : await oppQuery.FirstOrDefaultAsync(o => o.Slug == slug, cancellationToken);
+    }
+
+    private async Task<Result<EngagementRequestResponse>> PersistSignupAsync(
+        SubmitPublicEngagementSignupCommand command,
+        PipelineType pipeline,
+        EngagementOpportunity opp,
+        Guid personId,
+        CancellationToken cancellationToken
+    )
+    {
         var now = clock.UtcNow;
         var today = DateOnly.FromDateTime(now.UtcDateTime);
         var created = EngagementRequest.Create(
             pipeline,
             opp,
             new EngagementRequestCreationSpec(
-                personRes.Value,
+                personId,
                 command.BranchId,
                 Comments: command.Comments
             ),
@@ -89,7 +107,7 @@ internal sealed class SubmitPublicEngagementSignupCommandHandler(
 
         var people = await PipelineProjectionMapper.LoadPeopleAsync(
             queryDispatcher,
-            [personRes.Value],
+            [personId],
             cancellationToken
         );
         return PipelineProjectionMapper.ToResponse(

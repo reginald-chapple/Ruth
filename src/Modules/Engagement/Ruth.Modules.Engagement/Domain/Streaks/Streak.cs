@@ -38,13 +38,20 @@ public sealed class Streak : AggregateRoot<StreakId>, IAuditableEntity, IHasConc
     public DateTimeOffset? ModifiedOnUtc { get; private set; }
     public Guid ConcurrencyStamp { get; private set; } = Guid.CreateVersion7();
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public static Result<Streak> Enroll(
         StreakType streakType,
@@ -54,18 +61,15 @@ public sealed class Streak : AggregateRoot<StreakId>, IAuditableEntity, IHasConc
     )
     {
         ArgumentNullException.ThrowIfNull(streakType);
-        if (personId == Guid.Empty)
-        {
-            return EngagementErrors.StreakTypeInvalid;
-        }
-
-        return new Streak(StreakId.Create())
-        {
-            StreakTypeId = streakType.Id.Value,
-            PersonId = personId,
-            BranchId = NormalizeGuid(branchId),
-            EnrollmentDate = enrollmentDate,
-        };
+        return personId == Guid.Empty
+            ? EngagementErrors.StreakTypeInvalid
+            : new Streak(StreakId.Create())
+            {
+                StreakTypeId = streakType.Id.Value,
+                PersonId = personId,
+                BranchId = NormalizeGuid(branchId),
+                EnrollmentDate = enrollmentDate,
+            };
     }
 
     public Result RecordEngagement(
@@ -102,7 +106,7 @@ public sealed class Streak : AggregateRoot<StreakId>, IAuditableEntity, IHasConc
     {
         ArgumentNullException.ThrowIfNull(streakType);
         var asOfBucket = Math.Max(
-            (_engagementMap.Length * 8) - 1,
+            StreakBitmaskEngine.FindHighestSetBitIndex(_engagementMap),
             StreakBitmaskEngine.ComputeBucketIndex(
                 streakType.AnchorStartDate,
                 asOfDate,

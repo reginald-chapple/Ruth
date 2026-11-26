@@ -123,8 +123,14 @@ internal sealed class AchievementProgressionCollaborator(
         {
             if (
                 type.SourceKind == AchievementSourceKind.MilestoneCompletions
-                && (!type.TargetMilestoneTypeId.HasValue || type.TargetMilestoneTypeId == milestoneTypeId)
-                && (!type.TargetJourneyProgramId.HasValue || type.TargetJourneyProgramId == journeyProgramId)
+                && (
+                    !type.TargetMilestoneTypeId.HasValue
+                    || type.TargetMilestoneTypeId == milestoneTypeId
+                )
+                && (
+                    !type.TargetJourneyProgramId.HasValue
+                    || type.TargetJourneyProgramId == journeyProgramId
+                )
             )
             {
                 _ = await ApplySingleAsync(
@@ -137,7 +143,10 @@ internal sealed class AchievementProgressionCollaborator(
             }
             else if (
                 type.SourceKind == AchievementSourceKind.JourneyCompletions
-                && (!type.TargetJourneyProgramId.HasValue || type.TargetJourneyProgramId == journeyProgramId)
+                && (
+                    !type.TargetJourneyProgramId.HasValue
+                    || type.TargetJourneyProgramId == journeyProgramId
+                )
             )
             {
                 _ = await ApplySingleAsync(

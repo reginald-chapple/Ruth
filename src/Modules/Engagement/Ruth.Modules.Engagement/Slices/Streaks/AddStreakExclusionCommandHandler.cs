@@ -8,10 +8,8 @@ using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Engagement.Slices.Streaks;
 
-internal sealed class AddStreakExclusionCommandHandler(
-    EngagementDbContext dbContext,
-    IClock clock
-) : ICommandHandler<AddStreakExclusionCommand, StreakTypeResponse>
+internal sealed class AddStreakExclusionCommandHandler(EngagementDbContext dbContext, IClock clock)
+    : ICommandHandler<AddStreakExclusionCommand, StreakTypeResponse>
 {
     public async Task<Result<StreakTypeResponse>> HandleAsync(
         AddStreakExclusionCommand command,

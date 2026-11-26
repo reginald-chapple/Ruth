@@ -8,7 +8,19 @@ public readonly record struct FollowingEventNotificationId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static FollowingEventNotificationId Empty => new(Guid.Empty);
-    public static FollowingEventNotificationId Create() => new(StronglyTypedId.NextGuid());
-    public static FollowingEventNotificationId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static FollowingEventNotificationId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static FollowingEventNotificationId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

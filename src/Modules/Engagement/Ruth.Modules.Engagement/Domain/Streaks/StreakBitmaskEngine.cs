@@ -100,10 +100,26 @@ public static class StreakBitmaskEngine
 
         foreach (var b in span)
         {
-            count += BitOperations.PopCount((uint)b);
+            count += BitOperations.PopCount(b);
         }
 
         return count;
+    }
+
+    /// <summary>Finds the highest set bucket bit index in <paramref name="map" />, or -1 when empty/all-zero.</summary>
+    public static int FindHighestSetBitIndex(ReadOnlySpan<byte> map)
+    {
+        for (var i = map.Length - 1; i >= 0; i--)
+        {
+            var b = map[i];
+            if (b != 0)
+            {
+                var highestBitInByte = 31 - BitOperations.LeadingZeroCount(b);
+                return (i << 3) + highestBitInByte;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>Bitwise-OR merges two participation bitmasks into a newly sized array (used on Person Merge).</summary>
@@ -126,7 +142,7 @@ public static class StreakBitmaskEngine
         return merged;
     }
 
-    /// <summary>Builds an exclusion bitmask over <c>[0..maxBucketIndex]</c> for a branch or org-wide exclusions.</summary>
+    /// <summary>Builds an exclusion bitmask over 0..maxBucketIndex for a branch or org-wide exclusions.</summary>
     public static byte[] BuildExclusionMap(
         DateOnly anchorStartDate,
         StreakCadence cadence,
@@ -145,12 +161,7 @@ public static class StreakBitmaskEngine
         var span = map.AsSpan();
         foreach (var ex in exclusions)
         {
-            if (ex.BranchId.HasValue && branchId.HasValue && ex.BranchId != branchId)
-            {
-                continue;
-            }
-
-            if (ex.BranchId.HasValue && !branchId.HasValue)
+            if (!AppliesToBranch(ex.BranchId, branchId))
             {
                 continue;
             }
@@ -181,43 +192,21 @@ public static class StreakBitmaskEngine
             return default;
         }
 
-        int totalCount = 0, runCount = 0, runStart = -1;
-        int longestCount = 0, longestStart = -1, longestEnd = -1, mostRecent = -1;
-
-        for (var b = 0; b <= asOfBucketIndex; b++)
-        {
-            if (IsBitSet(engagementMap, b))
-            {
-                totalCount++;
-                mostRecent = b;
-                if (runCount == 0)
-                {
-                    runStart = b;
-                }
-
-                runCount++;
-                if (runCount >= longestCount)
-                {
-                    longestCount = runCount;
-                    longestStart = runStart;
-                    longestEnd = b;
-                }
-            }
-            else if (!IsBitSet(exclusionMap, b) && (b < asOfBucketIndex || !allowUnengagedCurrentBucketGrace))
-            {
-                runCount = 0;
-                runStart = -1;
-            }
-        }
+        var (total, run, runStart, longest, longestStart, longestEnd, mostRecent) = ScanBuckets(
+            engagementMap,
+            exclusionMap,
+            asOfBucketIndex,
+            allowUnengagedCurrentBucketGrace
+        );
 
         return new StreakComputedMetrics(
-            totalCount,
-            runCount,
-            runCount > 0 ? BucketIndexToDate(anchorStartDate, runStart, cadence, weekEndDay) : null,
-            longestCount,
-            longestCount > 0 ? BucketIndexToDate(anchorStartDate, longestStart, cadence, weekEndDay) : null,
-            longestCount > 0 ? BucketIndexToDate(anchorStartDate, longestEnd, cadence, weekEndDay) : null,
-            mostRecent >= 0 ? BucketIndexToDate(anchorStartDate, mostRecent, cadence, weekEndDay) : null
+            total,
+            run,
+            ResolveOptionalDate(anchorStartDate, runStart, cadence, weekEndDay),
+            longest,
+            ResolveOptionalDate(anchorStartDate, longestStart, cadence, weekEndDay),
+            ResolveOptionalDate(anchorStartDate, longestEnd, cadence, weekEndDay),
+            ResolveOptionalDate(anchorStartDate, mostRecent, cadence, weekEndDay)
         );
     }
 
@@ -236,19 +225,101 @@ public static class StreakBitmaskEngine
 
         var start = Math.Max(0, asOfBucketIndex - windowBuckets + 1);
         var len = asOfBucketIndex - start + 1;
-        Span<char> chars = len <= 128 ? stackalloc char[len] : new char[len];
+        var chars = len <= 128 ? stackalloc char[len] : new char[len];
 
         for (var i = 0; i < len; i++)
         {
             var b = start + i;
-            chars[i] = IsBitSet(engagementMap, b)
-                ? '1'
-                : IsBitSet(exclusionMap, b)
-                    ? 'E'
-                    : '0';
+            chars[i] = ResolveBucketSymbol(engagementMap, exclusionMap, b);
         }
 
         return new string(chars);
+    }
+
+    private static (
+        int Total,
+        int Run,
+        int RunStart,
+        int Longest,
+        int LongestStart,
+        int LongestEnd,
+        int MostRecent
+    ) ScanBuckets(
+        ReadOnlySpan<byte> engagementMap,
+        ReadOnlySpan<byte> exclusionMap,
+        int asOfBucketIndex,
+        bool allowGrace
+    )
+    {
+        var total = 0;
+        var run = 0;
+        var runStart = -1;
+        var longest = 0;
+        var longestStart = -1;
+        var longestEnd = -1;
+        var mostRecent = -1;
+
+        for (var b = 0; b <= asOfBucketIndex; b++)
+        {
+            if (IsBitSet(engagementMap, b))
+            {
+                total++;
+                mostRecent = b;
+                runStart = run == 0 ? b : runStart;
+                run++;
+                if (run >= longest)
+                {
+                    longest = run;
+                    longestStart = runStart;
+                    longestEnd = b;
+                }
+            }
+            else if (ShouldResetRun(exclusionMap, b, asOfBucketIndex, allowGrace))
+            {
+                run = 0;
+                runStart = -1;
+            }
+        }
+
+        return (total, run, runStart, longest, longestStart, longestEnd, mostRecent);
+    }
+
+    private static bool ShouldResetRun(
+        ReadOnlySpan<byte> exclusionMap,
+        int bucket,
+        int asOfBucketIndex,
+        bool allowGrace
+    )
+    {
+        return !IsBitSet(exclusionMap, bucket) && (bucket < asOfBucketIndex || !allowGrace);
+    }
+
+    private static DateOnly? ResolveOptionalDate(
+        DateOnly anchor,
+        int bucketIndex,
+        StreakCadence cadence,
+        DayOfWeek weekEndDay
+    )
+    {
+        return bucketIndex >= 0
+            ? BucketIndexToDate(anchor, bucketIndex, cadence, weekEndDay)
+            : null;
+    }
+
+    private static char ResolveBucketSymbol(
+        ReadOnlySpan<byte> engagementMap,
+        ReadOnlySpan<byte> exclusionMap,
+        int bucket
+    )
+    {
+        return IsBitSet(engagementMap, bucket) ? '1'
+            : IsBitSet(exclusionMap, bucket) ? 'E'
+            : '0';
+    }
+
+    private static bool AppliesToBranch(Guid? exclusionBranchId, Guid? streakBranchId)
+    {
+        return !exclusionBranchId.HasValue || exclusionBranchId == streakBranchId;
     }
 
     private static byte[] ResizePreserving(byte[] existing, int requiredLength)

@@ -20,26 +20,27 @@ internal static class EngagementPipelinePublicEndpoints
             .WithTags("Public Opportunity Finder & Signup")
             .AllowAnonymous();
 
-        _ = pub
-            .MapGet("/opportunities", ListPublicOpportunitiesAsync)
+        _ = pub.MapGet("/opportunities", ListPublicOpportunitiesAsync)
             .WithName("EngagementListPublicOpportunities")
             .WithSummary("Search public engagement opportunities")
-            .WithDescription("Returns active public opportunities for volunteer, onboarding, and mentorship intake.")
+            .WithDescription(
+                "Returns active public opportunities for volunteer, onboarding, and mentorship intake."
+            )
             .Produces<IReadOnlyList<EngagementOpportunityResponse>>(StatusCodes.Status200OK);
 
-        _ = pub
-            .MapGet("/opportunities/{idOrSlug}", GetPublicOpportunityAsync)
+        _ = pub.MapGet("/opportunities/{idOrSlug}", GetPublicOpportunityAsync)
             .WithName("EngagementGetPublicOpportunity")
             .WithSummary("Get public engagement opportunity by ID or slug")
             .WithDescription("Returns details for a single public engagement opportunity.")
             .Produces<EngagementOpportunityResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        _ = pub
-            .MapPost("/signup", SubmitPublicSignupAsync)
+        _ = pub.MapPost("/signup", SubmitPublicSignupAsync)
             .WithName("EngagementSubmitPublicSignup")
             .WithSummary("Submit public opportunity signup")
-            .WithDescription("Resolves or creates a CRM constituent and places an EngagementRequest on the Connector Board.")
+            .WithDescription(
+                "Resolves or creates a CRM constituent and places an EngagementRequest on the Connector Board."
+            )
             .Produces<EngagementRequestResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
@@ -89,13 +90,8 @@ internal static class EngagementPipelinePublicEndpoints
             GetEngagementOpportunityByIdOrSlugQuery,
             EngagementOpportunityResponse
         >(new GetEngagementOpportunityByIdOrSlugQuery(idOrSlug), ct);
-        if (r.IsFailure)
-        {
-            return EngagementProblemResultMapper.ToProblemResult(r, ctx);
-        }
-
-        return r.Value is { IsActive: true, IsPublic: true }
-            ? TypedResults.Ok(r.Value)
+        return r.IsFailure ? EngagementProblemResultMapper.ToProblemResult(r, ctx)
+            : r.Value is { IsActive: true, IsPublic: true } ? TypedResults.Ok(r.Value)
             : TypedResults.Problem(
                 detail: "Public opportunity not found.",
                 instance: ctx.Request.Path.Value,

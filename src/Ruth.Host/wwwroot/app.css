@@ -269,3 +269,26 @@
   border: 2px solid color-mix(in srgb, currentcolor 25%, transparent);
   background-color: color-mix(in srgb, currentcolor 6%, transparent);
 }
+
+.ruth-kanban-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.ruth-kanban-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
+  background-color: color-mix(in srgb, currentcolor 5%, transparent);
+}
+
+.ruth-sparkline-mono {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+}

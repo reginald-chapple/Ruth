@@ -57,7 +57,14 @@ internal sealed class PipelineAutomationCollaborator(
 
         IReadOnlyList<PhoneNumberInputDto>? phones = string.IsNullOrWhiteSpace(command.MobilePhone)
             ? null
-            : [new PhoneNumberInputDto(PhoneNumberType.Mobile, command.MobilePhone.Trim(), true)];
+            :
+            [
+                new PhoneNumberInputDto(
+                    PhoneNumberType.Mobile,
+                    command.MobilePhone.Trim(),
+                    IsMessagingEnabled: true
+                ),
+            ];
 
         var create = await commandDispatcher.SendAsync<CreatePersonCommand, PersonDetailResponse>(
             new CreatePersonCommand(
@@ -70,9 +77,7 @@ internal sealed class PipelineAutomationCollaborator(
             cancellationToken
         );
 
-        return create.IsFailure
-            ? Result.Failure<Guid>(create.Errors)
-            : create.Value.Id;
+        return create.IsFailure ? Result.Failure<Guid>(create.Errors) : create.Value.Id;
     }
 
     public async Task ExecuteTransitionSideEffectsAsync(
@@ -154,37 +159,50 @@ internal sealed class PipelineAutomationCollaborator(
     {
         switch (automation.AutomationKind)
         {
-            case StageAutomationKind.AddToPlacementGroup
-                when automation.TargetEntityId is { } groupId && groupId != Guid.Empty:
-                _ = await commandDispatcher.SendAsync<
-                    SimpleRegisterForGroupCommand,
-                    GroupMemberResponse
-                >(
-                    new SimpleRegisterForGroupCommand(
-                        groupId,
-                        request.RequesterPersonId,
-                        request.PlacementGroupRoleId
-                    ),
-                    cancellationToken
-                );
+            case StageAutomationKind.AddToPlacementGroup:
+                if (automation.TargetEntityId is { } groupId && groupId != Guid.Empty)
+                {
+                    _ = await commandDispatcher.SendAsync<
+                        SimpleRegisterForGroupCommand,
+                        GroupMemberResponse
+                    >(
+                        new SimpleRegisterForGroupCommand(
+                            groupId,
+                            request.RequesterPersonId,
+                            request.PlacementGroupRoleId
+                        ),
+                        cancellationToken
+                    );
+                }
+
                 break;
 
-            case StageAutomationKind.SendSystemNotification
-                when !string.IsNullOrWhiteSpace(automation.SystemCommunicationKey):
-                dbContext.EnqueueIntegrationEvent(
-                    new SystemNotificationRequestedIntegrationEvent(
-                        Guid.CreateVersion7(),
-                        nowUtc,
-                        automation.SystemCommunicationKey!,
-                        RecipientPersonId: request.RequesterPersonId,
-                        TriggerModule: "Engagement.Pipelines"
-                    )
-                );
+            case StageAutomationKind.SendSystemNotification:
+                if (!string.IsNullOrWhiteSpace(automation.SystemCommunicationKey))
+                {
+                    dbContext.EnqueueIntegrationEvent(
+                        new SystemNotificationRequestedIntegrationEvent(
+                            Guid.CreateVersion7(),
+                            nowUtc,
+                            automation.SystemCommunicationKey,
+                            RecipientPersonId: request.RequesterPersonId,
+                            TriggerModule: "Engagement.Pipelines"
+                        )
+                    );
+                }
+
                 break;
 
-            case StageAutomationKind.TransferToOpportunity
-                when automation.TargetEntityId is { } targetOppId && targetOppId != Guid.Empty:
-                await TransferInternalAsync(request, targetOppId, nowUtc, cancellationToken);
+            case StageAutomationKind.TransferToOpportunity:
+                if (automation.TargetEntityId is { } targetOppId && targetOppId != Guid.Empty)
+                {
+                    await TransferInternalAsync(request, targetOppId, nowUtc, cancellationToken);
+                }
+
+                break;
+
+            case StageAutomationKind.None:
+            default:
                 break;
         }
     }
@@ -213,7 +231,13 @@ internal sealed class PipelineAutomationCollaborator(
             );
         if (pipe is not null)
         {
-            request.TransferTo(pipe, opp, "Automated Stage Transfer", null, nowUtc);
+            request.TransferTo(
+                pipe,
+                opp,
+                note: "Automated Stage Transfer",
+                actorPersonId: null,
+                nowUtc
+            );
         }
     }
 }

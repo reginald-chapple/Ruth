@@ -8,6 +8,7 @@
             <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="Ruth RMS" />
             <a href="/" class="ruth-brand">Ruth RMS</a>
             <div class="ruth-header-spacer"></div>
+            <a href="/engagement/notifications" class="ruth-header-link" aria-label="Notifications">Notifications</a>
             @if (_isAuthenticated)
             {
                 <span class="ruth-user-badge">@_authenticatedUserName</span>
@@ -113,6 +114,19 @@
                 <FluentNavItem Href="/commerce/storefront">Storefront &amp; Checkout</FluentNavItem>
                 <FluentNavItem Href="/commerce/bookings">Services, Rentals &amp; Calendar</FluentNavItem>
                 <FluentNavItem Href="/commerce/book">Public Booking Wizard</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Engagement"
+                               IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
+                               IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
+                <FluentNavItem Href="/engagement/pipelines">Pipelines &amp; Connector Board</FluentNavItem>
+                <FluentNavItem Href="/engagement/opportunities">Public Opportunity Finder</FluentNavItem>
+                <FluentNavItem Href="/engagement/journeys">Journeys &amp; Milestones</FluentNavItem>
+                <FluentNavItem Href="/engagement/streaks">Streaks &amp; Achievements</FluentNavItem>
+                <FluentNavItem Href="/engagement/care">Care Queue, Reminders &amp; Following</FluentNavItem>
+                <FluentNavItem Href="/engagement/support">Community Support Wall</FluentNavItem>
+                <FluentNavItem Href="/engagement/portfolio">My Portfolio &amp; Touchpoints</FluentNavItem>
+                <FluentNavItem Href="/engagement/notifications">Notification Inbox</FluentNavItem>
             </FluentNavCategory>
 
             <FluentNavCategory Title="Security"

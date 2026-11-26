@@ -31,7 +31,9 @@ internal static class EngagementJourneyEndpoints
             .MapPost("/programs", CreateProgramAsync)
             .WithName("EngagementCreateJourneyProgram")
             .WithSummary("Create journey program")
-            .WithDescription("Creates a journey program with validated acyclic milestone prerequisites.")
+            .WithDescription(
+                "Creates a journey program with validated acyclic milestone prerequisites."
+            )
             .Produces<JourneyProgramResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -45,11 +47,19 @@ internal static class EngagementJourneyEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        MapMilestoneProgressRoutes(group);
+        return endpoints;
+    }
+
+    private static void MapMilestoneProgressRoutes(RouteGroupBuilder group)
+    {
         _ = group
             .MapPost("/milestones", RecordMilestoneAsync)
             .WithName("EngagementRecordPersonMilestone")
             .WithSummary("Record or complete a person milestone")
-            .WithDescription("Validates prerequisites, records milestone completion, and evaluates program/achievement rollups.")
+            .WithDescription(
+                "Validates prerequisites, records milestone completion, and evaluates program/achievement rollups."
+            )
             .Produces<PersonMilestoneResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -67,25 +77,24 @@ internal static class EngagementJourneyEndpoints
             .WithSummary("List journey program completions")
             .WithDescription("Returns completed journey programs filtered by program or person.")
             .Produces<IReadOnlyList<JourneyCompletionResponse>>(StatusCodes.Status200OK);
-
-        return endpoints;
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<JourneyProgramResponse>>, ProblemHttpResult>> ListProgramsAsync(
-        bool? activeOnly,
-        IQueryDispatcher d,
-        HttpContext ctx,
-        CancellationToken ct
-    )
+    private static async Task<
+        Results<Ok<IReadOnlyList<JourneyProgramResponse>>, ProblemHttpResult>
+    > ListProgramsAsync(bool? activeOnly, IQueryDispatcher d, HttpContext ctx, CancellationToken ct)
     {
         var r = await d.QueryAsync<GetJourneyProgramsQuery, IReadOnlyList<JourneyProgramResponse>>(
             new GetJourneyProgramsQuery(activeOnly ?? false),
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Created<JourneyProgramResponse>, ProblemHttpResult>> CreateProgramAsync(
+    private static async Task<
+        Results<Created<JourneyProgramResponse>, ProblemHttpResult>
+    > CreateProgramAsync(
         JourneyProgramSpec spec,
         ICommandDispatcher d,
         HttpContext ctx,
@@ -101,7 +110,9 @@ internal static class EngagementJourneyEndpoints
             : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<JourneyProgramResponse>, ProblemHttpResult>> UpdateProgramAsync(
+    private static async Task<
+        Results<Ok<JourneyProgramResponse>, ProblemHttpResult>
+    > UpdateProgramAsync(
         Guid id,
         JourneyProgramSpec spec,
         ICommandDispatcher d,
@@ -113,10 +124,14 @@ internal static class EngagementJourneyEndpoints
             new UpdateJourneyProgramCommand(id, spec),
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Created<PersonMilestoneResponse>, ProblemHttpResult>> RecordMilestoneAsync(
+    private static async Task<
+        Results<Created<PersonMilestoneResponse>, ProblemHttpResult>
+    > RecordMilestoneAsync(
         RecordPersonMilestoneCommand body,
         ICommandDispatcher d,
         HttpContext ctx,
@@ -129,7 +144,9 @@ internal static class EngagementJourneyEndpoints
             : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<PersonJourneySummaryResponse>>, ProblemHttpResult>> GetPersonProgressAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<PersonJourneySummaryResponse>>, ProblemHttpResult>
+    > GetPersonProgressAsync(
         Guid personId,
         Guid? journeyProgramId,
         IQueryDispatcher d,
@@ -137,14 +154,18 @@ internal static class EngagementJourneyEndpoints
         CancellationToken ct
     )
     {
-        var r = await d.QueryAsync<GetPersonJourneyProgressQuery, IReadOnlyList<PersonJourneySummaryResponse>>(
-            new GetPersonJourneyProgressQuery(personId, journeyProgramId),
-            ct
-        );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        var r = await d.QueryAsync<
+            GetPersonJourneyProgressQuery,
+            IReadOnlyList<PersonJourneySummaryResponse>
+        >(new GetPersonJourneyProgressQuery(personId, journeyProgramId), ct);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<JourneyCompletionResponse>>, ProblemHttpResult>> ListCompletionsAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<JourneyCompletionResponse>>, ProblemHttpResult>
+    > ListCompletionsAsync(
         Guid? journeyProgramId,
         Guid? personId,
         IQueryDispatcher d,
@@ -152,10 +173,12 @@ internal static class EngagementJourneyEndpoints
         CancellationToken ct
     )
     {
-        var r = await d.QueryAsync<GetJourneyCompletionsQuery, IReadOnlyList<JourneyCompletionResponse>>(
-            new GetJourneyCompletionsQuery(journeyProgramId, personId),
-            ct
-        );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        var r = await d.QueryAsync<
+            GetJourneyCompletionsQuery,
+            IReadOnlyList<JourneyCompletionResponse>
+        >(new GetJourneyCompletionsQuery(journeyProgramId, personId), ct);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 }

@@ -8,7 +8,19 @@ public readonly record struct EngagementOpportunityId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static EngagementOpportunityId Empty => new(Guid.Empty);
-    public static EngagementOpportunityId Create() => new(StronglyTypedId.NextGuid());
-    public static EngagementOpportunityId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static EngagementOpportunityId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static EngagementOpportunityId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

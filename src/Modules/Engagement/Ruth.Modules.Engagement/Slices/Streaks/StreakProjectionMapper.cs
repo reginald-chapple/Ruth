@@ -33,11 +33,7 @@ internal static class StreakProjectionMapper
         );
     }
 
-    public static StreakResponse ToResponse(
-        Streak streak,
-        StreakType streakType,
-        DateOnly today
-    )
+    public static StreakResponse ToResponse(Streak streak, StreakType streakType, DateOnly today)
     {
         var asOfBucket = Math.Max(
             (streak.EngagementMap.Length * 8) - 1,

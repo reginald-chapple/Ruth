@@ -31,11 +31,17 @@ internal sealed class RecordPersonMilestoneCommandHandler(
                 p => p.Id == JourneyProgramId.From(command.JourneyProgramId),
                 cancellationToken
             );
-        if (program is null)
-        {
-            return EngagementErrors.JourneyProgramNotFound;
-        }
+        return program is null
+            ? EngagementErrors.JourneyProgramNotFound
+            : await RecordForProgramAsync(command, program, cancellationToken);
+    }
 
+    private async Task<Result<PersonMilestoneResponse>> RecordForProgramAsync(
+        RecordPersonMilestoneCommand command,
+        JourneyProgram program,
+        CancellationToken cancellationToken
+    )
+    {
         var milestoneType = program.FindMilestoneType(command.MilestoneTypeId);
         var status = program.FindStatus(command.MilestoneStatusId);
         if (milestoneType is null || status is null)
@@ -111,47 +117,23 @@ internal sealed class RecordPersonMilestoneCommandHandler(
             )
         );
 
-        var alreadyCompletedProgram = await dbContext.JourneyCompletions.AnyAsync(
-            c => c.PersonId == milestone.PersonId && c.JourneyProgramId == program.Id.Value,
+        var newCompletionsAdded = await TryRecordProgramCompletionAsync(
+            milestone,
+            program,
+            existingProgramMilestones,
+            completedTypeIds,
+            completedDate,
+            now,
             cancellationToken
         );
-        var newCompletionsAdded = 0;
-        if (
-            !alreadyCompletedProgram
-            && JourneyPrerequisiteValidator.IsProgramComplete(program, completedTypeIds)
-        )
-        {
-            var earliestStart = existingProgramMilestones
-                .Select(static m => m.StartDate)
-                .Append(milestone.StartDate)
-                .Min();
-            var completion = JourneyCompletion.Create(
-                milestone.PersonId,
-                program.Id.Value,
-                milestone.BranchId,
-                earliestStart,
-                completedDate
-            );
-            _ = dbContext.JourneyCompletions.Add(completion);
-            newCompletionsAdded = 1;
-            dbContext.EnqueueIntegrationEvent(
-                new JourneyProgramCompletedIntegrationEvent(
-                    Guid.CreateVersion7(),
-                    now,
-                    completion.Id.Value,
-                    milestone.PersonId,
-                    program.Id.Value,
-                    completedDate
-                )
-            );
-        }
 
         var totalJourneyCompletions =
             await dbContext.JourneyCompletions.CountAsync(
                 c => c.PersonId == milestone.PersonId,
                 cancellationToken
             ) + newCompletionsAdded;
-        var totalCompletedMilestones = existingProgramMilestones.Count(static m => m.IsCompleted) + 1;
+        var totalCompletedMilestones =
+            existingProgramMilestones.Count(static m => m.IsCompleted) + 1;
 
         await achievements.EvaluateMilestoneAndJourneyAchievementsAsync(
             milestone.PersonId,
@@ -162,5 +144,52 @@ internal sealed class RecordPersonMilestoneCommandHandler(
             completedDate,
             cancellationToken
         );
+    }
+
+    private async Task<int> TryRecordProgramCompletionAsync(
+        PersonMilestone milestone,
+        JourneyProgram program,
+        List<PersonMilestone> existingProgramMilestones,
+        HashSet<Guid> completedTypeIds,
+        DateOnly completedDate,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        var alreadyCompletedProgram = await dbContext.JourneyCompletions.AnyAsync(
+            c => c.PersonId == milestone.PersonId && c.JourneyProgramId == program.Id.Value,
+            cancellationToken
+        );
+        if (
+            alreadyCompletedProgram
+            || !JourneyPrerequisiteValidator.IsProgramComplete(program, completedTypeIds)
+        )
+        {
+            return 0;
+        }
+
+        var earliestStart = existingProgramMilestones
+            .Select(static m => m.StartDate)
+            .Append(milestone.StartDate)
+            .Min();
+        var completion = JourneyCompletion.Create(
+            milestone.PersonId,
+            program.Id.Value,
+            milestone.BranchId,
+            earliestStart,
+            completedDate
+        );
+        _ = dbContext.JourneyCompletions.Add(completion);
+        dbContext.EnqueueIntegrationEvent(
+            new JourneyProgramCompletedIntegrationEvent(
+                Guid.CreateVersion7(),
+                now,
+                completion.Id.Value,
+                milestone.PersonId,
+                program.Id.Value,
+                completedDate
+            )
+        );
+        return 1;
     }
 }

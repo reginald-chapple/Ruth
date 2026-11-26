@@ -1,0 +1,66 @@
+@page "/engagement/opportunities"
+@page "/engagement/opportunities/{Slug}"
+@rendermode InteractiveServer
+
+<PageTitle>Opportunity Finder &amp; Signup — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Public Engagement &amp; Volunteer Opportunity Finder</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentTextInput @bind-Value="_searchText" Label="Filter Opportunities" Placeholder="Mentor, Onboarding, Intake..." />
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SearchAsync">Search</FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Available Opportunities (@_opportunities.Count)</h2>
+            @if (_opportunities.Count == 0)
+            {
+                <p>No public engagement opportunities are currently published.</p>
+            }
+            @foreach (var opp in _opportunities)
+            {
+                <div class="ruth-kiosk-member-row" @key="opp.Id">
+                    <strong>@opp.Name</strong>
+                    <span class="ruth-room-status-pill">@opp.PipelineName</span>
+                    <span>@(opp.PublicSummary ?? opp.Description ?? "Sign up to connect with a coordinator.")</span>
+                    <FluentButton Size="ButtonSize.Small"
+                                  Appearance="ButtonAppearance.Outline"
+                                  OnClick="@(() => SelectOpportunity(opp.Slug))">
+                        Select Opportunity
+                    </FluentButton>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Express Interest / Sign Up</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_selectedSlug" Label="Opportunity Slug" />
+                <FluentTextInput @bind-Value="_firstName" Label="First Name" />
+                <FluentTextInput @bind-Value="_lastName" Label="Last Name" />
+                <FluentTextInput @bind-Value="_email" Label="Email Address" />
+                <FluentTextInput @bind-Value="_phone" Label="Mobile Phone (Optional)" />
+                <FluentTextInput @bind-Value="_comments" Label="Notes / Availability" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitSignupAsync">
+                Submit Interest Request
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

@@ -56,14 +56,12 @@ public static class JourneyPrerequisiteValidator
         var required = program
             .MilestoneTypes.Where(static m => m.IsActive && m.IsRequiredForProgramCompletion)
             .ToArray();
-        if (required.Length == 0)
-        {
-            return false;
-        }
-
-        return program.CompletionMode == JourneyCompletionMode.AnyOneRequiredMilestone
-            ? required.Any(m => completedMilestoneTypeIds.Contains(m.Id.Value))
-            : required.All(m => completedMilestoneTypeIds.Contains(m.Id.Value));
+        return required.Length > 0
+            && (
+                program.CompletionMode == JourneyCompletionMode.AnyOneRequiredMilestone
+                    ? required.Any(m => completedMilestoneTypeIds.Contains(m.Id.Value))
+                    : required.All(m => completedMilestoneTypeIds.Contains(m.Id.Value))
+            );
     }
 
     private static bool HasNoUnknownEdgesOrCycles(

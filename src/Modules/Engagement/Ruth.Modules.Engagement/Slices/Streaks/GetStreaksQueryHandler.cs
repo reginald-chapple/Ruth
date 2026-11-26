@@ -27,8 +27,7 @@ internal sealed class GetStreaksQueryHandler(EngagementDbContext dbContext, IClo
             q = q.Where(s => s.PersonId == pid);
         }
 
-        var streaks = await q
-            .OrderByDescending(static s => s.CurrentStreakCount)
+        var streaks = await q.OrderByDescending(static s => s.CurrentStreakCount)
             .ThenByDescending(static s => s.EngagementCount)
             .ToListAsync(cancellationToken);
 

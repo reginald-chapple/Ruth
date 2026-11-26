@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Engagement.Domain.Achievements;
+using Ruth.Modules.Engagement.Domain.Following;
 using Ruth.Modules.Engagement.Domain.Journeys;
 using Ruth.Modules.Engagement.Domain.Pipelines;
+using Ruth.Modules.Engagement.Domain.Reminders;
 using Ruth.Modules.Engagement.Domain.Streaks;
+using Ruth.Modules.Engagement.Domain.SupportRequests;
+using Ruth.Modules.Engagement.Domain.Touchpoints;
 using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Engagement.Infrastructure;
@@ -37,4 +41,25 @@ public sealed class EngagementDbContext(DbContextOptions<EngagementDbContext> op
 
     public DbSet<AchievementType> AchievementTypes => Set<AchievementType>();
     public DbSet<AchievementAttempt> AchievementAttempts => Set<AchievementAttempt>();
+
+    public DbSet<SupportCategory> SupportCategories => Set<SupportCategory>();
+    public DbSet<SupportRequest> SupportRequests => Set<SupportRequest>();
+    public DbSet<SupportRequestComment> SupportRequestComments => Set<SupportRequestComment>();
+
+    public DbSet<ReminderType> ReminderTypes => Set<ReminderType>();
+    public DbSet<Reminder> Reminders => Set<Reminder>();
+    public DbSet<NotificationMessage> NotificationMessages => Set<NotificationMessage>();
+
+    public DbSet<FollowingSubscription> FollowingSubscriptions => Set<FollowingSubscription>();
+    public DbSet<FollowingEventNotification> FollowingEventNotifications =>
+        Set<FollowingEventNotification>();
+
+    public DbSet<ConstituentContact> ConstituentContacts => Set<ConstituentContact>();
+    public DbSet<Touchpoint> Touchpoints => Set<Touchpoint>();
+
+    /// <inheritdoc />
+    protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
+    {
+        Configurations.EngagementModelConfigurationRegistry.ApplyAll(modelBuilder);
+    }
 }

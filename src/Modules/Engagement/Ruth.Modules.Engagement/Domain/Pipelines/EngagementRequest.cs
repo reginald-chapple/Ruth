@@ -1,22 +1,14 @@
+using System.Globalization;
 using Ruth.Modules.Engagement.Contracts.Pipelines;
-using Ruth.SharedKernel.Attributes;
-using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
-using Ruth.SharedKernel.Security;
 using static Ruth.Modules.Engagement.Domain.EngagementTextNormalizer;
 
 namespace Ruth.Modules.Engagement.Domain.Pipelines;
 
 /// <summary>Constituent intake, volunteer onboarding, mentorship, or referral request moving through a PipelineType.</summary>
-public sealed class EngagementRequest
-    : AggregateRoot<EngagementRequestId>,
-        IAuditableEntity,
-        IHasConcurrencyToken,
-        ISecured,
-        IHasAttributes
+public sealed partial class EngagementRequest
 {
     public const string EntityTypeKeyName = "Ruth.Engagement.EngagementRequest";
-
     private readonly List<EngagementRequestActivity> _activities = [];
     private Dictionary<string, string?> _attributeValues = new(StringComparer.OrdinalIgnoreCase);
 
@@ -40,46 +32,6 @@ public sealed class EngagementRequest
     public DateTimeOffset? ConnectedAtUtc { get; private set; }
     public IReadOnlyList<EngagementRequestActivity> Activities => _activities;
 
-    public IReadOnlyDictionary<string, string?> AttributeValues
-    {
-        get => _attributeValues;
-        private set =>
-            _attributeValues = new Dictionary<string, string?>(
-                value,
-                StringComparer.OrdinalIgnoreCase
-            );
-    }
-
-    public DateTimeOffset CreatedOnUtc { get; private set; }
-    public DateTimeOffset? ModifiedOnUtc { get; private set; }
-    public Guid ConcurrencyStamp { get; private set; } = Guid.CreateVersion7();
-    public string EntityTypeKey => EntityTypeKeyName;
-    public Guid EntityId => Id.Value;
-    public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
-
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
-
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
-        CreatedOnUtc = createdOnUtc.ToUniversalTime();
-
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
-        ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
-
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
-
-    public void SetAttributeValue(string key, string? value)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        _attributeValues[key.Trim()] = value;
-    }
-
-    public void RemoveAttributeValue(string key)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        _ = _attributeValues.Remove(key.Trim());
-    }
-
     public static Result<EngagementRequest> Create(
         PipelineType pipeline,
         EngagementOpportunity opportunity,
@@ -91,24 +43,15 @@ public sealed class EngagementRequest
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(opportunity);
         ArgumentNullException.ThrowIfNull(spec);
-        if (
-            spec.RequesterPersonId == Guid.Empty
-            || opportunity.PipelineTypeId != pipeline.Id.Value
-            || pipeline.Stages.Count == 0
-        )
+        var check = EngagementRequestValidator.ValidateCreation(pipeline, opportunity, spec, today);
+        if (check.IsFailure)
         {
-            return EngagementErrors.EngagementRequestInvalid;
-        }
-
-        if (spec.FollowUpDate.HasValue && (!pipeline.EnableFutureFollowUp || spec.FollowUpDate.Value <= today))
-        {
-            return EngagementErrors.FutureFollowUpNotAllowed;
+            return Result.Failure<EngagementRequest>(check.Errors);
         }
 
         var branch = NormalizeGuid(spec.BranchId) ?? opportunity.DefaultBranchId;
-        var connector =
-            NormalizeGuid(spec.AssignedConnectorPersonId) ?? opportunity.ResolveDefaultConnector(branch);
-
+        var connector = NormalizeGuid(spec.AssignedConnectorPersonId)
+            ?? opportunity.ResolveDefaultConnector(branch);
         var req = new EngagementRequest(EngagementRequestId.Create())
         {
             PipelineTypeId = pipeline.Id.Value,
@@ -126,7 +69,7 @@ public sealed class EngagementRequest
             Comments = TrimOptional(spec.Comments, 2000),
             LastActivityAtUtc = nowUtc.ToUniversalTime(),
         };
-        req.AppendActivity(null, "Request Created", connector, spec.Comments, nowUtc);
+        req.AppendSystemNote("Request Created", connector, spec.Comments, nowUtc);
         return req;
     }
 
@@ -134,7 +77,7 @@ public sealed class EngagementRequest
     {
         AssignedConnectorPersonId = NormalizeGuid(connectorPersonId);
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        AppendActivity(null, "Assigned Coordinator", AssignedConnectorPersonId, note, nowUtc);
+        AppendSystemNote("Assigned Coordinator", AssignedConnectorPersonId, note, nowUtc);
     }
 
     public Result RecordActivity(
@@ -151,7 +94,17 @@ public sealed class EngagementRequest
         }
 
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        AppendActivity(activityTypeId, activityName, connectorPersonId, note, nowUtc);
+        _activities.Add(
+            new EngagementRequestActivity(
+                EngagementRequestActivityId.Create(),
+                Id,
+                activityTypeId,
+                activityName,
+                connectorPersonId,
+                TrimOptional(note, 1000),
+                nowUtc
+            )
+        );
         return Result.Success();
     }
 
@@ -166,16 +119,24 @@ public sealed class EngagementRequest
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         var targetStage = pipeline.FindStage(targetStageId);
-        if (targetStage is null || !PipelineBoardEvaluator.IsStageMoveAllowed(pipeline, pipeline.FindStage(CurrentStageId), targetStage))
+        if (
+            targetStage is null
+            || !PipelineBoardEvaluator.IsStageMoveAllowed(
+                pipeline,
+                pipeline.FindStage(CurrentStageId),
+                targetStage
+            )
+        )
         {
             return EngagementErrors.InvalidStageTransition;
         }
 
-        PlacementGroupId ??= targetStage
-            .Automations.FirstOrDefault(static a => a.AutomationKind == StageAutomationKind.AddToPlacementGroup)
-            ?.TargetEntityId;
-
-        if (targetStage.IsTerminalCompleted && pipeline.RequiresPlacementGroup && !PlacementGroupId.HasValue)
+        PlacementGroupId ??= EngagementRequestValidator.FindStagePlacementGroup(targetStage);
+        if (
+            targetStage.IsTerminalCompleted
+            && pipeline.RequiresPlacementGroup
+            && !PlacementGroupId.HasValue
+        )
         {
             return EngagementErrors.PlacementGroupRequired;
         }
@@ -184,7 +145,7 @@ public sealed class EngagementRequest
         CurrentStageId = targetStage.Id.Value;
         LastActivityAtUtc = nowUtc.ToUniversalTime();
         ApplyStageOutcome(pipeline, targetStage, today, nowUtc);
-        AppendActivity(null, $"Moved to {targetStage.Name}", actorPersonId, note, nowUtc);
+        AppendSystemNote($"Moved to {targetStage.Name}", actorPersonId, note, nowUtc);
         return new StageTransitionOutcome(
             prevStageId,
             CurrentStageId,
@@ -194,7 +155,14 @@ public sealed class EngagementRequest
         );
     }
 
-    public Result ScheduleFollowUp(PipelineType pipeline, DateOnly followUpDate, Guid? actorPersonId, string? note, DateOnly today, DateTimeOffset nowUtc)
+    public Result ScheduleFollowUp(
+        PipelineType pipeline,
+        DateOnly followUpDate,
+        Guid? actorPersonId,
+        string? note,
+        DateOnly today,
+        DateTimeOffset nowUtc
+    )
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         if (!pipeline.EnableFutureFollowUp || followUpDate <= today)
@@ -205,13 +173,25 @@ public sealed class EngagementRequest
         FollowUpDate = followUpDate;
         RequestState = EngagementRequestState.FutureFollowUp;
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        AppendActivity(null, $"Scheduled Follow-Up ({followUpDate:yyyy-MM-dd})", actorPersonId, note, nowUtc);
+        AppendSystemNote(
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"Scheduled Follow-Up ({followUpDate:yyyy-MM-dd})"
+            ),
+            actorPersonId,
+            note,
+            nowUtc
+        );
         return Result.Success();
     }
 
     public bool WakeIfDue(DateOnly today, DateTimeOffset nowUtc)
     {
-        if (RequestState != EngagementRequestState.FutureFollowUp || !FollowUpDate.HasValue || FollowUpDate.Value > today)
+        if (
+            RequestState != EngagementRequestState.FutureFollowUp
+            || !FollowUpDate.HasValue
+            || FollowUpDate.Value > today
+        )
         {
             return false;
         }
@@ -219,11 +199,23 @@ public sealed class EngagementRequest
         RequestState = EngagementRequestState.Active;
         FollowUpDate = null;
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        AppendActivity(null, "Follow-Up Due — Returned to Active Board", AssignedConnectorPersonId, null, nowUtc);
+        AppendSystemNote(
+            "Follow-Up Due — Returned to Active Board",
+            AssignedConnectorPersonId,
+            note: null,
+            nowUtc
+        );
         return true;
     }
 
-    public Result MarkConnected(PipelineType pipeline, Guid? placementGroupId, Guid? placementGroupRoleId, Guid? actorPersonId, string? note, DateTimeOffset nowUtc)
+    public Result MarkConnected(
+        PipelineType pipeline,
+        Guid? placementGroupId,
+        Guid? placementGroupRoleId,
+        Guid? actorPersonId,
+        string? note,
+        DateTimeOffset nowUtc
+    )
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         var effectiveGroup = NormalizeGuid(placementGroupId) ?? PlacementGroupId;
@@ -234,26 +226,37 @@ public sealed class EngagementRequest
 
         PlacementGroupId = effectiveGroup;
         PlacementGroupRoleId = NormalizeGuid(placementGroupRoleId) ?? PlacementGroupRoleId;
-        RequestState = EngagementRequestState.Connected;
-        FollowUpDate = null;
-        ConnectedAtUtc = nowUtc.ToUniversalTime();
-        LastActivityAtUtc = ConnectedAtUtc.Value;
-        CurrentStageId = pipeline.Stages.FirstOrDefault(static s => s.IsTerminalCompleted)?.Id.Value ?? CurrentStageId;
-        AppendActivity(null, "Marked Connected", actorPersonId, note, nowUtc);
-        RaiseConnectedDomainEvent(nowUtc);
+        CompleteConnection(
+            pipeline.Stages.FirstOrDefault(static s => s.IsTerminalCompleted)?.Id.Value
+                ?? CurrentStageId,
+            nowUtc
+        );
+        AppendSystemNote("Marked Connected", actorPersonId, note, nowUtc);
         return Result.Success();
     }
 
-    public void MarkInactive(PipelineType? pipeline, string? reason, Guid? actorPersonId, DateTimeOffset nowUtc)
+    public void MarkInactive(
+        PipelineType? pipeline,
+        string? reason,
+        Guid? actorPersonId,
+        DateTimeOffset nowUtc
+    )
     {
         RequestState = EngagementRequestState.Inactive;
         FollowUpDate = null;
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        CurrentStageId = pipeline?.Stages.FirstOrDefault(static s => s.IsTerminalInactive)?.Id.Value ?? CurrentStageId;
-        AppendActivity(null, "Marked Inactive", actorPersonId, reason, nowUtc);
+        CurrentStageId = pipeline?.Stages.FirstOrDefault(static s => s.IsTerminalInactive)?.Id.Value
+            ?? CurrentStageId;
+        AppendSystemNote("Marked Inactive", actorPersonId, reason, nowUtc);
     }
 
-    public void TransferTo(PipelineType newPipeline, EngagementOpportunity newOpportunity, string? note, Guid? actorPersonId, DateTimeOffset nowUtc)
+    public void TransferTo(
+        PipelineType newPipeline,
+        EngagementOpportunity newOpportunity,
+        string? note,
+        Guid? actorPersonId,
+        DateTimeOffset nowUtc
+    )
     {
         ArgumentNullException.ThrowIfNull(newPipeline);
         ArgumentNullException.ThrowIfNull(newOpportunity);
@@ -264,7 +267,7 @@ public sealed class EngagementRequest
         RequestState = EngagementRequestState.Active;
         FollowUpDate = null;
         LastActivityAtUtc = nowUtc.ToUniversalTime();
-        AppendActivity(null, $"Transferred to {newOpportunity.Name}", actorPersonId, note, nowUtc);
+        AppendSystemNote($"Transferred to {newOpportunity.Name}", actorPersonId, note, nowUtc);
     }
 
     public bool RepointPerson(Guid retired, Guid surviving)
@@ -275,29 +278,28 @@ public sealed class EngagementRequest
             RequesterPersonId = surviving;
             changed = true;
         }
-
         if (AssignedConnectorPersonId == retired)
         {
             AssignedConnectorPersonId = surviving;
             changed = true;
         }
-
         foreach (var act in _activities)
         {
             changed |= act.RepointConnector(retired, surviving);
         }
-
         return changed;
     }
 
-    private void ApplyStageOutcome(PipelineType pipeline, PipelineStage stage, DateOnly today, DateTimeOffset nowUtc)
+    private void ApplyStageOutcome(
+        PipelineType pipeline,
+        PipelineStage stage,
+        DateOnly today,
+        DateTimeOffset nowUtc
+    )
     {
         if (stage.IsTerminalCompleted)
         {
-            RequestState = EngagementRequestState.Connected;
-            FollowUpDate = null;
-            ConnectedAtUtc = nowUtc.ToUniversalTime();
-            RaiseConnectedDomainEvent(nowUtc);
+            CompleteConnection(stage.Id.Value, nowUtc);
             return;
         }
 
@@ -308,23 +310,35 @@ public sealed class EngagementRequest
             return;
         }
 
-        var autoDays = stage.Automations.FirstOrDefault(static a => a.AutoSetFollowUpDays is > 0)?.AutoSetFollowUpDays;
-        if (pipeline.EnableFutureFollowUp && autoDays is > 0)
+        ApplyOpenStageState(pipeline, stage, today);
+    }
+
+    private void ApplyOpenStageState(PipelineType pipeline, PipelineStage stage, DateOnly today)
+    {
+        var autoDays = EngagementRequestValidator.FindAutoFollowUpDays(stage);
+        if (pipeline.EnableFutureFollowUp && autoDays.HasValue)
         {
             FollowUpDate = today.AddDays(autoDays.Value);
             RequestState = EngagementRequestState.FutureFollowUp;
         }
-        else if (RequestState is EngagementRequestState.Inactive or EngagementRequestState.Connected)
+        else if (
+            RequestState is EngagementRequestState.Inactive or EngagementRequestState.Connected
+        )
         {
             RequestState = EngagementRequestState.Active;
         }
     }
 
-    private void RaiseConnectedDomainEvent(DateTimeOffset nowUtc) =>
+    private void CompleteConnection(Guid stageId, DateTimeOffset nowUtc)
+    {
+        CurrentStageId = stageId;
+        RequestState = EngagementRequestState.Connected;
+        FollowUpDate = null;
+        ConnectedAtUtc = nowUtc.ToUniversalTime();
+        LastActivityAtUtc = ConnectedAtUtc.Value;
         RaiseDomainEvent(
             new EngagementRequestConnectedDomainEvent(
-                Guid.CreateVersion7(),
-                nowUtc.ToUniversalTime(),
+                ConnectedAtUtc.Value,
                 Id.Value,
                 PipelineTypeId,
                 EngagementOpportunityId,
@@ -332,17 +346,25 @@ public sealed class EngagementRequest
                 PlacementGroupId
             )
         );
+    }
 
-    private void AppendActivity(Guid? typeId, string name, Guid? connectorId, string? note, DateTimeOffset nowUtc) =>
+    private void AppendSystemNote(
+        string name,
+        Guid? connectorId,
+        string? note,
+        DateTimeOffset nowUtc
+    )
+    {
         _activities.Add(
             new EngagementRequestActivity(
                 EngagementRequestActivityId.Create(),
                 Id,
-                typeId,
+                activityTypeId: null,
                 name,
                 connectorId,
                 TrimOptional(note, 1000),
                 nowUtc
             )
         );
+    }
 }

@@ -26,8 +26,7 @@ internal sealed class GetJourneyCompletionsQueryHandler(EngagementDbContext dbCo
             q = q.Where(c => c.PersonId == personId);
         }
 
-        var items = await q
-            .OrderByDescending(static c => c.CompletedDate)
+        var items = await q.OrderByDescending(static c => c.CompletedDate)
             .ToListAsync(cancellationToken);
         var names = await dbContext
             .JourneyPrograms.AsNoTracking()

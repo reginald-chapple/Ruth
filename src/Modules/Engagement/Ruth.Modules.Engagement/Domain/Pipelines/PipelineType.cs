@@ -57,16 +57,25 @@ public sealed partial class PipelineType
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public void SetAttributeValue(string key, string? value)
     {
@@ -120,8 +129,10 @@ public sealed partial class PipelineType
             ?? _stages.OrderBy(static s => s.Order).First();
     }
 
-    public PipelineStage? FindStage(Guid stageId) =>
-        _stages.FirstOrDefault(s => s.Id.Value == stageId);
+    public PipelineStage? FindStage(Guid stageId)
+    {
+        return _stages.FirstOrDefault(s => s.Id.Value == stageId);
+    }
 
     private void SyncStages(IReadOnlyList<PipelineStageSpec> stageSpecs)
     {
@@ -184,25 +195,33 @@ public sealed partial class PipelineType
 
     private static bool AreStagesAndActivitiesValid(PipelineTypeSpec spec)
     {
-        if (spec.Stages is null || spec.Stages.Count == 0)
-        {
-            return false;
-        }
+        return AreStagesValid(spec.Stages) && AreActivitiesValid(spec.ActivityTypes);
+    }
 
-        var hasInitial = spec.Stages.Any(static s => s.IsInitial);
-        var validStages = spec.Stages.All(static s =>
-            !string.IsNullOrWhiteSpace(s.Name)
-            && s.Name.Trim().Length <= 150
-            && s.Order >= 0
-            && (!s.IdleThresholdDaysOverride.HasValue || s.IdleThresholdDaysOverride.Value is >= 1 and <= 365)
-        );
-        var validActivities =
-            spec.ActivityTypes is null
-            || spec.ActivityTypes.All(static a =>
+    private static bool AreStagesValid(IReadOnlyList<PipelineStageSpec>? stages)
+    {
+        return stages is { Count: > 0 }
+            && stages.Any(static s => s.IsInitial)
+            && stages.All(IsSingleStageValid);
+    }
+
+    private static bool IsSingleStageValid(PipelineStageSpec stage)
+    {
+        return !string.IsNullOrWhiteSpace(stage.Name)
+            && stage.Name.Trim().Length <= 150
+            && stage.Order >= 0
+            && (
+                !stage.IdleThresholdDaysOverride.HasValue
+                || stage.IdleThresholdDaysOverride.Value is >= 1 and <= 365
+            );
+    }
+
+    private static bool AreActivitiesValid(IReadOnlyList<PipelineActivityTypeSpec>? activities)
+    {
+        return activities is null
+            || activities.All(static a =>
                 !string.IsNullOrWhiteSpace(a.Name) && a.Name.Trim().Length <= 150 && a.Order >= 0
             );
-
-        return hasInitial && validStages && validActivities;
     }
 
     private void ApplyAttributes(IReadOnlyDictionary<string, string?>? attributes)

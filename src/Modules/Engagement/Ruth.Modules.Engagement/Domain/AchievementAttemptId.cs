@@ -8,7 +8,19 @@ public readonly record struct AchievementAttemptId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static AchievementAttemptId Empty => new(Guid.Empty);
-    public static AchievementAttemptId Create() => new(StronglyTypedId.NextGuid());
-    public static AchievementAttemptId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static AchievementAttemptId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static AchievementAttemptId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

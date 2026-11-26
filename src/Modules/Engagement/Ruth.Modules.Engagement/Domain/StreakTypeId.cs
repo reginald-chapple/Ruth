@@ -7,7 +7,19 @@ public readonly record struct StreakTypeId(Guid Value) : IStronglyTypedId<Streak
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static StreakTypeId Empty => new(Guid.Empty);
-    public static StreakTypeId Create() => new(StronglyTypedId.NextGuid());
-    public static StreakTypeId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static StreakTypeId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static StreakTypeId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

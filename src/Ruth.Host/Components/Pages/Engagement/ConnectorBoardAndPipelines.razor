@@ -1,0 +1,120 @@
+@page "/engagement/pipelines"
+@rendermode InteractiveServer
+
+<PageTitle>Engagement Pipelines &amp; Connector Board — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Engagement Pipelines, Opportunities &amp; Connector Board</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ToggleViewMode">
+        Switch to @(_showGrid ? "Kanban Board" : "Grid View")
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Configure Pipeline &amp; Intake Opportunity</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_pipelineName" Label="Pipeline Name" />
+                <FluentTextInput @bind-Value="_pipelineSlug" Label="Pipeline Slug" />
+                <FluentTextInput @bind-Value="_idleDaysInput" Label="Idle Threshold (Days)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePipelineAsync">
+                    Create Pipeline
+                </FluentButton>
+            </FluentStack>
+
+            @if (_pipelines.Count > 0)
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentSelect TOption="PipelineTypeResponse"
+                                  TValue="Guid"
+                                  Label="Active Pipeline"
+                                  Items="@_pipelines"
+                                  OptionText="@(static p => p.Name)"
+                                  OptionValue="@(static p => p.Id)"
+                                  Value="@_selectedPipelineId"
+                                  ValueChanged="@OnPipelineChangedAsync" />
+                    <FluentTextInput @bind-Value="_opportunityName" Label="Opportunity Name" />
+                    <FluentTextInput @bind-Value="_opportunitySlug" Label="Opportunity Slug" />
+                    <FluentTextInput @bind-Value="_opportunitySummary" Label="Public Summary" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CreateOpportunityAsync">
+                        Add Opportunity
+                    </FluentButton>
+                </FluentStack>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_board is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                    <strong>@_board.PipelineName</strong>
+                    <span class="ruth-room-status-pill">Active: @_board.TotalActiveCount</span>
+                    <span class="ruth-room-status-pill">Idle / Overdue: @_board.IdleCount</span>
+                    <span class="ruth-room-status-pill">Snoozed Follow-Up: @_board.FutureFollowUpCount</span>
+                    <span class="ruth-room-status-pill">Connected: @_board.ConnectedCount</span>
+                </FluentStack>
+
+                @if (!_showGrid)
+                {
+                    <div class="ruth-kanban-board">
+                        @foreach (var col in _board.Columns)
+                        {
+                            <div class="ruth-kanban-column" @key="col.StageId">
+                                <strong>@col.StageName (@col.Requests.Count)</strong>
+                                @foreach (var req in col.Requests)
+                                {
+                                    <FluentCard Padding="@Padding.All3" @key="req.Id">
+                                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                                            <strong>@req.RequesterDisplayName</strong>
+                                            <small>@req.OpportunityName · @req.Health (@req.DaysIdle d)</small>
+                                            @if (!string.IsNullOrWhiteSpace(req.Comments))
+                                            {
+                                                <small>@req.Comments</small>
+                                            }
+                                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+                                                <FluentButton Size="ButtonSize.Small"
+                                                              OnClick="@(() => LogTouchAsync(req.Id))">
+                                                    Log Call
+                                                </FluentButton>
+                                                @if (req.RequestState != EngagementRequestState.Connected)
+                                                {
+                                                    <FluentButton Size="ButtonSize.Small"
+                                                                  Appearance="ButtonAppearance.Primary"
+                                                                  OnClick="@(() => ConnectAsync(req.Id))">
+                                                        Connect
+                                                    </FluentButton>
+                                                }
+                                            </FluentStack>
+                                        </FluentStack>
+                                    </FluentCard>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @foreach (var req in _board.FlatItems)
+                    {
+                        <div class="ruth-kiosk-member-row" @key="req.Id">
+                            <strong>@req.RequesterDisplayName — @req.OpportunityName</strong>
+                            <span class="ruth-room-status-pill">@req.CurrentStageName (@req.RequestState)</span>
+                            <span class="ruth-room-status-pill">SLA: @req.Health</span>
+                        </div>
+                    }
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

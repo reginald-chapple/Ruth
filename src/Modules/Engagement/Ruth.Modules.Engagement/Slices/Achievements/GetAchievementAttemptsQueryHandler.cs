@@ -31,8 +31,7 @@ internal sealed class GetAchievementAttemptsQueryHandler(EngagementDbContext dbC
             q = q.Where(static a => a.IsSuccessful);
         }
 
-        var attempts = await q
-            .OrderByDescending(static a => a.AttemptStartDate)
+        var attempts = await q.OrderByDescending(static a => a.AttemptStartDate)
             .ToListAsync(cancellationToken);
         var types = await dbContext
             .AchievementTypes.AsNoTracking()

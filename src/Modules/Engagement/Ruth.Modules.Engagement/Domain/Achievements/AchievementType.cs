@@ -53,16 +53,25 @@ public sealed partial class AchievementType
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public static Result<AchievementType> Create(AchievementTypeSpec spec)
     {
@@ -76,13 +85,7 @@ public sealed partial class AchievementType
     {
         ArgumentNullException.ThrowIfNull(spec);
         var code = spec.Code?.Trim().ToUpperInvariant() ?? string.Empty;
-        if (
-            string.IsNullOrWhiteSpace(spec.Name)
-            || spec.Name.Trim().Length > 200
-            || !CodeRegex.IsMatch(code)
-            || spec.TargetCount < 1
-            || (spec.MaxSuccessesAllowed.HasValue && spec.MaxSuccessesAllowed.Value < 1)
-        )
+        if (!IsValidSpec(spec, code))
         {
             return EngagementErrors.AchievementTypeInvalid;
         }
@@ -106,17 +109,25 @@ public sealed partial class AchievementType
         );
         IsActive = spec.IsActive;
         IsPublic = spec.IsPublic;
-        _prerequisiteAchievementIds =
-            spec.PrerequisiteAchievementIds is null
-                ? []
-                :
-                [
-                    .. spec.PrerequisiteAchievementIds
-                        .Where(id => id != Guid.Empty && id != Id.Value)
-                        .Distinct(),
-                ];
-
+        _prerequisiteAchievementIds = NormalizePrerequisites(
+            spec.PrerequisiteAchievementIds,
+            Id.Value
+        );
         return Result.Success();
+    }
+
+    private static bool IsValidSpec(AchievementTypeSpec spec, string code)
+    {
+        return !string.IsNullOrWhiteSpace(spec.Name)
+            && spec.Name.Trim().Length <= 200
+            && CodeRegex.IsMatch(code)
+            && spec.TargetCount >= 1
+            && (!spec.MaxSuccessesAllowed.HasValue || spec.MaxSuccessesAllowed.Value >= 1);
+    }
+
+    private static List<Guid> NormalizePrerequisites(IReadOnlyList<Guid>? ids, Guid selfId)
+    {
+        return ids is null ? [] : [.. ids.Where(id => id != Guid.Empty && id != selfId).Distinct()];
     }
 
     [GeneratedRegex(

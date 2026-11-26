@@ -11,6 +11,7 @@ using Ruth.Modules.Commerce;
 using Ruth.Modules.Communication;
 using Ruth.Modules.Core;
 using Ruth.Modules.Crm;
+using Ruth.Modules.Engagement;
 using Ruth.Modules.Events;
 using Ruth.Modules.Finance;
 using Ruth.Modules.Groups;
@@ -41,6 +42,7 @@ builder.Services.AddFinanceModule(builder.Configuration);
 builder.Services.AddPaymentGatewayProviders(builder.Configuration);
 builder.Services.AddEventsModule(builder.Configuration);
 builder.Services.AddCommerceModule(builder.Configuration);
+builder.Services.AddEngagementModule(builder.Configuration);
 builder.Services.AddRuthJwtConfiguration();
 
 builder.Services.AddProblemDetails();
@@ -138,5 +140,6 @@ app.MapCommunicationModuleEndpoints();
 app.MapFinanceModuleEndpoints();
 app.MapEventsModuleEndpoints();
 app.MapCommerceModuleEndpoints();
+app.MapEngagementModuleEndpoints();
 
 await app.RunAsync();

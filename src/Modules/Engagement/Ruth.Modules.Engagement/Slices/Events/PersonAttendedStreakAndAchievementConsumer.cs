@@ -42,66 +42,67 @@ internal sealed class PersonAttendedStreakAndAchievementConsumer(
 
         var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
         var changed = false;
-
         foreach (var streakType in matchingTypes)
         {
-            var streak = await dbContext.Streaks.FirstOrDefaultAsync(
-                s =>
-                    s.StreakTypeId == streakType.Id.Value
-                    && s.PersonId == integrationEvent.PersonId,
+            changed |= await ApplyAttendanceToStreakAsync(
+                streakType,
+                integrationEvent,
+                today,
                 cancellationToken
             );
-            if (streak is null)
-            {
-                if (streakType.RequiresExplicitEnrollment)
-                {
-                    continue;
-                }
-
-                var enrolled = Streak.Enroll(
-                    streakType,
-                    integrationEvent.PersonId,
-                    integrationEvent.BranchId,
-                    integrationEvent.OccurrenceDate
-                );
-                if (enrolled.IsFailure)
-                {
-                    continue;
-                }
-
-                streak = enrolled.Value;
-                _ = dbContext.Streaks.Add(streak);
-            }
-
-            if (
-                streak
-                    .RecordEngagement(
-                        streakType,
-                        integrationEvent.OccurrenceDate,
-                        today,
-                        integrationEvent.BranchId
-                    )
-                    .IsSuccess
-            )
-            {
-                changed = true;
-                if (streakType.EnableAchievements)
-                {
-                    await achievements.EvaluateStreakAchievementsAsync(
-                        streakType.Id.Value,
-                        integrationEvent.PersonId,
-                        Math.Max(streak.CurrentStreakCount, streak.LongestStreakCount),
-                        streak.EngagementCount,
-                        integrationEvent.OccurrenceDate,
-                        cancellationToken
-                    );
-                }
-            }
         }
 
         if (changed)
         {
             _ = await dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task<bool> ApplyAttendanceToStreakAsync(
+        StreakType streakType,
+        PersonAttendedIntegrationEvent ev,
+        DateOnly today,
+        CancellationToken cancellationToken
+    )
+    {
+        var streak = await dbContext.Streaks.FirstOrDefaultAsync(
+            s => s.StreakTypeId == streakType.Id.Value && s.PersonId == ev.PersonId,
+            cancellationToken
+        );
+        if (streak is null)
+        {
+            if (streakType.RequiresExplicitEnrollment)
+            {
+                return false;
+            }
+
+            var enrolled = Streak.Enroll(streakType, ev.PersonId, ev.BranchId, ev.OccurrenceDate);
+            if (enrolled.IsFailure)
+            {
+                return false;
+            }
+
+            streak = enrolled.Value;
+            _ = dbContext.Streaks.Add(streak);
+        }
+
+        if (streak.RecordEngagement(streakType, ev.OccurrenceDate, today, ev.BranchId).IsFailure)
+        {
+            return false;
+        }
+
+        if (streakType.EnableAchievements)
+        {
+            await achievements.EvaluateStreakAchievementsAsync(
+                streakType.Id.Value,
+                ev.PersonId,
+                Math.Max(streak.CurrentStreakCount, streak.LongestStreakCount),
+                streak.EngagementCount,
+                ev.OccurrenceDate,
+                cancellationToken
+            );
+        }
+
+        return true;
     }
 }

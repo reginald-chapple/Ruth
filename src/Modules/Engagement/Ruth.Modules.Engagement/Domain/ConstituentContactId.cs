@@ -8,7 +8,19 @@ public readonly record struct ConstituentContactId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static ConstituentContactId Empty => new(Guid.Empty);
-    public static ConstituentContactId Create() => new(StronglyTypedId.NextGuid());
-    public static ConstituentContactId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static ConstituentContactId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static ConstituentContactId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

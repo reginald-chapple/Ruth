@@ -1,0 +1,25 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+
+namespace Ruth.Modules.Engagement.Infrastructure;
+
+/// <summary>Design-time EF Core factory for generating Engagement module migrations.</summary>
+public sealed class EngagementDbContextFactory : IDesignTimeDbContextFactory<EngagementDbContext>
+{
+    /// <inheritdoc />
+    public EngagementDbContext CreateDbContext(string[] args)
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__RuthDatabase")
+            ?? "Host=localhost;Port=5432;Database=ruth;Username=ruth;Password=ruth_secret";
+
+        var optionsBuilder = new DbContextOptionsBuilder<EngagementDbContext>();
+        _ = optionsBuilder.UseNpgsql(connectionString, static npgsql =>
+            _ = npgsql.MigrationsHistoryTable(
+                "__EFMigrationsHistory",
+                EngagementDbContext.SchemaName
+            )
+        );
+
+        return new EngagementDbContext(optionsBuilder.Options);
+    }
+}

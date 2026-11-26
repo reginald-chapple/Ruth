@@ -15,12 +15,12 @@ public static class PipelineBoardEvaluator
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(targetStage);
 
-        if (!pipeline.IsSequentialStageProgression || currentStage is null || targetStage.IsTerminalInactive)
-        {
-            return true;
-        }
-
-        if (currentStage.Id == targetStage.Id)
+        if (
+            !pipeline.IsSequentialStageProgression
+            || currentStage is null
+            || targetStage.IsTerminalInactive
+            || currentStage.Id == targetStage.Id
+        )
         {
             return true;
         }
@@ -57,33 +57,35 @@ public static class PipelineBoardEvaluator
             return (elapsedDays, EngagementRequestHealth.Inactive);
         }
 
-        if (request.FollowUpDate.HasValue && request.FollowUpDate.Value <= today)
-        {
-            return (elapsedDays, EngagementRequestHealth.OverdueFollowUp);
-        }
+        return (elapsedDays, EvaluateOpenHealth(request, pipeline, today, elapsedDays));
+    }
 
-        if (request.RequestState == EngagementRequestState.FutureFollowUp && request.FollowUpDate.HasValue)
+    private static EngagementRequestHealth EvaluateOpenHealth(
+        EngagementRequest request,
+        PipelineType pipeline,
+        DateOnly today,
+        int elapsedDays
+    )
+    {
+        if (request.FollowUpDate.HasValue)
         {
-            var daysUntil = request.FollowUpDate.Value.DayNumber - today.DayNumber;
-            return (
-                elapsedDays,
-                daysUntil <= 2 ? EngagementRequestHealth.DueSoon : EngagementRequestHealth.OnTrack
-            );
+            return EvaluateFollowUpHealth(request.FollowUpDate.Value, today);
         }
 
         var stage = pipeline.FindStage(request.CurrentStageId);
         var idleThreshold = stage?.IdleThresholdDaysOverride ?? pipeline.DaysUntilRequestIdle;
-        if (elapsedDays >= idleThreshold)
-        {
-            return (elapsedDays, EngagementRequestHealth.Idle);
-        }
+        return elapsedDays >= idleThreshold ? EngagementRequestHealth.Idle
+            : elapsedDays >= Math.Max(1, idleThreshold - 2) ? EngagementRequestHealth.DueSoon
+            : EngagementRequestHealth.OnTrack;
+    }
 
-        var dueSoonThreshold = Math.Max(1, idleThreshold - 2);
-        return (
-            elapsedDays,
-            elapsedDays >= dueSoonThreshold
-                ? EngagementRequestHealth.DueSoon
-                : EngagementRequestHealth.OnTrack
-        );
+    private static EngagementRequestHealth EvaluateFollowUpHealth(
+        DateOnly followUpDate,
+        DateOnly today
+    )
+    {
+        return followUpDate <= today ? EngagementRequestHealth.OverdueFollowUp
+            : (followUpDate.DayNumber - today.DayNumber) <= 2 ? EngagementRequestHealth.DueSoon
+            : EngagementRequestHealth.OnTrack;
     }
 }

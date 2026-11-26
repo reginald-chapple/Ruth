@@ -37,16 +37,25 @@ public sealed class PersonMilestone
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public static Result<PersonMilestone> Record(
         Guid personId,
@@ -66,45 +75,65 @@ public sealed class PersonMilestone
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(alreadyCompletedTypeIds);
 
-        if (
-            personId == Guid.Empty
-            || milestoneType.JourneyProgramId != program.Id
-            || status.JourneyProgramId != program.Id
-            || (endDate.HasValue && endDate.Value < startDate)
-        )
+        if (!HasValidHeader(personId, program, milestoneType, status, startDate, endDate))
         {
             return EngagementErrors.PersonMilestoneInvalid;
         }
 
-        if (status.IsCompleteStatus)
-        {
-            if (
-                !milestoneType.AllowMultipleCompletions
-                && alreadyCompletedTypeIds.Contains(milestoneType.Id.Value)
-            )
+        var ruleCheck = ValidateCompletionRules(milestoneType, status, alreadyCompletedTypeIds);
+        return ruleCheck.IsFailure
+            ? Result.Failure<PersonMilestone>(ruleCheck.Errors)
+            : new PersonMilestone(PersonMilestoneId.Create())
             {
-                return EngagementErrors.MilestoneDuplicateNotAllowed;
-            }
+                PersonId = personId,
+                JourneyProgramId = program.Id.Value,
+                MilestoneTypeId = milestoneType.Id.Value,
+                MilestoneStatusId = status.Id.Value,
+                IsCompleted = status.IsCompleteStatus,
+                BranchId = NormalizeGuid(branchId),
+                StartDate = startDate,
+                CompletedDate = status.IsCompleteStatus ? completedDate ?? startDate : null,
+                EndDate = milestoneType.HasEndDate ? endDate : null,
+                Note = TrimOptional(note, 1000),
+            };
+    }
 
-            if (!JourneyPrerequisiteValidator.ArePrerequisitesMet(milestoneType, alreadyCompletedTypeIds))
-            {
-                return EngagementErrors.MilestonePrerequisiteUnmet;
-            }
+    private static bool HasValidHeader(
+        Guid personId,
+        JourneyProgram program,
+        MilestoneType milestoneType,
+        MilestoneStatus status,
+        DateOnly startDate,
+        DateOnly? endDate
+    )
+    {
+        return personId != Guid.Empty
+            && milestoneType.JourneyProgramId == program.Id
+            && status.JourneyProgramId == program.Id
+            && (!endDate.HasValue || endDate.Value >= startDate);
+    }
+
+    private static Result ValidateCompletionRules(
+        MilestoneType milestoneType,
+        MilestoneStatus status,
+        IReadOnlySet<Guid> alreadyCompletedTypeIds
+    )
+    {
+        if (!status.IsCompleteStatus)
+        {
+            return Result.Success();
         }
 
-        return new PersonMilestone(PersonMilestoneId.Create())
-        {
-            PersonId = personId,
-            JourneyProgramId = program.Id.Value,
-            MilestoneTypeId = milestoneType.Id.Value,
-            MilestoneStatusId = status.Id.Value,
-            IsCompleted = status.IsCompleteStatus,
-            BranchId = NormalizeGuid(branchId),
-            StartDate = startDate,
-            CompletedDate = status.IsCompleteStatus ? completedDate ?? startDate : null,
-            EndDate = milestoneType.HasEndDate ? endDate : null,
-            Note = TrimOptional(note, 1000),
-        };
+        var isDuplicate =
+            !milestoneType.AllowMultipleCompletions
+            && alreadyCompletedTypeIds.Contains(milestoneType.Id.Value);
+        return isDuplicate ? EngagementErrors.MilestoneDuplicateNotAllowed
+            : JourneyPrerequisiteValidator.ArePrerequisitesMet(
+                milestoneType,
+                alreadyCompletedTypeIds
+            )
+                ? Result.Success()
+            : EngagementErrors.MilestonePrerequisiteUnmet;
     }
 
     public bool RepointPerson(Guid retiredPersonId, Guid survivingPersonId)

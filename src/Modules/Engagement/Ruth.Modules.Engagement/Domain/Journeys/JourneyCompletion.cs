@@ -24,13 +24,20 @@ public sealed class JourneyCompletion
     public DateTimeOffset? ModifiedOnUtc { get; private set; }
     public Guid ConcurrencyStamp { get; private set; } = Guid.CreateVersion7();
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public static JourneyCompletion Create(
         Guid personId,

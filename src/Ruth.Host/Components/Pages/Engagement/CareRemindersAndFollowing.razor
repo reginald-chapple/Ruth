@@ -1,0 +1,87 @@
+@page "/engagement/care"
+@rendermode InteractiveServer
+
+<PageTitle>Care Queue, Reminders &amp; Following — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Care &amp; Support Queue, Entity Reminders &amp; Following</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Configure Support Category &amp; Reminder Type</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_categoryName" Label="Support Category" />
+                <FluentTextInput @bind-Value="_categorySlug" Label="Category Slug" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateCategoryAsync">
+                    Create Support Category
+                </FluentButton>
+                <FluentTextInput @bind-Value="_reminderTypeName" Label="Reminder Type" />
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CreateReminderTypeAsync">
+                    Create Reminder Type
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RunRemindersAndDigestsAsync">
+                    Process Due Reminders &amp; Digests
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Guided Care-Team Review &amp; Moderation Queue (@_queue.Count)</h2>
+            @foreach (var req in _queue)
+            {
+                <div class="ruth-kiosk-member-row" @key="req.Id">
+                    <strong>@req.CategoryName — @req.FirstName @req.LastName</strong>
+                    <span class="ruth-room-status-pill">@req.ModerationState · @req.VisibilityLevel · Support: @req.CommunitySupportCount</span>
+                    <span>@req.RequestText</span>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+                        @if (req.ModerationState != SupportModerationState.Approved)
+                        {
+                            <FluentButton Size="ButtonSize.Small"
+                                          Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => ModerateAsync(req.Id, SupportModerationDecision.Approve))">
+                                Approve
+                            </FluentButton>
+                        }
+                        <FluentButton Size="ButtonSize.Small"
+                                      OnClick="@(() => SupportCareTeamAsync(req.Id))">
+                            Record Care Support (+1)
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      OnClick="@(() => ModerateAsync(req.Id, SupportModerationDecision.Archive))">
+                            Archive
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>3. Active Entity Follow-Up Reminders (@_reminders.Count)</h2>
+            @foreach (var rem in _reminders)
+            {
+                <div class="ruth-kiosk-member-row" @key="rem.Id">
+                    <strong>@rem.ReminderTypeName: @rem.EntitySummary</strong>
+                    <span class="ruth-room-status-pill">Due @rem.ReminderDate.ToString("yyyy-MM-dd")</span>
+                    <span>@rem.Note</span>
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => CompleteReminderAsync(rem.Id))">
+                        Mark Complete
+                    </FluentButton>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

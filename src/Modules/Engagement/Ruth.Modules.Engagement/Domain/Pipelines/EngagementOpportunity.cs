@@ -4,6 +4,7 @@ using Ruth.SharedKernel.Attributes;
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
 using Ruth.SharedKernel.Security;
+using static Ruth.Modules.Engagement.Domain.EngagementTextNormalizer;
 
 namespace Ruth.Modules.Engagement.Domain.Pipelines;
 
@@ -68,16 +69,25 @@ public sealed partial class EngagementOpportunity
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public void SetAttributeValue(string key, string? value)
     {
@@ -125,7 +135,7 @@ public sealed partial class EngagementOpportunity
         IsActive = spec.IsActive;
         IsPublic = spec.IsPublic;
         ApplyBranchAndPlacementConfigs(spec);
-        ApplyAttributes(spec.Attributes);
+        ApplyAttributes(_attributeValues, spec.Attributes);
         return Result.Success();
     }
 
@@ -155,13 +165,16 @@ public sealed partial class EngagementOpportunity
             modified = true;
         }
 
-        if (_branchConfigs.Any(b => b.DefaultConnectorPersonId == retiredPersonId))
+        if (_branchConfigs.Exists(b => b.DefaultConnectorPersonId == retiredPersonId))
         {
             _branchConfigs =
             [
                 .. _branchConfigs.Select(b =>
                     b.DefaultConnectorPersonId == retiredPersonId
-                        ? b with { DefaultConnectorPersonId = survivingPersonId }
+                        ? b with
+                        {
+                            DefaultConnectorPersonId = survivingPersonId,
+                        }
                         : b
                 ),
             ];
@@ -173,65 +186,30 @@ public sealed partial class EngagementOpportunity
 
     private void ApplyBranchAndPlacementConfigs(EngagementOpportunitySpec spec)
     {
-        _branchConfigs =
-            spec.BranchConfigs is null
-                ? []
-                :
-                [
-                    .. spec.BranchConfigs.Select(static b =>
-                        new OpportunityBranchCoordinatorConfig(
-                            NormalizeGuid(b.BranchId),
-                            NormalizeGuid(b.DefaultConnectorPersonId),
-                            NormalizeGuid(b.ConnectorGroupId)
-                        )
-                    ),
-                ];
+        _branchConfigs = spec.BranchConfigs is null
+            ? []
+            :
+            [
+                .. spec.BranchConfigs.Select(static b => new OpportunityBranchCoordinatorConfig(
+                    NormalizeGuid(b.BranchId),
+                    NormalizeGuid(b.DefaultConnectorPersonId),
+                    NormalizeGuid(b.ConnectorGroupId)
+                )),
+            ];
 
-        _placementGroupConfigs =
-            spec.PlacementGroupConfigs is null
-                ? []
-                :
-                [
-                    .. spec.PlacementGroupConfigs
-                        .Where(static p => p.GroupId != Guid.Empty)
-                        .Select(static p => new OpportunityPlacementGroupConfig(
-                            p.GroupId,
-                            NormalizeGuid(p.GroupRoleId),
-                            NormalizeGuid(p.BranchId),
-                            p.UseAllGroupsOfType
-                        )),
-                ];
-    }
-
-    private void ApplyAttributes(IReadOnlyDictionary<string, string?>? attributes)
-    {
-        if (attributes is null)
-        {
-            return;
-        }
-
-        _attributeValues.Clear();
-        foreach (var (key, value) in attributes)
-        {
-            if (!string.IsNullOrWhiteSpace(key))
-            {
-                _attributeValues[key.Trim()] = value;
-            }
-        }
-    }
-
-    private static Guid? NormalizeGuid(Guid? value) =>
-        value is { } g && g != Guid.Empty ? g : null;
-
-    private static string? TrimOptional(string? value, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var trimmed = value.Trim();
-        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        _placementGroupConfigs = spec.PlacementGroupConfigs is null
+            ? []
+            :
+            [
+                .. spec
+                    .PlacementGroupConfigs.Where(static p => p.GroupId != Guid.Empty)
+                    .Select(static p => new OpportunityPlacementGroupConfig(
+                        p.GroupId,
+                        NormalizeGuid(p.GroupRoleId),
+                        NormalizeGuid(p.BranchId),
+                        p.UseAllGroupsOfType
+                    )),
+            ];
     }
 
     [GeneratedRegex(

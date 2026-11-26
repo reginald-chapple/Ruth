@@ -22,27 +22,25 @@ internal sealed class GetEngagementOpportunityByIdOrSlugQueryHandler(EngagementD
         }
 
         var token = query.IdOrSlug.Trim();
+        var slug = token.ToLowerInvariant();
         var q = dbContext.EngagementOpportunities.AsNoTracking();
         var entity = Guid.TryParse(token, out var parsedId)
             ? await q.FirstOrDefaultAsync(
                 o => o.Id == EngagementOpportunityId.From(parsedId),
                 cancellationToken
             )
-            : await q.FirstOrDefaultAsync(
-                o => o.Slug == token.ToLowerInvariant(),
-                cancellationToken
-            );
+            : await q.FirstOrDefaultAsync(o => o.Slug == slug, cancellationToken);
         if (entity is null)
         {
             return EngagementErrors.OpportunityNotFound;
         }
 
-        var pipelineName =
-            await dbContext
-                .PipelineTypes.AsNoTracking()
-                .Where(p => p.Id == PipelineTypeId.From(entity.PipelineTypeId))
-                .Select(static p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? "Pipeline";
+        var pipelineName = await dbContext
+            .PipelineTypes.AsNoTracking()
+            .Where(p => p.Id == PipelineTypeId.From(entity.PipelineTypeId))
+            .Select(static p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? "Pipeline";
 
         return PipelineProjectionMapper.ToResponse(entity, pipelineName);
     }

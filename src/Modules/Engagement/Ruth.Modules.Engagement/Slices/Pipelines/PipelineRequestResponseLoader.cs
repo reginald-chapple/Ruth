@@ -30,12 +30,12 @@ internal static class PipelineRequestResponseLoader
             return EngagementErrors.PipelineTypeNotFound;
         }
 
-        var oppName =
-            await dbContext
-                .EngagementOpportunities.AsNoTracking()
-                .Where(o => o.Id == EngagementOpportunityId.From(request.EngagementOpportunityId))
-                .Select(static o => o.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? "Opportunity";
+        var oppName = await dbContext
+            .EngagementOpportunities.AsNoTracking()
+            .Where(o => o.Id == EngagementOpportunityId.From(request.EngagementOpportunityId))
+            .Select(static o => o.Name)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? "Opportunity";
 
         var people = await PipelineProjectionMapper.LoadPeopleAsync(
             queryDispatcher,

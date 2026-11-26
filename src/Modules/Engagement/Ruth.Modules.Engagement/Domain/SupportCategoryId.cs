@@ -7,7 +7,19 @@ public readonly record struct SupportCategoryId(Guid Value) : IStronglyTypedId<S
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static SupportCategoryId Empty => new(Guid.Empty);
-    public static SupportCategoryId Create() => new(StronglyTypedId.NextGuid());
-    public static SupportCategoryId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static SupportCategoryId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static SupportCategoryId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

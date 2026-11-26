@@ -7,7 +7,19 @@ public readonly record struct ReminderTypeId(Guid Value) : IStronglyTypedId<Remi
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static ReminderTypeId Empty => new(Guid.Empty);
-    public static ReminderTypeId Create() => new(StronglyTypedId.NextGuid());
-    public static ReminderTypeId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static ReminderTypeId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static ReminderTypeId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

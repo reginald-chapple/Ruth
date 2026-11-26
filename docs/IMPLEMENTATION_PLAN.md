@@ -382,22 +382,22 @@ flowchart TD
 ### Wave 5 — Engagement Pipelines, Journeys, Care & Workflow
 *Goal: Deliver member/constituent onboarding pipelines, milestone journeys, attendance/activity streaks, community care/support intake, and a full dynamic Workflow + Form Builder engine.*
 
-#### `W5-S1` — Engagement Pipelines, Opportunities & Connector Board
+#### `W5-S1` — Engagement Pipelines, Opportunities & Connector Board ✅ *(Completed)*
 * **Scope:** `Engagement` module (`engage` schema): `PipelineType` (`ConnectionType`), `PipelineStage`, `StageAutomation`, `ActivityType`, `EngagementOpportunity` (branch/group/coordinator configs for volunteer intake, membership onboarding, mentorship, or referrals), `EngagementRequest` lifecycle, Kanban/Grid Coordinator Board UI, and public Opportunity Finder/Signup.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W5-S2` — Journeys (Milestones/Steps), High-Density Streaks & Achievements Engine
+#### `W5-S2` — Journeys (Milestones/Steps), High-Density Streaks & Achievements Engine ✅ *(Completed)*
 * **Scope:** `JourneyProgram` (`StepProgram`), `MilestoneType` (prerequisites), `MilestoneStatus`, `PersonMilestone`, `JourneyCompletion`; `StreakType`, `StreakExclusion`, `Streak` (`Span<byte>` bitmask participation cadence engine); `AchievementType` / `AchievementAttempt` event-driven badge & certification milestone engine.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W5-S3` — Community Care / Support Requests, Reminders & Following Subscriptions
+#### `W5-S3` — Community Care / Support Requests, Reminders & Following Subscriptions ✅ *(Completed)*
 * **Scope:** `SupportRequest` (configurable categories—e.g., Member Assistance, Wellbeing Check-In, Mentorship, Community Care, or Pastoral/Prayer where desired—with intake, privacy/moderation queue, expiration, threaded comments, guided care-team review queue, and community support counter), `ReminderType` / `Reminder` entity follow-ups + notification bell (`NotificationMessage`), and `Following` digest notifications.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W5-S4` — Account / Constituent Touchpoints & Relationship Cadence
+#### `W5-S4` — Account / Constituent Touchpoints & Relationship Cadence ✅ *(Completed)*
 * **Scope:** Personal portfolio / steward / caseworker `ConstituentContact`, `Touchpoint` cadence scheduler, relationship health updates, and mobile/web My Portfolio outreach queue.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.

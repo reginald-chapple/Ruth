@@ -8,7 +8,19 @@ public readonly record struct FollowingSubscriptionId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static FollowingSubscriptionId Empty => new(Guid.Empty);
-    public static FollowingSubscriptionId Create() => new(StronglyTypedId.NextGuid());
-    public static FollowingSubscriptionId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static FollowingSubscriptionId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static FollowingSubscriptionId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

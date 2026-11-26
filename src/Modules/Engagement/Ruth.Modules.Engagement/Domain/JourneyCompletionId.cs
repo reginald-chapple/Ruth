@@ -8,7 +8,19 @@ public readonly record struct JourneyCompletionId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static JourneyCompletionId Empty => new(Guid.Empty);
-    public static JourneyCompletionId Create() => new(StronglyTypedId.NextGuid());
-    public static JourneyCompletionId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static JourneyCompletionId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static JourneyCompletionId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

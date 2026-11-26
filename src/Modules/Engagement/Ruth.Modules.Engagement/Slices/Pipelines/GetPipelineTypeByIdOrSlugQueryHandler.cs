@@ -22,6 +22,7 @@ internal sealed class GetPipelineTypeByIdOrSlugQueryHandler(EngagementDbContext 
         }
 
         var token = query.IdOrSlug.Trim();
+        var slug = token.ToLowerInvariant();
         var q = dbContext
             .PipelineTypes.AsNoTracking()
             .Include(static p => p.Stages)
@@ -32,10 +33,7 @@ internal sealed class GetPipelineTypeByIdOrSlugQueryHandler(EngagementDbContext 
                 p => p.Id == PipelineTypeId.From(parsedId),
                 cancellationToken
             )
-            : await q.FirstOrDefaultAsync(
-                p => p.Slug == token.ToLowerInvariant(),
-                cancellationToken
-            );
+            : await q.FirstOrDefaultAsync(p => p.Slug == slug, cancellationToken);
 
         return entity is null
             ? EngagementErrors.PipelineTypeNotFound

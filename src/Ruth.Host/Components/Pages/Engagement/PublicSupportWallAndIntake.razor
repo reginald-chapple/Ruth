@@ -1,0 +1,77 @@
+@page "/engagement/support"
+@rendermode InteractiveServer
+
+<PageTitle>Community Care &amp; Support Wall — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Community Care, Assistance &amp; Support Wall</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Submit a Support or Care Request</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                @if (_categories.Count > 0)
+                {
+                    <FluentSelect TOption="SupportCategoryResponse"
+                                  TValue="Guid"
+                                  Label="Category"
+                                  Items="@_categories"
+                                  OptionText="@(static c => c.Name)"
+                                  OptionValue="@(static c => c.Id)"
+                                  @bind-Value="_selectedCategoryId" />
+                }
+                <FluentTextInput @bind-Value="_firstName" Label="First Name (or Anonymous)" />
+                <FluentTextInput @bind-Value="_email" Label="Email (Private)" />
+                <FluentSelect TOption="SupportVisibilityLevel"
+                              TValue="SupportVisibilityLevel"
+                              Label="Privacy Scope"
+                              Items="@_visibilities"
+                              OptionText="@(static v => v.ToString())"
+                              OptionValue="@(static v => v)"
+                              @bind-Value="_visibility" />
+            </FluentStack>
+            <FluentTextInput @bind-Value="_requestText" Label="How can our community or care team support you?" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitAsync">
+                Submit Support Request
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Public Community Care Wall (@_wall.Count)</h2>
+            @if (_wall.Count == 0)
+            {
+                <p>No public support requests are currently posted.</p>
+            }
+            @foreach (var item in _wall)
+            {
+                <div class="ruth-kiosk-member-row" @key="item.Id">
+                    <strong>@item.FirstName — @item.CategoryName</strong>
+                    <span>@item.RequestText</span>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton Size="ButtonSize.Small"
+                                      Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => SupportAsync(item.Id))">
+                            Supporting (@item.CommunitySupportCount)
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      OnClick="@(() => FlagAsync(item.Id))">
+                            Flag for Review
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

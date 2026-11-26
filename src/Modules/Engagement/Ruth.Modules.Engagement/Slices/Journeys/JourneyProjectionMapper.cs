@@ -47,8 +47,8 @@ internal static class JourneyProjectionMapper
                         m.HasEndDate,
                         [.. m.PrerequisiteMilestoneTypeIds],
                         [
-                            .. m.PrerequisiteMilestoneTypeIds
-                                .Where(codeById.ContainsKey)
+                            .. m
+                                .PrerequisiteMilestoneTypeIds.Where(codeById.ContainsKey)
                                 .Select(id => codeById[id]),
                         ],
                         m.IsActive
@@ -62,10 +62,7 @@ internal static class JourneyProjectionMapper
         );
     }
 
-    public static PersonMilestoneResponse ToResponse(
-        PersonMilestone item,
-        JourneyProgram program
-    )
+    public static PersonMilestoneResponse ToResponse(PersonMilestone item, JourneyProgram program)
     {
         var mtName = program.FindMilestoneType(item.MilestoneTypeId)?.Name ?? "Milestone";
         var stName = program.FindStatus(item.MilestoneStatusId)?.Name ?? "Status";

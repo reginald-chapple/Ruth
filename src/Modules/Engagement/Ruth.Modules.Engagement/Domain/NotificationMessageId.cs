@@ -8,7 +8,19 @@ public readonly record struct NotificationMessageId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static NotificationMessageId Empty => new(Guid.Empty);
-    public static NotificationMessageId Create() => new(StronglyTypedId.NextGuid());
-    public static NotificationMessageId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static NotificationMessageId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static NotificationMessageId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

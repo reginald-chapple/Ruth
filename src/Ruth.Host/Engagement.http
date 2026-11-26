@@ -1,0 +1,557 @@
+@host = http://localhost:5000
+@token = REPLACE_WITH_BEARER_TOKEN
+
+### W5-S1: List Engagement Pipeline Types
+GET {{host}}/api/engagement/pipelines?activeOnly=true
+Authorization: Bearer {{token}}
+
+### W5-S1: Create Engagement Pipeline Type
+POST {{host}}/api/engagement/pipelines
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Volunteer & Member Onboarding",
+  "slug": "volunteer-member-onboarding",
+  "enableFutureFollowUp": true,
+  "defaultFollowUpDays": 7,
+  "daysUntilRequestIdle": 10,
+  "requiresPlacementGroup": false,
+  "isSequentialStageProgression": false,
+  "stages": [
+    { "name": "New Inquiry", "order": 0, "isInitial": true },
+    { "name": "Coordinator Intro", "order": 1 },
+    { "name": "Connected", "order": 2, "isTerminalCompleted": true }
+  ],
+  "activityTypes": [
+    { "name": "Phone Call", "order": 0 },
+    { "name": "Orientation Coffee", "order": 1 }
+  ]
+}
+
+### W5-S1: Update Engagement Pipeline Type
+PUT {{host}}/api/engagement/pipelines/00000000-0000-0000-0000-000000000501
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Volunteer & Member Onboarding",
+  "slug": "volunteer-member-onboarding",
+  "daysUntilRequestIdle": 14,
+  "stages": [
+    { "name": "New Inquiry", "order": 0, "isInitial": true },
+    { "name": "Connected", "order": 1, "isTerminalCompleted": true }
+  ]
+}
+
+### W5-S1: List Staff Engagement Opportunities
+GET {{host}}/api/engagement/pipelines/opportunities
+Authorization: Bearer {{token}}
+
+### W5-S1: Create Engagement Opportunity
+POST {{host}}/api/engagement/pipelines/opportunities
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pipelineTypeId": "00000000-0000-0000-0000-000000000501",
+  "name": "Youth Mentorship Intake",
+  "slug": "youth-mentorship-intake",
+  "publicSummary": "Mentor emerging community leaders.",
+  "isActive": true,
+  "isPublic": true
+}
+
+### W5-S1: Update Engagement Opportunity
+PUT {{host}}/api/engagement/pipelines/opportunities/00000000-0000-0000-0000-000000000502
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pipelineTypeId": "00000000-0000-0000-0000-000000000501",
+  "name": "Youth Mentorship Intake",
+  "slug": "youth-mentorship-intake",
+  "publicSummary": "Updated mentorship cohort summary.",
+  "isActive": true,
+  "isPublic": true
+}
+
+### W5-S1: Browse Public Opportunity Finder
+GET {{host}}/api/engagement/public/opportunities?q=Mentor
+
+### W5-S1: Get Public Opportunity by Slug
+GET {{host}}/api/engagement/public/opportunities/youth-mentorship-intake
+
+### W5-S1: Submit Public Opportunity Signup
+POST {{host}}/api/engagement/public/signup
+Content-Type: application/json
+
+{
+  "opportunityIdOrSlug": "youth-mentorship-intake",
+  "firstName": "Jordan",
+  "lastName": "Hayes",
+  "email": "jordan.hayes@example.org",
+  "mobilePhone": "+15552345678",
+  "comments": "Available Tuesday evenings"
+}
+
+### W5-S1: Load Kanban & Grid Connector Board
+GET {{host}}/api/engagement/pipelines/00000000-0000-0000-0000-000000000501/board?includeClosed=false
+Authorization: Bearer {{token}}
+
+### W5-S1: Query Engagement Requests
+GET {{host}}/api/engagement/pipelines/requests
+Authorization: Bearer {{token}}
+
+### W5-S1: Create Staff Engagement Request
+POST {{host}}/api/engagement/pipelines/requests
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "engagementOpportunityId": "00000000-0000-0000-0000-000000000502",
+  "requesterPersonId": "00000000-0000-0000-0000-000000000510",
+  "comments": "Referred from orientation desk"
+}
+
+### W5-S1: Transition Request Stage
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/transition
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "targetStageId": "00000000-0000-0000-0000-000000000511",
+  "note": "Scheduled intro coffee"
+}
+
+### W5-S1: Log Activity on Engagement Request
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/activities
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "activityName": "Phone Call",
+  "note": "Confirmed orientation availability"
+}
+
+### W5-S1: Assign Coordinator
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/assign
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "connectorPersonId": "00000000-0000-0000-0000-000000000512"
+}
+
+### W5-S1: Schedule Future Follow-Up
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/follow-up
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "followUpDate": "2026-12-15",
+  "note": "Traveling until mid-December"
+}
+
+### W5-S1: Mark Engagement Request Connected
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/connect
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "note": "Placed onto active mentor roster"
+}
+
+### W5-S1: Mark Engagement Request Inactive
+POST {{host}}/api/engagement/pipelines/requests/00000000-0000-0000-0000-000000000503/inactive
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "requestId": "00000000-0000-0000-0000-000000000503",
+  "reason": "Relocated out of area"
+}
+
+### W5-S2: List Journey Programs
+GET {{host}}/api/engagement/journeys/programs
+Authorization: Bearer {{token}}
+
+### W5-S2: Create Journey Program with Prerequisites
+POST {{host}}/api/engagement/journeys/programs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Leadership Certification Track",
+  "slug": "leadership-certification-track",
+  "statuses": [
+    { "name": "In Progress", "colorHex": "#0F6CBD", "isCompleteStatus": false, "order": 0 },
+    { "name": "Completed", "colorHex": "#107C10", "isCompleteStatus": true, "order": 1 }
+  ],
+  "milestoneTypes": [
+    { "name": "Foundation Orientation", "code": "FOUNDATION", "order": 0 },
+    { "name": "Facilitator Practicum", "code": "PRACTICUM", "order": 1, "prerequisiteCodes": [ "FOUNDATION" ] }
+  ]
+}
+
+### W5-S2: Update Journey Program
+PUT {{host}}/api/engagement/journeys/programs/00000000-0000-0000-0000-000000000504
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Leadership Certification Track",
+  "slug": "leadership-certification-track",
+  "statuses": [
+    { "name": "Completed", "colorHex": "#107C10", "isCompleteStatus": true, "order": 0 }
+  ],
+  "milestoneTypes": [
+    { "name": "Foundation Orientation", "code": "FOUNDATION", "order": 0 }
+  ]
+}
+
+### W5-S2: Record Person Milestone
+POST {{host}}/api/engagement/journeys/milestones
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "00000000-0000-0000-0000-000000000510",
+  "journeyProgramId": "00000000-0000-0000-0000-000000000504",
+  "milestoneTypeId": "00000000-0000-0000-0000-000000000513",
+  "milestoneStatusId": "00000000-0000-0000-0000-000000000514",
+  "startDate": "2026-11-25"
+}
+
+### W5-S2: Get Person Journey Progress
+GET {{host}}/api/engagement/journeys/people/00000000-0000-0000-0000-000000000510/progress
+Authorization: Bearer {{token}}
+
+### W5-S2: List Journey Completions
+GET {{host}}/api/engagement/journeys/completions
+Authorization: Bearer {{token}}
+
+### W5-S2: List & Create Streak Types
+GET {{host}}/api/engagement/streaks/types
+Authorization: Bearer {{token}}
+
+### W5-S2: Create Weekly Participation Streak Type
+POST {{host}}/api/engagement/streaks/types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Weekly Member Participation",
+  "code": "WEEKLY_MEMBER",
+  "cadence": "Weekly",
+  "anchorStartDate": "2026-01-04",
+  "weekEndDay": "Sunday",
+  "sourceKind": "AnyAttendance"
+}
+
+### W5-S2: Add Holiday Streak Exclusion
+POST {{host}}/api/engagement/streaks/types/00000000-0000-0000-0000-000000000506/exclusions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "streakTypeId": "00000000-0000-0000-0000-000000000506",
+  "exclusionDate": "2026-11-29"
+}
+
+### W5-S2: Enroll & Record Streak Participation
+POST {{host}}/api/engagement/streaks/enroll
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "streakTypeId": "00000000-0000-0000-0000-000000000506",
+  "personId": "00000000-0000-0000-0000-000000000510"
+}
+
+### W5-S2: Record Streak Bit
+POST {{host}}/api/engagement/streaks/record
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "streakTypeId": "00000000-0000-0000-0000-000000000506",
+  "personId": "00000000-0000-0000-0000-000000000510",
+  "engagementDate": "2026-11-22"
+}
+
+### W5-S2: Query Streaks
+GET {{host}}/api/engagement/streaks
+Authorization: Bearer {{token}}
+
+### W5-S2: Create & Query Achievement Types & Attempts
+GET {{host}}/api/engagement/achievements/types
+Authorization: Bearer {{token}}
+
+### W5-S2: Create Achievement Type
+POST {{host}}/api/engagement/achievements/types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "4-Week Participation Badge",
+  "code": "STREAK_4_WEEKS",
+  "sourceKind": "StreakCount",
+  "targetCount": 4,
+  "targetStreakTypeId": "00000000-0000-0000-0000-000000000506"
+}
+
+### W5-S2: Record Achievement Progress
+POST {{host}}/api/engagement/achievements/progress
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "achievementTypeId": "00000000-0000-0000-0000-000000000507",
+  "personId": "00000000-0000-0000-0000-000000000510",
+  "observedCount": 4,
+  "asOfDate": "2026-11-25"
+}
+
+### W5-S2: Query Achievement Attempts
+GET {{host}}/api/engagement/achievements/attempts?successfulOnly=true
+Authorization: Bearer {{token}}
+
+### W5-S3: Create & List Support Categories
+GET {{host}}/api/engagement/support/categories
+Authorization: Bearer {{token}}
+
+### W5-S3: Create Support Category
+POST {{host}}/api/engagement/support/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Mutual Aid & Care",
+  "slug": "community-mutual-aid-care",
+  "requiresModeration": true,
+  "defaultExpirationDays": 14,
+  "allowPublicCommunityWall": true
+}
+
+### W5-S3: Public Support Categories & Wall
+GET {{host}}/api/engagement/public/support/categories
+
+### W5-S3: Submit Support Request
+POST {{host}}/api/engagement/public/support/submit
+Content-Type: application/json
+
+{
+  "supportCategoryId": "00000000-0000-0000-0000-000000000508",
+  "firstName": "Avery",
+  "lastName": "Morgan",
+  "email": "avery.morgan@example.org",
+  "requestText": "Recovering from surgery this week — meals or check-in appreciated.",
+  "visibilityLevel": "PublicCommunityWall",
+  "isUrgent": true
+}
+
+### W5-S3: Care-Team Moderation & Review Queue
+GET {{host}}/api/engagement/support/queue
+Authorization: Bearer {{token}}
+
+### W5-S3: Moderate Support Request
+POST {{host}}/api/engagement/support/00000000-0000-0000-0000-000000000509/moderate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "supportRequestId": "00000000-0000-0000-0000-000000000509",
+  "decision": "Approve"
+}
+
+### W5-S3: Get Moderated Public Support Wall
+GET {{host}}/api/engagement/public/support/wall
+
+### W5-S3: Increment Community Support Counter
+POST {{host}}/api/engagement/public/support/00000000-0000-0000-0000-000000000509/support
+
+### W5-S3: Post Encouragement Comment
+POST {{host}}/api/engagement/public/support/00000000-0000-0000-0000-000000000509/comments
+Content-Type: application/json
+
+{
+  "supportRequestId": "00000000-0000-0000-0000-000000000509",
+  "authorDisplayName": "Samira K.",
+  "body": "Dropping off dinner Thursday evening!"
+}
+
+### W5-S3: Flag Public Support Request
+POST {{host}}/api/engagement/public/support/00000000-0000-0000-0000-000000000509/flag
+
+### W5-S3: Resolve Support Request
+POST {{host}}/api/engagement/support/00000000-0000-0000-0000-000000000509/resolve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "supportRequestId": "00000000-0000-0000-0000-000000000509",
+  "outcomeSummary": "Meal train fulfilled by care team",
+  "archiveImmediately": true
+}
+
+### W5-S3: Create & Process Entity Reminders, Notifications & Following
+GET {{host}}/api/engagement/reminders/types
+Authorization: Bearer {{token}}
+
+### W5-S3: Create Reminder Type
+POST {{host}}/api/engagement/reminders/types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "30-Day Care Check-In",
+  "highlightColorHex": "#0F6CBD"
+}
+
+### W5-S3: Create Entity Reminder
+POST {{host}}/api/engagement/reminders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reminderTypeId": "00000000-0000-0000-0000-00000000050a",
+  "assigneePersonId": "00000000-0000-0000-0000-000000000512",
+  "entityTypeKey": "Ruth.Crm.Person",
+  "entityId": "00000000-0000-0000-0000-000000000510",
+  "entitySummary": "Jordan Hayes",
+  "note": "Check how first mentor session went",
+  "reminderDate": "2026-11-25"
+}
+
+### W5-S3: List Reminders
+GET {{host}}/api/engagement/reminders
+Authorization: Bearer {{token}}
+
+### W5-S3: Process Due Reminders
+POST {{host}}/api/engagement/reminders/process-due
+Authorization: Bearer {{token}}
+
+### W5-S3: Complete Reminder
+POST {{host}}/api/engagement/reminders/00000000-0000-0000-0000-000000000515/complete
+Authorization: Bearer {{token}}
+
+### W5-S3: List & Mark Notification Bell Messages
+GET {{host}}/api/engagement/notifications?unreadOnly=true
+Authorization: Bearer {{token}}
+
+### W5-S3: Mark Notification Read
+POST {{host}}/api/engagement/notifications/00000000-0000-0000-0000-000000000516/read
+Authorization: Bearer {{token}}
+
+### W5-S3: Toggle Following Subscription & Dispatch Digests
+POST {{host}}/api/engagement/following/toggle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "followerPersonId": "00000000-0000-0000-0000-000000000512",
+  "entityTypeKey": "Ruth.Crm.Person",
+  "entityId": "00000000-0000-0000-0000-000000000510",
+  "entityDisplayName": "Jordan Hayes",
+  "subscribe": true
+}
+
+### W5-S3: List Person Followings
+GET {{host}}/api/engagement/following/00000000-0000-0000-0000-000000000512
+Authorization: Bearer {{token}}
+
+### W5-S3: Record Followed Entity Event
+POST {{host}}/api/engagement/following/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "entityTypeKey": "Ruth.Crm.Person",
+  "entityId": "00000000-0000-0000-0000-000000000510",
+  "eventTypeKey": "MilestoneCompleted",
+  "summary": "Jordan Hayes completed Foundation Orientation"
+}
+
+### W5-S3: Dispatch Following Digests
+POST {{host}}/api/engagement/following/dispatch-digests
+Authorization: Bearer {{token}}
+
+### W5-S4: Upsert Constituent Portfolio Contact
+POST {{host}}/api/engagement/portfolio/contacts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ownerPersonId": "00000000-0000-0000-0000-000000000512",
+  "constituentPersonId": "00000000-0000-0000-0000-000000000510",
+  "portfolioRole": "Steward",
+  "relationshipStrength": "Developing",
+  "outreachCadenceDays": 30,
+  "connectionNoteCadenceDays": 90,
+  "preferredChannel": "PhoneCall"
+}
+
+### W5-S4: Get Mobile/Web My Portfolio & Outreach Queue
+GET {{host}}/api/engagement/portfolio/queue?ownerPersonId=00000000-0000-0000-0000-000000000512
+Authorization: Bearer {{token}}
+
+### W5-S4: Schedule Ad-Hoc Touchpoint
+POST {{host}}/api/engagement/portfolio/touchpoints
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "constituentContactId": "00000000-0000-0000-0000-00000000050b",
+  "kind": "MilestoneCelebration",
+  "channel": "HandwrittenNote",
+  "scheduledDate": "2026-11-26",
+  "summary": "Congratulate on completing orientation"
+}
+
+### W5-S4: Complete Touchpoint & Sync Relationship Health
+POST {{host}}/api/engagement/portfolio/touchpoints/00000000-0000-0000-0000-00000000050c/complete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "touchpointId": "00000000-0000-0000-0000-00000000050c",
+  "channelUsed": "PhoneCall",
+  "outcomeSentiment": "Positive",
+  "summary": "Great catch-up conversation",
+  "updatedRelationshipStrength": "Established"
+}
+
+### W5-S4: Snooze Touchpoint
+POST {{host}}/api/engagement/portfolio/touchpoints/00000000-0000-0000-0000-00000000050c/snooze
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "touchpointId": "00000000-0000-0000-0000-00000000050c",
+  "snoozeUntilDate": "2026-12-03"
+}
+
+### W5-S4: Skip Touchpoint
+POST {{host}}/api/engagement/portfolio/touchpoints/00000000-0000-0000-0000-00000000050c/skip
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "touchpointId": "00000000-0000-0000-0000-00000000050c",
+  "reason": "Spoke in person at community event"
+}
+
+### W5-S4: Generate Portfolio Cadence Touchpoints
+POST {{host}}/api/engagement/portfolio/generate-cadence
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "horizonDays": 7
+}

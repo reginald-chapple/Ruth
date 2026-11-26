@@ -1,5 +1,6 @@
 using Ruth.Modules.Engagement.Contracts.Pipelines;
 using Ruth.SharedKernel.Primitives;
+using static Ruth.Modules.Engagement.Domain.EngagementTextNormalizer;
 
 namespace Ruth.Modules.Engagement.Domain.Pipelines;
 
@@ -33,10 +34,10 @@ public sealed class PipelineStage : Entity<PipelineStageId>
 
     internal static PipelineStage Create(PipelineTypeId pipelineTypeId, PipelineStageSpec spec)
     {
-        var id =
-            spec.Id is { } existing && existing != Guid.Empty
-                ? PipelineStageId.From(existing)
-                : PipelineStageId.Create();
+        var existingId = NormalizeGuid(spec.Id);
+        var id = existingId.HasValue
+            ? PipelineStageId.From(existingId.Value)
+            : PipelineStageId.Create();
         var stage = new PipelineStage(id, pipelineTypeId);
         stage.ApplySpec(spec);
         return stage;
@@ -45,30 +46,42 @@ public sealed class PipelineStage : Entity<PipelineStageId>
     internal void ApplySpec(PipelineStageSpec spec)
     {
         Name = spec.Name.Trim();
-        Description = string.IsNullOrWhiteSpace(spec.Description) ? null : spec.Description.Trim();
+        Description = TrimOptional(spec.Description, 1000);
         Order = spec.Order;
         IsInitial = spec.IsInitial;
         IsTerminalCompleted = spec.IsTerminalCompleted;
         IsTerminalInactive = spec.IsTerminalInactive && !spec.IsTerminalCompleted;
         IdleThresholdDaysOverride = spec.IdleThresholdDaysOverride;
-        _automations =
-            spec.Automations is null
-                ? []
-                :
-                [
-                    .. spec.Automations
-                        .Where(static a =>
-                            a.AutomationKind != StageAutomationKind.None
-                            || a.AutoSetFollowUpDays is > 0
-                        )
-                        .Select(static a => new StageAutomation(
-                            a.AutomationKind,
-                            a.TargetEntityId is { } tid && tid != Guid.Empty ? tid : null,
-                            string.IsNullOrWhiteSpace(a.SystemCommunicationKey)
-                                ? null
-                                : a.SystemCommunicationKey.Trim(),
-                            a.AutoSetFollowUpDays is > 0 ? a.AutoSetFollowUpDays : null
-                        )),
-                ];
+        _automations = BuildAutomations(spec.Automations);
+    }
+
+    private static List<StageAutomation> BuildAutomations(IReadOnlyList<StageAutomationDto>? specs)
+    {
+        if (specs is null || specs.Count == 0)
+        {
+            return [];
+        }
+
+        var list = new List<StageAutomation>(specs.Count);
+        foreach (var item in specs)
+        {
+            if (item.AutomationKind != StageAutomationKind.None || item.AutoSetFollowUpDays is > 0)
+            {
+                list.Add(MapAutomation(item));
+            }
+        }
+
+        return list;
+    }
+
+    private static StageAutomation MapAutomation(StageAutomationDto dto)
+    {
+        var followUpDays = dto.AutoSetFollowUpDays is > 0 ? dto.AutoSetFollowUpDays : null;
+        return new StageAutomation(
+            dto.AutomationKind,
+            NormalizeGuid(dto.TargetEntityId),
+            TrimOptional(dto.SystemCommunicationKey, 120),
+            followUpDays
+        );
     }
 }

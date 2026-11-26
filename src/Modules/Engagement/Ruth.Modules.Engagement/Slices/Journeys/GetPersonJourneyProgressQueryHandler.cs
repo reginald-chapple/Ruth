@@ -49,7 +49,9 @@ internal sealed class GetPersonJourneyProgressQueryHandler(EngagementDbContext d
                     .Select(static m => m.MilestoneTypeId)
                     .ToHashSet();
                 var required = p
-                    .MilestoneTypes.Where(static m => m.IsActive && m.IsRequiredForProgramCompletion)
+                    .MilestoneTypes.Where(static m =>
+                        m.IsActive && m.IsRequiredForProgramCompletion
+                    )
                     .ToArray();
                 var hasCompletion = completions.TryGetValue(p.Id.Value, out var comp);
 

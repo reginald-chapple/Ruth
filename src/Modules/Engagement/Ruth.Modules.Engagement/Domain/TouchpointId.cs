@@ -7,7 +7,19 @@ public readonly record struct TouchpointId(Guid Value) : IStronglyTypedId<Touchp
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static TouchpointId Empty => new(Guid.Empty);
-    public static TouchpointId Create() => new(StronglyTypedId.NextGuid());
-    public static TouchpointId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static TouchpointId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static TouchpointId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

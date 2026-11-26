@@ -1,0 +1,80 @@
+@page "/engagement/streaks"
+@rendermode InteractiveServer
+
+<PageTitle>Streaks &amp; Achievements — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>High-Density Streaks &amp; Event-Driven Achievements</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configure Bitmask Streak Type &amp; Achievement Badge</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_streakName" Label="Streak Name" />
+                <FluentTextInput @bind-Value="_streakCode" Label="Streak Code" />
+                <FluentSelect TOption="StreakCadence"
+                              TValue="StreakCadence"
+                              Label="Cadence"
+                              Items="@_cadences"
+                              OptionText="@(static c => c.ToString())"
+                              OptionValue="@(static c => c)"
+                              @bind-Value="_cadence" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateStreakAndBadgeAsync">
+                    Create Streak &amp; 4-Bucket Badge
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configured Streak Types (@_streakTypes.Count) &amp; Achievements (@_achievementTypes.Count)</h2>
+            @foreach (var st in _streakTypes)
+            {
+                <div class="ruth-kiosk-member-row" @key="st.Id">
+                    <strong>@st.Name [@st.Code]</strong>
+                    <span class="ruth-room-status-pill">@st.Cadence (Anchor: @st.AnchorStartDate.ToString("yyyy-MM-dd"))</span>
+                    <span>Exclusions: @st.Exclusions.Count</span>
+                </div>
+            }
+            @foreach (var ach in _achievementTypes)
+            {
+                <div class="ruth-kiosk-member-row" @key="ach.Id">
+                    <strong>Badge: @ach.Name [@ach.Code]</strong>
+                    <span class="ruth-room-status-pill">@ach.SourceKind &gt;= @ach.TargetCount</span>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Active Streaks (@_streaks.Count) &amp; Earned Attempts (@_attempts.Count)</h2>
+            @foreach (var s in _streaks)
+            {
+                <div class="ruth-kiosk-member-row" @key="s.Id">
+                    <strong>@s.StreakTypeName — Person @s.PersonId.ToString("D")[..8]</strong>
+                    <span class="ruth-room-status-pill">Current: @s.CurrentStreakCount · Longest: @s.LongestStreakCount · Total: @s.EngagementCount</span>
+                    <span class="ruth-sparkline-mono">@s.RecentBucketsBitString</span>
+                </div>
+            }
+            @foreach (var a in _attempts)
+            {
+                <div class="ruth-kiosk-member-row" @key="a.Id">
+                    <strong>@a.AchievementName — Person @a.PersonId.ToString("D")[..8]</strong>
+                    <span class="ruth-room-status-pill">@(a.IsSuccessful ? "Earned" : "In Progress") (@a.CurrentCount / @a.TargetCountSnapshot)</span>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

@@ -8,7 +8,19 @@ public readonly record struct PipelineActivityTypeId(Guid Value)
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static PipelineActivityTypeId Empty => new(Guid.Empty);
-    public static PipelineActivityTypeId Create() => new(StronglyTypedId.NextGuid());
-    public static PipelineActivityTypeId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static PipelineActivityTypeId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static PipelineActivityTypeId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

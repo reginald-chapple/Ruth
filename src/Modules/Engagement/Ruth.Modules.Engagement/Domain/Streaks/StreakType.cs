@@ -43,16 +43,25 @@ public sealed partial class StreakType
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public static Result<StreakType> Create(StreakTypeSpec spec)
     {
@@ -102,25 +111,37 @@ public sealed partial class StreakType
         }
 
         var normalizedBranch = NormalizeGuid(branchId);
-        if (_exclusions.Any(e => e.ExclusionDate == aligned && e.BranchId == normalizedBranch))
+        if (_exclusions.Exists(e => e.ExclusionDate == aligned && e.BranchId == normalizedBranch))
         {
             return Result.Success();
         }
 
-        _exclusions.Add(new StreakExclusion(StreakExclusionId.Create(), Id, aligned, normalizedBranch));
+        _exclusions.Add(
+            new StreakExclusion(StreakExclusionId.Create(), Id, aligned, normalizedBranch)
+        );
         return Result.Success();
     }
 
     public bool MatchesAttendance(Guid? groupId, Guid? groupTypeId)
     {
-        return IsActive
-            && SourceKind switch
-            {
-                StreakSourceKind.GroupAttendance => TargetEntityId.HasValue && groupId == TargetEntityId,
-                StreakSourceKind.GroupTypeAttendance => TargetEntityId.HasValue && groupTypeId == TargetEntityId,
-                StreakSourceKind.AnyAttendance => true,
-                _ => false,
-            };
+        return IsActive && MatchesSourceTarget(groupId, groupTypeId);
+    }
+
+    private bool MatchesSourceTarget(Guid? groupId, Guid? groupTypeId)
+    {
+        return SourceKind switch
+        {
+            StreakSourceKind.AnyAttendance => true,
+            StreakSourceKind.GroupAttendance => MatchesTargetGuid(groupId),
+            StreakSourceKind.GroupTypeAttendance => MatchesTargetGuid(groupTypeId),
+            StreakSourceKind.ManualOrActivity => false,
+            _ => false,
+        };
+    }
+
+    private bool MatchesTargetGuid(Guid? candidate)
+    {
+        return TargetEntityId.HasValue && candidate == TargetEntityId;
     }
 
     [GeneratedRegex(

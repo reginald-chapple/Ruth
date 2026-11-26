@@ -7,7 +7,19 @@ public readonly record struct MilestoneStatusId(Guid Value) : IStronglyTypedId<M
 {
     public bool IsEmpty => Value == Guid.Empty;
     public static MilestoneStatusId Empty => new(Guid.Empty);
-    public static MilestoneStatusId Create() => new(StronglyTypedId.NextGuid());
-    public static MilestoneStatusId From(Guid value) => new(value);
-    public override string ToString() => Value.ToString("D");
+
+    public static MilestoneStatusId Create()
+    {
+        return new(StronglyTypedId.NextGuid());
+    }
+
+    public static MilestoneStatusId From(Guid value)
+    {
+        return new(value);
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString("D");
+    }
 }

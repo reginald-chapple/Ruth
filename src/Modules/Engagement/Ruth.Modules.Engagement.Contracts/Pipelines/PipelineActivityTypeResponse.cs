@@ -5,9 +5,4 @@ namespace Ruth.Modules.Engagement.Contracts.Pipelines;
 /// <param name="Name">Activity type display name.</param>
 /// <param name="Order">Display order.</param>
 /// <param name="IsActive">Whether the activity type is active.</param>
-public sealed record PipelineActivityTypeResponse(
-    Guid Id,
-    string Name,
-    int Order,
-    bool IsActive
-);
+public sealed record PipelineActivityTypeResponse(Guid Id, string Name, int Order, bool IsActive);

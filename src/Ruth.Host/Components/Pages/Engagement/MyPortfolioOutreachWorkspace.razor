@@ -1,0 +1,111 @@
+@page "/engagement/portfolio"
+@rendermode InteractiveServer
+@using System.Globalization
+
+<PageTitle>My Portfolio &amp; Outreach Queue — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>My Constituent Portfolio &amp; Relationship Cadence</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@GenerateCadenceAsync">
+        Generate Upcoming Cadence
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_portfolio is not null)
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <span class="ruth-room-status-pill">Active Contacts: @_portfolio.ActiveContactCount</span>
+                <span class="ruth-room-status-pill">Avg Health: @_portfolio.AverageHealthScore / 100</span>
+                <span class="ruth-room-status-pill">Healthy: @_portfolio.HealthyCount</span>
+                <span class="ruth-room-status-pill">Due / Overdue: @_portfolio.DueOrOverdueCount</span>
+                <span class="ruth-room-status-pill">Critical Lapse: @_portfolio.CriticalLapseCount</span>
+            </FluentStack>
+        </FluentCard>
+
+        @if (_people.Count >= 2)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Add Constituent to Portfolio</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentSelect TOption="PersonSummaryResponse"
+                                      TValue="Guid"
+                                      Label="Steward / Caseworker"
+                                      Items="@_people"
+                                      OptionText="@(static p => p.FullName)"
+                                      OptionValue="@(static p => p.Id)"
+                                      @bind-Value="_ownerPersonId" />
+                        <FluentSelect TOption="PersonSummaryResponse"
+                                      TValue="Guid"
+                                      Label="Constituent"
+                                      Items="@_people"
+                                      OptionText="@(static p => p.FullName)"
+                                      OptionValue="@(static p => p.Id)"
+                                      @bind-Value="_constituentPersonId" />
+                        <FluentTextInput @bind-Value="_portfolioRole" Label="Portfolio Role" />
+                        <FluentTextInput @bind-Value="_cadenceDaysInput" Label="Cadence (Days)" />
+                        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@AddContactAsync">
+                            Save Portfolio Contact
+                        </FluentButton>
+                    </FluentStack>
+                </FluentStack>
+            </FluentCard>
+        }
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Prioritized Outreach Queue (@_portfolio.OutreachQueue.Count)</h2>
+                @if (_portfolio.OutreachQueue.Count == 0)
+                {
+                    <p>No pending outreach touchpoints right now.</p>
+                }
+                @foreach (var tp in _portfolio.OutreachQueue)
+                {
+                    <div class="ruth-kiosk-member-row" @key="tp.Id">
+                        <strong>@tp.ConstituentDisplayName (@tp.PortfolioRole)</strong>
+                        <span class="ruth-room-status-pill">@tp.Kind · @tp.Channel · Due @tp.ScheduledDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</span>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6" Wrap="true">
+                            <FluentButton Size="ButtonSize.Small"
+                                          Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => CompleteAsync(tp.Id, tp.Channel))">
+                                Log Positive Touchpoint
+                            </FluentButton>
+                            <FluentButton Size="ButtonSize.Small"
+                                          OnClick="@(() => SnoozeWeekAsync(tp.Id, tp.ScheduledDate))">
+                                Snooze +7d
+                            </FluentButton>
+                            <FluentButton Size="ButtonSize.Small"
+                                          OnClick="@(() => SkipAsync(tp.Id))">
+                                Skip Cycle
+                            </FluentButton>
+                        </FluentStack>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Portfolio Roster (@_portfolio.Contacts.Count)</h2>
+                @foreach (var c in _portfolio.Contacts)
+                {
+                    <div class="ruth-kiosk-member-row" @key="c.Id">
+                        <strong>@c.ConstituentDisplayName — @c.PortfolioRole</strong>
+                        <span class="ruth-room-status-pill">Health: @c.HealthScore (@c.HealthStatus) · @c.RelationshipStrength</span>
+                        <span>Cadence: Every @c.OutreachCadenceDays d · Next: @(c.NextScheduledTouchpointDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "Ad-Hoc")</span>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+}

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Engagement.Contracts.Pipelines;
 using Ruth.Modules.Engagement.Domain;
+using Ruth.Modules.Engagement.Domain.Pipelines;
 using Ruth.Modules.Engagement.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
@@ -32,6 +33,24 @@ internal sealed class GetConnectorBoardQueryHandler(
             return EngagementErrors.PipelineTypeNotFound;
         }
 
+        var requests = await FilterBoardRequests(query)
+            .OrderByDescending(static r => r.LastActivityAtUtc)
+            .ToListAsync(cancellationToken);
+        var oppNames = await dbContext
+            .EngagementOpportunities.AsNoTracking()
+            .Where(o => o.PipelineTypeId == query.PipelineTypeId)
+            .ToDictionaryAsync(static o => o.Id.Value, static o => o.Name, cancellationToken);
+        var people = await PipelineProjectionMapper.LoadPeopleAsync(
+            queryDispatcher,
+            requests.Select(static r => r.RequesterPersonId),
+            cancellationToken
+        );
+
+        return BuildBoardResponse(pipeline, requests, oppNames, people);
+    }
+
+    private IQueryable<EngagementRequest> FilterBoardRequests(GetConnectorBoardQuery query)
+    {
         var reqQuery = dbContext
             .EngagementRequests.AsNoTracking()
             .Include(static r => r.Activities)
@@ -51,27 +70,21 @@ internal sealed class GetConnectorBoardQueryHandler(
             reqQuery = reqQuery.Where(r => r.AssignedConnectorPersonId == cid);
         }
 
-        if (!query.IncludeClosed)
-        {
-            reqQuery = reqQuery.Where(static r =>
+        return query.IncludeClosed
+            ? reqQuery
+            : reqQuery.Where(static r =>
                 r.RequestState == EngagementRequestState.Active
                 || r.RequestState == EngagementRequestState.FutureFollowUp
             );
-        }
+    }
 
-        var requests = await reqQuery
-            .OrderByDescending(static r => r.LastActivityAtUtc)
-            .ToListAsync(cancellationToken);
-        var oppNames = await dbContext
-            .EngagementOpportunities.AsNoTracking()
-            .Where(o => o.PipelineTypeId == query.PipelineTypeId)
-            .ToDictionaryAsync(static o => o.Id.Value, static o => o.Name, cancellationToken);
-        var people = await PipelineProjectionMapper.LoadPeopleAsync(
-            queryDispatcher,
-            requests.Select(static r => r.RequesterPersonId),
-            cancellationToken
-        );
-
+    private ConnectorBoardResponse BuildBoardResponse(
+        PipelineType pipeline,
+        List<EngagementRequest> requests,
+        Dictionary<Guid, string> oppNames,
+        IReadOnlyDictionary<Guid, (string Name, string? Email)> people
+    )
+    {
         var now = clock.UtcNow;
         var today = DateOnly.FromDateTime(now.UtcDateTime);
         var mapped = requests

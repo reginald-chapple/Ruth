@@ -62,7 +62,9 @@ internal static class EngagementStreaksAndAchievementsEndpoints
             .MapPost("/record", RecordEngagementAsync)
             .WithName("EngagementRecordStreakEngagement")
             .WithSummary("Record participation bit in streak")
-            .WithDescription("Marks a participation bucket in the Span<byte> bitmask and evaluates achievements.")
+            .WithDescription(
+                "Marks a participation bucket in the Span<byte> bitmask and evaluates achievements."
+            )
             .Produces<StreakResponse>(StatusCodes.Status200OK);
 
         MapAchievementRoutes(endpoints);
@@ -76,36 +78,36 @@ internal static class EngagementStreaksAndAchievementsEndpoints
             .WithTags("Engagement Achievements & Badges")
             .RequireAuthorization();
 
-        _ = ach
-            .MapGet("/types", ListAchievementTypesAsync)
+        _ = ach.MapGet("/types", ListAchievementTypesAsync)
             .WithName("EngagementListAchievementTypes")
             .WithSummary("List achievement types")
             .WithDescription("Returns badge and milestone achievement definitions.")
             .Produces<IReadOnlyList<AchievementTypeResponse>>(StatusCodes.Status200OK);
 
-        _ = ach
-            .MapPost("/types", CreateAchievementTypeAsync)
+        _ = ach.MapPost("/types", CreateAchievementTypeAsync)
             .WithName("EngagementCreateAchievementType")
             .WithSummary("Create achievement type")
             .WithDescription("Creates an event-driven badge or certification milestone definition.")
             .Produces<AchievementTypeResponse>(StatusCodes.Status201Created);
 
-        _ = ach
-            .MapGet("/attempts", ListAttemptsAsync)
+        _ = ach.MapGet("/attempts", ListAttemptsAsync)
             .WithName("EngagementListAchievementAttempts")
             .WithSummary("Query achievement attempts")
             .WithDescription("Returns in-progress and earned achievement attempts.")
             .Produces<IReadOnlyList<AchievementAttemptResponse>>(StatusCodes.Status200OK);
 
-        _ = ach
-            .MapPost("/progress", RecordAchievementProgressAsync)
+        _ = ach.MapPost("/progress", RecordAchievementProgressAsync)
             .WithName("EngagementRecordAchievementProgress")
             .WithSummary("Record achievement progress")
-            .WithDescription("Evaluates prerequisites, updates attempt progress, and awards badges.")
+            .WithDescription(
+                "Evaluates prerequisites, updates attempt progress, and awards badges."
+            )
             .Produces<AchievementAttemptResponse>(StatusCodes.Status200OK);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<StreakTypeResponse>>, ProblemHttpResult>> ListStreakTypesAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<StreakTypeResponse>>, ProblemHttpResult>
+    > ListStreakTypesAsync(
         bool? activeOnly,
         IQueryDispatcher d,
         HttpContext ctx,
@@ -116,10 +118,14 @@ internal static class EngagementStreaksAndAchievementsEndpoints
             new GetStreakTypesQuery(activeOnly ?? false),
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Created<StreakTypeResponse>, ProblemHttpResult>> CreateStreakTypeAsync(
+    private static async Task<
+        Results<Created<StreakTypeResponse>, ProblemHttpResult>
+    > CreateStreakTypeAsync(
         StreakTypeSpec spec,
         ICommandDispatcher d,
         HttpContext ctx,
@@ -144,13 +150,20 @@ internal static class EngagementStreaksAndAchievementsEndpoints
     )
     {
         var r = await d.SendAsync<AddStreakExclusionCommand, StreakTypeResponse>(
-            body with { StreakTypeId = id },
+            body with
+            {
+                StreakTypeId = id,
+            },
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<StreakResponse>>, ProblemHttpResult>> ListStreaksAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<StreakResponse>>, ProblemHttpResult>
+    > ListStreaksAsync(
         Guid? streakTypeId,
         Guid? personId,
         IQueryDispatcher d,
@@ -162,7 +175,9 @@ internal static class EngagementStreaksAndAchievementsEndpoints
             new GetStreaksQuery(streakTypeId, personId),
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
     private static async Task<Results<Created<StreakResponse>, ProblemHttpResult>> EnrollAsync(
@@ -186,24 +201,32 @@ internal static class EngagementStreaksAndAchievementsEndpoints
     )
     {
         var r = await d.SendAsync<RecordStreakEngagementCommand, StreakResponse>(body, ct);
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<AchievementTypeResponse>>, ProblemHttpResult>> ListAchievementTypesAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<AchievementTypeResponse>>, ProblemHttpResult>
+    > ListAchievementTypesAsync(
         bool? activeOnly,
         IQueryDispatcher d,
         HttpContext ctx,
         CancellationToken ct
     )
     {
-        var r = await d.QueryAsync<GetAchievementTypesQuery, IReadOnlyList<AchievementTypeResponse>>(
-            new GetAchievementTypesQuery(activeOnly ?? false),
-            ct
-        );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        var r = await d.QueryAsync<
+            GetAchievementTypesQuery,
+            IReadOnlyList<AchievementTypeResponse>
+        >(new GetAchievementTypesQuery(activeOnly ?? false), ct);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Created<AchievementTypeResponse>, ProblemHttpResult>> CreateAchievementTypeAsync(
+    private static async Task<
+        Results<Created<AchievementTypeResponse>, ProblemHttpResult>
+    > CreateAchievementTypeAsync(
         AchievementTypeSpec spec,
         ICommandDispatcher d,
         HttpContext ctx,
@@ -219,7 +242,9 @@ internal static class EngagementStreaksAndAchievementsEndpoints
             : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<IReadOnlyList<AchievementAttemptResponse>>, ProblemHttpResult>> ListAttemptsAsync(
+    private static async Task<
+        Results<Ok<IReadOnlyList<AchievementAttemptResponse>>, ProblemHttpResult>
+    > ListAttemptsAsync(
         Guid? achievementTypeId,
         Guid? personId,
         bool? successfulOnly,
@@ -228,21 +253,33 @@ internal static class EngagementStreaksAndAchievementsEndpoints
         CancellationToken ct
     )
     {
-        var r = await d.QueryAsync<GetAchievementAttemptsQuery, IReadOnlyList<AchievementAttemptResponse>>(
+        var r = await d.QueryAsync<
+            GetAchievementAttemptsQuery,
+            IReadOnlyList<AchievementAttemptResponse>
+        >(
             new GetAchievementAttemptsQuery(achievementTypeId, personId, successfulOnly ?? false),
             ct
         );
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 
-    private static async Task<Results<Ok<AchievementAttemptResponse>, ProblemHttpResult>> RecordAchievementProgressAsync(
+    private static async Task<
+        Results<Ok<AchievementAttemptResponse>, ProblemHttpResult>
+    > RecordAchievementProgressAsync(
         RecordAchievementProgressCommand body,
         ICommandDispatcher d,
         HttpContext ctx,
         CancellationToken ct
     )
     {
-        var r = await d.SendAsync<RecordAchievementProgressCommand, AchievementAttemptResponse>(body, ct);
-        return r.IsSuccess ? TypedResults.Ok(r.Value) : EngagementProblemResultMapper.ToProblemResult(r, ctx);
+        var r = await d.SendAsync<RecordAchievementProgressCommand, AchievementAttemptResponse>(
+            body,
+            ct
+        );
+        return r.IsSuccess
+            ? TypedResults.Ok(r.Value)
+            : EngagementProblemResultMapper.ToProblemResult(r, ctx);
     }
 }

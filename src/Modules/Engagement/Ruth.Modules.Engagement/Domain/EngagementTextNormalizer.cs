@@ -2,8 +2,10 @@ namespace Ruth.Modules.Engagement.Domain;
 
 internal static class EngagementTextNormalizer
 {
-    public static Guid? NormalizeGuid(Guid? value) =>
-        value is { } g && g != Guid.Empty ? g : null;
+    public static Guid? NormalizeGuid(Guid? value)
+    {
+        return value is { } g && g != Guid.Empty ? g : null;
+    }
 
     public static string? TrimOptional(string? value, int maxLength)
     {

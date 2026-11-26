@@ -34,28 +34,14 @@ internal sealed class RecordStreakEngagementCommandHandler(
             return EngagementErrors.StreakTypeNotFound;
         }
 
-        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
-        var streak = await dbContext.Streaks.FirstOrDefaultAsync(
-            s => s.StreakTypeId == command.StreakTypeId && s.PersonId == command.PersonId,
-            cancellationToken
-        );
-        if (streak is null)
+        var streakRes = await GetOrEnrollStreakAsync(command, streakType, cancellationToken);
+        if (streakRes.IsFailure)
         {
-            var enrolled = Streak.Enroll(
-                streakType,
-                command.PersonId,
-                command.BranchId,
-                command.EngagementDate
-            );
-            if (enrolled.IsFailure)
-            {
-                return Result.Failure<StreakResponse>(enrolled.Errors);
-            }
-
-            streak = enrolled.Value;
-            _ = dbContext.Streaks.Add(streak);
+            return Result.Failure<StreakResponse>(streakRes.Errors);
         }
 
+        var streak = streakRes.Value;
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
         var rec = streak.RecordEngagement(
             streakType,
             command.EngagementDate,
@@ -81,5 +67,34 @@ internal sealed class RecordStreakEngagementCommandHandler(
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
         return StreakProjectionMapper.ToResponse(streak, streakType, today);
+    }
+
+    private async Task<Result<Streak>> GetOrEnrollStreakAsync(
+        RecordStreakEngagementCommand command,
+        StreakType streakType,
+        CancellationToken cancellationToken
+    )
+    {
+        var existing = await dbContext.Streaks.FirstOrDefaultAsync(
+            s => s.StreakTypeId == command.StreakTypeId && s.PersonId == command.PersonId,
+            cancellationToken
+        );
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var enrolled = Streak.Enroll(
+            streakType,
+            command.PersonId,
+            command.BranchId,
+            command.EngagementDate
+        );
+        if (enrolled.IsSuccess)
+        {
+            _ = dbContext.Streaks.Add(enrolled.Value);
+        }
+
+        return enrolled;
     }
 }

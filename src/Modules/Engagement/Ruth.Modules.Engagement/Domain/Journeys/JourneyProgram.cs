@@ -54,16 +54,25 @@ public sealed partial class JourneyProgram
     public Guid EntityId => Id.Value;
     public ISecured ParentAuthority => GlobalDefaultSecured.Instance;
 
-    public bool IsAllowedByDefault(string action) =>
-        GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    public bool IsAllowedByDefault(string action)
+    {
+        return GlobalDefaultSecured.Instance.IsAllowedByDefault(action);
+    }
 
-    public void SetCreated(DateTimeOffset createdOnUtc) =>
+    public void SetCreated(DateTimeOffset createdOnUtc)
+    {
         CreatedOnUtc = createdOnUtc.ToUniversalTime();
+    }
 
-    public void SetModified(DateTimeOffset modifiedOnUtc) =>
+    public void SetModified(DateTimeOffset modifiedOnUtc)
+    {
         ModifiedOnUtc = modifiedOnUtc.ToUniversalTime();
+    }
 
-    public void SetConcurrencyStamp(Guid newStamp) => ConcurrencyStamp = newStamp;
+    public void SetConcurrencyStamp(Guid newStamp)
+    {
+        ConcurrencyStamp = newStamp;
+    }
 
     public void SetAttributeValue(string key, string? value)
     {
@@ -108,11 +117,15 @@ public sealed partial class JourneyProgram
         return Result.Success();
     }
 
-    public MilestoneStatus? FindStatus(Guid statusId) =>
-        _statuses.FirstOrDefault(s => s.Id.Value == statusId);
+    public MilestoneStatus? FindStatus(Guid statusId)
+    {
+        return _statuses.FirstOrDefault(s => s.Id.Value == statusId);
+    }
 
-    public MilestoneType? FindMilestoneType(Guid milestoneTypeId) =>
-        _milestoneTypes.FirstOrDefault(m => m.Id.Value == milestoneTypeId);
+    public MilestoneType? FindMilestoneType(Guid milestoneTypeId)
+    {
+        return _milestoneTypes.FirstOrDefault(m => m.Id.Value == milestoneTypeId);
+    }
 
     private void SyncStatuses(IReadOnlyList<MilestoneStatusSpec> specs)
     {
@@ -140,6 +153,12 @@ public sealed partial class JourneyProgram
 
     private void SyncMilestones(IReadOnlyList<MilestoneTypeSpec> specs)
     {
+        UpsertMilestoneEntities(specs);
+        WireMilestonePrerequisites(specs);
+    }
+
+    private void UpsertMilestoneEntities(IReadOnlyList<MilestoneTypeSpec> specs)
+    {
         var retained = new HashSet<Guid>();
         foreach (var spec in specs.OrderBy(static m => m.Order))
         {
@@ -160,6 +179,10 @@ public sealed partial class JourneyProgram
         }
 
         _ = _milestoneTypes.RemoveAll(m => !retained.Contains(m.Id.Value));
+    }
+
+    private void WireMilestonePrerequisites(IReadOnlyList<MilestoneTypeSpec> specs)
+    {
         var byCode = _milestoneTypes.ToDictionary(
             static m => m.Code,
             static m => m.Id.Value,
