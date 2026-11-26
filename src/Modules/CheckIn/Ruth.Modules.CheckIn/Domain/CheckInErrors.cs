@@ -154,4 +154,148 @@ public static class CheckInErrors
         "CheckIn.RoomNotFound",
         "The requested room/location was not found in the specified check-in area."
     );
+
+    /// <summary>Configuration is inactive.</summary>
+    public static readonly DomainError ConfigurationInactive = DomainError.Validation(
+        "CheckIn.ConfigurationInactive",
+        "This check-in configuration profile is currently inactive."
+    );
+
+    /// <summary>Check-in session requires at least one participant item.</summary>
+    public static readonly DomainError SessionItemsRequired = DomainError.Validation(
+        "CheckIn.SessionItemsRequired",
+        "At least one participant selection is required to submit a check-in session."
+    );
+
+    /// <summary>Person identifier is required.</summary>
+    public static readonly DomainError PersonRequired = DomainError.Validation(
+        "CheckIn.PersonRequired",
+        "A valid non-empty PersonId is required for check-in."
+    );
+
+    /// <summary>Schedule identifier is required.</summary>
+    public static readonly DomainError ScheduleRequired = DomainError.Validation(
+        "CheckIn.ScheduleRequired",
+        "A valid non-empty ScheduleId is required for check-in."
+    );
+
+    /// <summary>Search input violates the configuration's allowed search mode.</summary>
+    public static readonly DomainError SearchModeNotPermitted = DomainError.Validation(
+        "CheckIn.SearchModeNotPermitted",
+        "The submitted search input is not permitted by this check-in configuration's search mode."
+    );
+
+    /// <summary>Participant does not meet area eligibility rules.</summary>
+    public static readonly DomainError ParticipantNotEligible = DomainError.Validation(
+        "CheckIn.ParticipantNotEligible",
+        "The participant does not satisfy the eligibility requirements for the selected check-in area."
+    );
+
+    /// <summary>No open room with remaining capacity is available.</summary>
+    public static readonly DomainError NoAvailableRoomForCheckIn = DomainError.Conflict(
+        "CheckIn.NoAvailableRoomForCheckIn",
+        "All rooms in the selected check-in area are closed or have reached firm capacity."
+    );
+
+    /// <summary>Staff override is only allowed on the StaffOverride channel with a non-empty reason.</summary>
+    public static readonly DomainError OverrideRequiresStaffAndReason = DomainError.Validation(
+        "CheckIn.OverrideRequiresStaffAndReason",
+        "Capacity or eligibility overrides require the StaffOverride channel and an explicit audit reason."
+    );
+
+    /// <summary>Duplicate check-in prevented for the same participant and schedule.</summary>
+    public static readonly DomainError DuplicateActiveCheckIn = DomainError.Conflict(
+        "CheckIn.DuplicateActiveCheckIn",
+        "The participant is already checked in for this schedule and service date."
+    );
+
+    /// <summary>Unable to allocate a collision-free security pickup code after exhausting retries.</summary>
+    public static readonly DomainError SecurityCodePoolExhausted = DomainError.Conflict(
+        "CheckIn.SecurityCodePoolExhausted",
+        "Unable to generate a unique profanity-safe security pickup code for today's pool."
+    );
+
+    /// <summary>Check-in session was not found.</summary>
+    public static readonly DomainError SessionNotFound = DomainError.NotFound(
+        "CheckIn.SessionNotFound",
+        "The requested check-in session was not found."
+    );
+
+    /// <summary>Check-in attendance entry was not found.</summary>
+    public static readonly DomainError EntryNotFound = DomainError.NotFound(
+        "CheckIn.EntryNotFound",
+        "The requested check-in attendance entry was not found."
+    );
+
+    /// <summary>Check-out is disabled on this configuration.</summary>
+    public static readonly DomainError CheckOutNotAllowed = DomainError.Validation(
+        "CheckIn.CheckOutNotAllowed",
+        "Check-out tracking is disabled on this check-in configuration."
+    );
+
+    /// <summary>Security pickup code did not match.</summary>
+    public static readonly DomainError InvalidSecurityPickupCode = DomainError.Validation(
+        "CheckIn.InvalidSecurityPickupCode",
+        "A valid matching guardian security pickup code is required to complete check-out."
+    );
+
+    /// <summary>Entry is no longer actively checked in.</summary>
+    public static readonly DomainError EntryNotActivelyCheckedIn = DomainError.Conflict(
+        "CheckIn.EntryNotActivelyCheckedIn",
+        "Only actively checked-in entries can be checked out or reassigned."
+    );
+
+    /// <summary>Label name is required.</summary>
+    public static readonly DomainError LabelNameRequired = DomainError.Validation(
+        "CheckIn.LabelNameRequired",
+        "Check-in label name is required."
+    );
+
+    /// <summary>Label name exceeds maximum length.</summary>
+    public static readonly DomainError LabelNameTooLong = DomainError.Validation(
+        "CheckIn.LabelNameTooLong",
+        "Check-in label name must not exceed 120 characters."
+    );
+
+    /// <summary>Label key slug is invalid.</summary>
+    public static readonly DomainError LabelKeyInvalid = DomainError.Validation(
+        "CheckIn.LabelKeyInvalid",
+        "Label key must be 2..80 lowercase letters, digits, or hyphens."
+    );
+
+    /// <summary>Duplicate label key.</summary>
+    public static readonly DomainError LabelDuplicateKey = DomainError.Conflict(
+        "CheckIn.LabelDuplicateKey",
+        "A check-in label with the same key already exists."
+    );
+
+    /// <summary>Label was not found.</summary>
+    public static readonly DomainError LabelNotFound = DomainError.NotFound(
+        "CheckIn.LabelNotFound",
+        "The requested check-in label was not found."
+    );
+
+    /// <summary>System labels cannot be deleted.</summary>
+    public static readonly DomainError SystemLabelCannotBeDeleted = DomainError.Conflict(
+        "CheckIn.SystemLabelCannotBeDeleted",
+        "Built-in system check-in labels cannot be deleted."
+    );
+
+    /// <summary>Invalid label layout dimensions or elements.</summary>
+    public static readonly DomainError InvalidLabelLayout = DomainError.Validation(
+        "CheckIn.InvalidLabelLayout",
+        "Label dimensions must be 1.0..6.0\" wide by 0.5..8.0\" tall with 1..50 valid elements."
+    );
+
+    /// <summary>Invalid copy count.</summary>
+    public static readonly DomainError InvalidLabelCopies = DomainError.Validation(
+        "CheckIn.InvalidLabelCopies",
+        "Label copies must be between 1 and 5."
+    );
+
+    /// <summary>Printer TCP dispatch failed or invalid endpoint.</summary>
+    public static readonly DomainError PrinterDispatchFailed = DomainError.Validation(
+        "CheckIn.PrinterDispatchFailed",
+        "Unable to dispatch ZPL payload to the target Zebra printer endpoint."
+    );
 }

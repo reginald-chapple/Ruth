@@ -1,0 +1,82 @@
+@page "/commerce/orders"
+@rendermode InteractiveServer
+
+<PageTitle>Commerce Orders &amp; Punch Passes — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Commerce Order Fulfillment &amp; Issued Punch Passes</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Orders (@_orders.Count)</h2>
+            @foreach (var ord in _orders)
+            {
+                <div class="ruth-kiosk-member-row" @key="ord.Id">
+                    <strong>@ord.OrderNumber</strong>
+                    <span class="ruth-room-status-pill">@ord.Status</span>
+                    <span>@ord.BuyerName (@ord.BuyerEmail)</span>
+                    <span>
+                        | Total: @ord.TotalAmount.ToString("F2") @ord.CurrencyCode
+                        (Operating: @ord.NonDeductibleRevenueAmount.ToString("F2")
+                        | Charitable: @ord.TaxDeductibleContributionAmount.ToString("F2"))
+                    </span>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        @if (ord.Status == CommerceOrderStatus.Paid && ord.FulfillmentMethod == CommerceFulfillmentMethod.LocalPickup)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => AdvanceAsync(ord.Id, CommerceOrderStatus.ReadyForPickup))">
+                                Stage for Pickup
+                            </FluentButton>
+                        }
+                        @if (ord.Status is CommerceOrderStatus.Paid or CommerceOrderStatus.ReadyForPickup or CommerceOrderStatus.Shipped)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => AdvanceAsync(ord.Id, CommerceOrderStatus.Fulfilled))">
+                                Mark Fulfilled
+                            </FluentButton>
+                        }
+                        @if (ord.PaidAmount > ord.RefundedAmount && ord.LinkedFinancialTransactionId.HasValue)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => FullRefundAsync(ord.Id, ord.PaidAmount - ord.RefundedAmount))">
+                                Full Refund
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Issued Punch Passes &amp; Wallet Sync Ledger (@_passes.Count)</h2>
+            @foreach (var pass in _passes)
+            {
+                <div class="ruth-kiosk-member-row" @key="pass.Id">
+                    <strong>@pass.PassCode</strong>
+                    <span> — @pass.PunchPassTypeName</span>
+                    <span class="ruth-room-status-pill">@pass.Status</span>
+                    <span class="ruth-room-status-pill">Remaining: @pass.RemainingCredits / @pass.InitialCredits</span>
+                    @if (pass.Status == IssuedPunchPassStatus.Active && pass.RemainingCredits > 0)
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      OnClick="@(() => RedeemOneCreditAsync(pass.Id))">
+                            Redeem 1 Visit Credit
+                        </FluentButton>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

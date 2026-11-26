@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.Commerce.Contracts</RootNamespace>
+    <AssemblyName>Ruth.Modules.Commerce.Contracts</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

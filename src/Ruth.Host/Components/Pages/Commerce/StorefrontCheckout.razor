@@ -1,0 +1,128 @@
+@page "/commerce/storefront"
+@rendermode InteractiveServer
+
+<PageTitle>Storefront &amp; Checkout — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Community Storefront &amp; Quid-Pro-Quo Checkout</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_completedOrder is not null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Order Confirmed — @_completedOrder.OrderNumber (@_completedOrder.Status)</h2>
+            <p>
+                Grand Total: @_completedOrder.TotalAmount.ToString("F2") @_completedOrder.CurrencyCode
+                | Commercial / Goods Value (Non-Deductible): @_completedOrder.NonDeductibleRevenueAmount.ToString("F2")
+                | Tax-Deductible Charitable Contribution: @_completedOrder.TaxDeductibleContributionAmount.ToString("F2")
+            </p>
+            @foreach (var line in _completedOrder.Lines)
+            {
+                <div class="ruth-kiosk-member-row" @key="line.LineId">
+                    <strong>@line.ProductName — @line.VariantName (x@line.Quantity)</strong>
+                    <span>Net: @line.LineSubtotalAmount.ToString("F2")</span>
+                    @if (line.ProductKind == ProductKind.DigitalDownload)
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => RequestDownloadLinkAsync(_completedOrder.OrderNumber, line.LineId))">
+                            Generate RustFS Download Link
+                        </FluentButton>
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_downloadUrl))
+            {
+                <p><a href="@_downloadUrl">Download Digital Asset (Presigned RustFS Link)</a></p>
+            }
+        </FluentStack>
+    </FluentCard>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Available Catalog Items (@_products.Count)</h2>
+                @foreach (var prod in _products)
+                {
+                    @foreach (var variant in prod.Variants.Where(static v => v.IsActive))
+                    {
+                        <div class="ruth-kiosk-member-row" @key="variant.Id">
+                            <strong>@prod.Name (@variant.Name)</strong>
+                            <span class="ruth-room-status-pill">@prod.Kind</span>
+                            <span>@variant.UnitPrice.ToString("F2") @prod.CurrencyCode</span>
+                            @if (prod.IsQuidProQuo)
+                            {
+                                <span class="ruth-room-status-pill">
+                                    FMV: @variant.FairMarketValueAmount.ToString("F2")
+                                </span>
+                            }
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => AddToCartAsync(variant.Id))">
+                                Add to Cart
+                            </FluentButton>
+                        </div>
+                    }
+                }
+            </FluentStack>
+        </FluentCard>
+
+        @if (_cart.Count > 0)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Cart, Member Pricing &amp; Checkout</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_buyerName" Label="Buyer Full Name" />
+                        <FluentTextInput @bind-Value="_buyerEmail" Label="Buyer Email" />
+                        <FluentTextInput @bind-Value="_memberTierInput" Label="Member Tier (Optional, e.g. Gold)" />
+                        <FluentSelect TOption="CommerceFulfillmentMethod"
+                                      TValue="CommerceFulfillmentMethod"
+                                      Label="Fulfillment Method"
+                                      Items="@_fulfillmentMethods"
+                                      OptionText="@(static m => m.ToString())"
+                                      OptionValue="@(static m => m)"
+                                      @bind-Value="_fulfillmentMethod" />
+                        <FluentTextInput @bind-Value="_shippingAddress" Label="Shipping Address (If Shipping)" />
+                        <FluentTextInput @bind-Value="_paymentToken" Label="Hosted Payment Token" />
+                    </FluentStack>
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RefreshQuoteAsync">
+                        Recalculate Member Pricing &amp; Split Quote
+                    </FluentButton>
+
+                    @if (_quote is not null)
+                    {
+                        <p>
+                            List: @_quote.ListSubtotalAmount.ToString("F2")
+                            | Member Savings: -@_quote.MemberDiscountTotalAmount.ToString("F2")
+                            | Tax: @_quote.TaxTotalAmount.ToString("F2")
+                            | Shipping: @_quote.ShippingFeeAmount.ToString("F2")
+                            | <strong>Grand Total: @_quote.GrandTotalAmount.ToString("F2") @_quote.CurrencyCode</strong>
+                        </p>
+                        @if (_quote.HasQuidProQuoDisclosure)
+                        {
+                            <FluentMessageBar Intent="MessageBarIntent.Info" AllowDismiss="false">
+                                IRS Quid-Pro-Quo Disclosure: Estimated fair market value of goods/services + tax/shipping is
+                                @_quote.NonDeductibleRevenueAmount.ToString("F2") @_quote.CurrencyCode; estimated tax-deductible
+                                charitable contribution is @_quote.TaxDeductibleContributionAmount.ToString("F2") @_quote.CurrencyCode.
+                            </FluentMessageBar>
+                        }
+                    }
+
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitCheckoutAsync">
+                        Complete Storefront Checkout
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+}

@@ -129,3 +129,166 @@ Content-Type: application/json
 ### Delete check-in area
 DELETE {{baseUrl}}/api/checkin/configurations/{{configId}}/areas/{{areaId}}
 Authorization: Bearer {{token}}
+
+### Kiosk sub-50ms search by phone digits, barcode, or name
+POST {{baseUrl}}/api/checkin/sessions/search
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "scheduleId": "{{scheduleId}}",
+  "searchTerm": "8241",
+  "inputKind": "Auto",
+  "maxFamilies": 10
+}
+
+### Submit kiosk check-in session (allocates daily collision-free security pickup code)
+POST {{baseUrl}}/api/checkin/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "scheduleId": "{{scheduleId}}",
+  "channel": "Kiosk",
+  "items": [
+    {
+      "personId": "0196f4a0-3000-7000-8000-000000000001",
+      "areaId": "{{areaId}}",
+      "attendanceNote": "Peanut allergy — EpiPen in bag"
+    }
+  ]
+}
+
+### Submit mobile pre-check-in session (issues MobileExpressToken + pickup code)
+POST {{baseUrl}}/api/checkin/mobile/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "scheduleId": "{{scheduleId}}",
+  "items": [
+    {
+      "personId": "0196f4a0-3000-7000-8000-000000000001",
+      "areaId": "{{areaId}}"
+    }
+  ]
+}
+
+### Lookup active check-ins by pickup code
+GET {{baseUrl}}/api/checkin/sessions/active?configurationId={{configId}}&securityPickupCode=BC47
+Authorization: Bearer {{token}}
+
+### Check out participants by guardian security pickup code
+POST {{baseUrl}}/api/checkin/sessions/checkout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "configurationId": "{{configId}}",
+  "securityPickupCode": "BC47"
+}
+
+### Get live Room/Facility Manager roster and occupancy thresholds
+GET {{baseUrl}}/api/checkin/rooms/roster?configurationId={{configId}}&scheduleId={{scheduleId}}
+Authorization: Bearer {{token}}
+
+### Override or reassign a participant's room from Room Manager
+POST {{baseUrl}}/api/checkin/rooms/override-assignment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sessionId": "00000000-0000-0000-0000-000000000000",
+  "entryId": "00000000-0000-0000-0000-000000000000",
+  "targetAreaId": "{{areaId}}",
+  "targetLocationId": "{{locationId}}",
+  "reason": "Sibling room balance override",
+  "allowCapacityOverride": true
+}
+
+### List check-in badge and receipt labels
+GET {{baseUrl}}/api/checkin/labels
+Authorization: Bearer {{token}}
+
+### Preview compiled Zebra ZPL II and visual elements for a label
+POST {{baseUrl}}/api/checkin/labels/preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "copies": 1,
+  "context": {
+    "participantFullName": "Maya Rivera",
+    "participantNickName": "Maya",
+    "participantLastName": "Rivera",
+    "securityPickupCode": "BC47",
+    "areaName": "Youth STEM Lab",
+    "locationName": "Room 101",
+    "medicalAllergyAlert": "Peanuts - EpiPen",
+    "membershipTier": "Family"
+  }
+}
+
+### Print all badges and guardian receipts for a check-in session
+POST {{baseUrl}}/api/checkin/sessions/00000000-0000-0000-0000-000000000000/print
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sessionId": "00000000-0000-0000-0000-000000000000",
+  "forceClientPrint": true
+}
+
+### List smart wallet pass templates
+GET {{baseUrl}}/api/checkin/wallet-passes/templates?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Issue a smart wallet pass for a participant (with optional email/SMS claim link)
+POST {{baseUrl}}/api/checkin/wallet-passes/issue
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "templateId": "00000000-0000-0000-0000-000000000000",
+  "personId": "0196f4a0-3000-7000-8000-000000000001",
+  "dynamicFields": {
+    "holderDisplayName": "Maya Rivera",
+    "membershipTier": "Family Gold",
+    "punchOrCreditBalance": 10,
+    "nextShiftOrBookingSummary": "Sat 9:00 AM Makerspace Orientation"
+  },
+  "sendClaimNotification": true
+}
+
+### Claim wallet pass bundle (anonymous signed claim token)
+GET {{baseUrl}}/api/checkin/wallet-passes/claim/REPLACE_CLAIM_TOKEN
+
+### Resolve Kiosk WLT-* wallet pass scan in sub-50ms
+POST {{baseUrl}}/api/checkin/wallet-passes/kiosk-scan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "scanToken": "WLT-0000000000000000",
+  "configurationId": "{{configId}}",
+  "scheduleId": "{{scheduleId}}"
+}
+
+### Apple PassKit WebService v1 — Register device push token
+POST {{baseUrl}}/api/checkin/wallet/v1/devices/device-lib-01/registrations/pass.org.ruth.member/RWP-0000000000000000
+Authorization: ApplePass REPLACE_PASSKIT_AUTH_TOKEN
+Content-Type: application/json
+
+{
+  "pushToken": "apns-device-push-token-hex"
+}
+
+### Apple PassKit WebService v1 — List updated serial numbers for device
+GET {{baseUrl}}/api/checkin/wallet/v1/devices/device-lib-01/registrations/pass.org.ruth.member?passesUpdatedSince=0
+
+### Apple PassKit WebService v1 — Fetch latest .pkpass bundle
+GET {{baseUrl}}/api/checkin/wallet/v1/passes/pass.org.ruth.member/RWP-0000000000000000
+Authorization: ApplePass REPLACE_PASSKIT_AUTH_TOKEN

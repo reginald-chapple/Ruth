@@ -1,0 +1,72 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>Campaign Queue &amp; Lifecycle</h2>
+        @if (Campaigns.Count == 0)
+        {
+            <p>No bulk or targeted communications have been created yet.</p>
+        }
+        else
+        {
+            @foreach (var item in Campaigns)
+            {
+                <div @key="item.Id" class="ruth-kiosk-member-row">
+                    <div>
+                        <strong>@item.Title</strong> — <span>@item.Channel</span> |
+                        <span class="ruth-room-status-pill">@item.Status</span> |
+                        Topic: <code>@item.TopicKey</code>
+                    </div>
+                    <div>
+                        Recipients: @item.TotalRecipients (Delivered: @item.DeliveredCount, Skipped: @item.SkippedCount, Bounced: @item.BouncedCount, Opens: @item.UniqueOpenedCount, Clicks: @item.UniqueClickedCount)
+                    </div>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        @if (item.Status is CommunicationStatus.Draft or CommunicationStatus.Rejected)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => OnSubmit.InvokeAsync(item.Id))">
+                                Submit for Approval
+                            </FluentButton>
+                        }
+                        @if (item.Status is CommunicationStatus.Draft or CommunicationStatus.PendingApproval)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => OnApprove.InvokeAsync(item.Id))">
+                                Approve
+                            </FluentButton>
+                        }
+                        @if (item.Status == CommunicationStatus.PendingApproval)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => OnReject.InvokeAsync(item.Id))">
+                                Reject
+                            </FluentButton>
+                        }
+                        @if (item.Status is CommunicationStatus.Approved or CommunicationStatus.Sending)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => OnDispatch.InvokeAsync(item.Id))">
+                                Dispatch Batch Now
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<CommunicationSummaryResponse> Campaigns { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Guid> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnApprove { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnReject { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnDispatch { get; set; }
+}

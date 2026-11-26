@@ -1,0 +1,112 @@
+@page "/finance/accounts"
+@rendermode InteractiveServer
+
+<PageTitle>Financial Accounts, Funds &amp; Pledges — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Financial Accounts, Funds &amp; Constituent Pledges</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @if (_analytics is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
+                <div><strong>Active Pledges:</strong> @_analytics.ActivePledgeCount</div>
+                <div><strong>Total Pledged:</strong> @_analytics.TotalPledgedAmount.ToString("F2") @_analytics.CurrencyCode</div>
+                <div><strong>Fulfilled:</strong> @_analytics.TotalFulfilledAmount.ToString("F2") (@_analytics.OverallFulfillmentPercent%)</div>
+                <div><strong>On Track / Behind:</strong> @_analytics.OnTrackPledgeCount / @_analytics.BehindPacePledgeCount</div>
+            </FluentStack>
+        </FluentCard>
+    }
+
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Create Financial Account / Fund</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_accountName" Label="Account Name" Placeholder="General Scholarship Fund" />
+                    <FluentTextInput @bind-Value="_accountCode" Label="Account Code" Placeholder="SCHOLAR-FUND" />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentSelect TOption="FinancialAccountKind"
+                                  TValue="FinancialAccountKind"
+                                  Label="Account Kind"
+                                  Items="@_accountKinds"
+                                  OptionText="@(static k => k.ToString())"
+                                  OptionValue="@(static k => k)"
+                                  @bind-Value="_accountKind" />
+                    <FluentTextInput @bind-Value="_glCode" Label="GL Code" Placeholder="4100-01" />
+                    <FluentTextInput @bind-Value="_costCenter" Label="Cost Center" Placeholder="CC-MAIN" />
+                </FluentStack>
+                <FluentCheckbox @bind-Value="_isTaxDeductible" Label="Tax-Deductible Charitable Account" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAccountAsync">
+                    Create Account
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Record Constituent or Corporate Pledge</h2>
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Target Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_pledgeAccountId" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_pledgePersonIdInput" Label="Person / Organization GUID" />
+                    <FluentTextInput @bind-Value="_pledgeAmountInput" Label="Total Pledge Amount (USD)" />
+                </FluentStack>
+                <FluentSelect TOption="PledgeFrequency"
+                              TValue="PledgeFrequency"
+                              Label="Installment Cadence"
+                              Items="@_frequencies"
+                              OptionText="@(static f => f.ToString())"
+                              OptionValue="@(static f => f)"
+                              @bind-Value="_pledgeFrequency" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePledgeAsync">
+                    Save Pledge Commitment
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    </div>
+
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <h2>Accounts &amp; Funds (@_accounts.Count)</h2>
+                @foreach (var acc in _accounts)
+                {
+                    <div class="ruth-kiosk-member-row" @key="acc.Id">
+                        <strong>@acc.Name</strong> (<code>@acc.Code</code>) — @acc.AccountKind
+                        — @(acc.IsTaxDeductible ? "Tax-Deductible" : "Non-Deductible")
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <h2>Active &amp; Historical Pledges (@_pledges.Count)</h2>
+                @foreach (var pledge in _pledges)
+                {
+                    <div class="ruth-kiosk-member-row" @key="pledge.Id">
+                        <strong>@pledge.AccountName</strong>: @pledge.FulfilledAmount.ToString("F2") / @pledge.TotalAmount.ToString("F2") @pledge.CurrencyCode
+                        (@pledge.FulfillmentPercent% — @pledge.Status)
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    </div>
+</FluentStack>

@@ -3,12 +3,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Communication.Infrastructure;
 
 internal sealed partial class CommunicationBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
     IConfiguration configuration,
+    IClock clock,
     ILogger<CommunicationBootstrapHostedService> logger
 ) : IHostedService
 {
@@ -23,6 +25,11 @@ internal sealed partial class CommunicationBootstrapHostedService(
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CommunicationDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
+        await BuiltInSystemCommunicationsSeeder.SeedAsync(
+            dbContext,
+            clock.UtcNow,
+            cancellationToken
+        );
         LogMigrationsCompleted(logger);
     }
 
@@ -34,14 +41,14 @@ internal sealed partial class CommunicationBootstrapHostedService(
     [LoggerMessage(
         EventId = 5301,
         Level = LogLevel.Information,
-        Message = "Applying Communication schema EF Core migrations."
+        Message = "Applying Communication schema EF Core migrations and built-in notifications."
     )]
     private static partial void LogApplyingMigrations(ILogger logger);
 
     [LoggerMessage(
         EventId = 5302,
         Level = LogLevel.Information,
-        Message = "Communication schema migrations completed."
+        Message = "Communication schema migrations and seeding completed."
     )]
     private static partial void LogMigrationsCompleted(ILogger logger);
 }

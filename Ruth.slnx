@@ -8,6 +8,10 @@
     <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn.Contracts/Ruth.Modules.CheckIn.Contracts.csproj" />
     <Project Path="src/Modules/CheckIn/Ruth.Modules.CheckIn/Ruth.Modules.CheckIn.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Commerce/">
+    <Project Path="src/Modules/Commerce/Ruth.Modules.Commerce.Contracts/Ruth.Modules.Commerce.Contracts.csproj" />
+    <Project Path="src/Modules/Commerce/Ruth.Modules.Commerce/Ruth.Modules.Commerce.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Communication/">
     <Project Path="src/Modules/Communication/Ruth.Modules.Communication.Contracts/Ruth.Modules.Communication.Contracts.csproj" />
     <Project Path="src/Modules/Communication/Ruth.Modules.Communication/Ruth.Modules.Communication.csproj" />
@@ -20,6 +24,14 @@
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm.Contracts/Ruth.Modules.Crm.Contracts.csproj" />
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm/Ruth.Modules.Crm.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Events/">
+    <Project Path="src/Modules/Events/Ruth.Modules.Events.Contracts/Ruth.Modules.Events.Contracts.csproj" />
+    <Project Path="src/Modules/Events/Ruth.Modules.Events/Ruth.Modules.Events.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Finance/">
+    <Project Path="src/Modules/Finance/Ruth.Modules.Finance.Contracts/Ruth.Modules.Finance.Contracts.csproj" />
+    <Project Path="src/Modules/Finance/Ruth.Modules.Finance/Ruth.Modules.Finance.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Groups/">
     <Project Path="src/Modules/Groups/Ruth.Modules.Groups.Contracts/Ruth.Modules.Groups.Contracts.csproj" />
     <Project Path="src/Modules/Groups/Ruth.Modules.Groups/Ruth.Modules.Groups.csproj" />
@@ -30,16 +42,22 @@
   </Folder>
   <Folder Name="/src/Providers/">
     <Project Path="src/Providers/Ruth.Providers.Checkr/Ruth.Providers.Checkr.csproj" />
+    <Project Path="src/Providers/Ruth.Providers.CommunicationTransports/Ruth.Providers.CommunicationTransports.csproj" />
+    <Project Path="src/Providers/Ruth.Providers.PaymentGateways/Ruth.Providers.PaymentGateways.csproj" />
     <Project Path="src/Providers/Ruth.Providers.RustFsStorage/Ruth.Providers.RustFsStorage.csproj" />
+    <Project Path="src/Providers/Ruth.Providers.WalletPasses/Ruth.Providers.WalletPasses.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj" />
     <Project Path="tests/Ruth.E2E.Tests/Ruth.E2E.Tests.csproj" />
     <Project Path="tests/Ruth.Host.IntegrationTests/Ruth.Host.IntegrationTests.csproj" />
     <Project Path="tests/Ruth.Modules.CheckIn.Tests/Ruth.Modules.CheckIn.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Commerce.Tests/Ruth.Modules.Commerce.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Communication.Tests/Ruth.Modules.Communication.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Core.Tests/Ruth.Modules.Core.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Crm.Tests/Ruth.Modules.Crm.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Events.Tests/Ruth.Modules.Events.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Finance.Tests/Ruth.Modules.Finance.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Groups.Tests/Ruth.Modules.Groups.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Identity.Tests/Ruth.Modules.Identity.Tests.csproj" />
     <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />

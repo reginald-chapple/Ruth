@@ -3,12 +3,18 @@ using NetArchTest.Rules;
 using Ruth.Host;
 using Ruth.Modules.CheckIn;
 using Ruth.Modules.CheckIn.Contracts;
+using Ruth.Modules.Commerce;
+using Ruth.Modules.Commerce.Contracts;
 using Ruth.Modules.Communication;
 using Ruth.Modules.Communication.Contracts;
 using Ruth.Modules.Core;
 using Ruth.Modules.Core.Contracts;
 using Ruth.Modules.Crm;
 using Ruth.Modules.Crm.Contracts;
+using Ruth.Modules.Events;
+using Ruth.Modules.Events.Contracts;
+using Ruth.Modules.Finance;
+using Ruth.Modules.Finance.Contracts;
 using Ruth.Modules.Groups;
 using Ruth.Modules.Groups.Contracts;
 using Ruth.Modules.Identity;
@@ -21,6 +27,37 @@ namespace Ruth.ArchitectureTests;
 
 public sealed class ModularMonolithArchitectureTests
 {
+    private static readonly string[] _moduleInternalNamespaces =
+    [
+        "Ruth.Modules.Identity.Domain",
+        "Ruth.Modules.Identity.Infrastructure",
+        "Ruth.Modules.Identity.Slices",
+        "Ruth.Modules.Core.Domain",
+        "Ruth.Modules.Core.Infrastructure",
+        "Ruth.Modules.Core.Slices",
+        "Ruth.Modules.Crm.Domain",
+        "Ruth.Modules.Crm.Infrastructure",
+        "Ruth.Modules.Crm.Slices",
+        "Ruth.Modules.Groups.Domain",
+        "Ruth.Modules.Groups.Infrastructure",
+        "Ruth.Modules.Groups.Slices",
+        "Ruth.Modules.CheckIn.Domain",
+        "Ruth.Modules.CheckIn.Infrastructure",
+        "Ruth.Modules.CheckIn.Slices",
+        "Ruth.Modules.Communication.Domain",
+        "Ruth.Modules.Communication.Infrastructure",
+        "Ruth.Modules.Communication.Slices",
+        "Ruth.Modules.Finance.Domain",
+        "Ruth.Modules.Finance.Infrastructure",
+        "Ruth.Modules.Finance.Slices",
+        "Ruth.Modules.Events.Domain",
+        "Ruth.Modules.Events.Infrastructure",
+        "Ruth.Modules.Events.Slices",
+        "Ruth.Modules.Commerce.Domain",
+        "Ruth.Modules.Commerce.Infrastructure",
+        "Ruth.Modules.Commerce.Slices",
+    ];
+
     private static Assembly[] GetModuleAssemblies()
     {
         Assembly[] knownModules =
@@ -31,6 +68,9 @@ public sealed class ModularMonolithArchitectureTests
             GroupsModuleAssembly.Instance,
             CheckInModuleAssembly.Instance,
             CommunicationModuleAssembly.Instance,
+            FinanceModuleAssembly.Instance,
+            EventsModuleAssembly.Instance,
+            CommerceModuleAssembly.Instance,
         ];
 
         return
@@ -57,6 +97,9 @@ public sealed class ModularMonolithArchitectureTests
             GroupsContractsAssembly.Instance,
             CheckInContractsAssembly.Instance,
             CommunicationContractsAssembly.Instance,
+            FinanceContractsAssembly.Instance,
+            EventsContractsAssembly.Instance,
+            CommerceContractsAssembly.Instance,
         ];
 
         return
@@ -195,39 +238,25 @@ public sealed class ModularMonolithArchitectureTests
         var contractsAssemblies = GetModuleContractsAssemblies();
         Assert.NotEmpty(contractsAssemblies);
 
+        string[] forbidden =
+        [
+            "Microsoft.AspNetCore",
+            "Microsoft.EntityFrameworkCore",
+            "Microsoft.Extensions.Identity",
+            "Microsoft.FluentUI",
+            "Npgsql",
+            "StackExchange.Redis",
+            "Ruth.Host",
+            "Ruth.Persistence",
+            .. _moduleInternalNamespaces,
+        ];
+
         foreach (var contractsAssembly in contractsAssemblies)
         {
             var result = Types
                 .InAssembly(contractsAssembly)
                 .ShouldNot()
-                .HaveDependencyOnAny(
-                    "Microsoft.AspNetCore",
-                    "Microsoft.EntityFrameworkCore",
-                    "Microsoft.Extensions.Identity",
-                    "Microsoft.FluentUI",
-                    "Npgsql",
-                    "StackExchange.Redis",
-                    "Ruth.Host",
-                    "Ruth.Persistence",
-                    "Ruth.Modules.Identity.Domain",
-                    "Ruth.Modules.Identity.Infrastructure",
-                    "Ruth.Modules.Identity.Slices",
-                    "Ruth.Modules.Core.Domain",
-                    "Ruth.Modules.Core.Infrastructure",
-                    "Ruth.Modules.Core.Slices",
-                    "Ruth.Modules.Crm.Domain",
-                    "Ruth.Modules.Crm.Infrastructure",
-                    "Ruth.Modules.Crm.Slices",
-                    "Ruth.Modules.Groups.Domain",
-                    "Ruth.Modules.Groups.Infrastructure",
-                    "Ruth.Modules.Groups.Slices",
-                    "Ruth.Modules.CheckIn.Domain",
-                    "Ruth.Modules.CheckIn.Infrastructure",
-                    "Ruth.Modules.CheckIn.Slices",
-                    "Ruth.Modules.Communication.Domain",
-                    "Ruth.Modules.Communication.Infrastructure",
-                    "Ruth.Modules.Communication.Slices"
-                )
+                .HaveDependencyOnAny(forbidden)
                 .GetResult();
 
             Assert.True(
@@ -248,26 +277,7 @@ public sealed class ModularMonolithArchitectureTests
             .That()
             .ResideInNamespaceStartingWith("Ruth.Host.Components")
             .ShouldNot()
-            .HaveDependencyOnAny(
-                "Ruth.Modules.Identity.Domain",
-                "Ruth.Modules.Identity.Infrastructure",
-                "Ruth.Modules.Identity.Slices",
-                "Ruth.Modules.Core.Domain",
-                "Ruth.Modules.Core.Infrastructure",
-                "Ruth.Modules.Core.Slices",
-                "Ruth.Modules.Crm.Domain",
-                "Ruth.Modules.Crm.Infrastructure",
-                "Ruth.Modules.Crm.Slices",
-                "Ruth.Modules.Groups.Domain",
-                "Ruth.Modules.Groups.Infrastructure",
-                "Ruth.Modules.Groups.Slices",
-                "Ruth.Modules.CheckIn.Domain",
-                "Ruth.Modules.CheckIn.Infrastructure",
-                "Ruth.Modules.CheckIn.Slices",
-                "Ruth.Modules.Communication.Domain",
-                "Ruth.Modules.Communication.Infrastructure",
-                "Ruth.Modules.Communication.Slices"
-            )
+            .HaveDependencyOnAny(_moduleInternalNamespaces)
             .GetResult();
 
         Assert.True(

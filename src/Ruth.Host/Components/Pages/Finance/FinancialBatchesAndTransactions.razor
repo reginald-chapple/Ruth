@@ -1,0 +1,105 @@
+@page "/finance/batches"
+@rendermode InteractiveServer
+
+<PageTitle>Financial Batches &amp; Transactions — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Financial Batches, Transactions &amp; Check Scanner</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Create Settlement Batch</h2>
+                <FluentTextInput @bind-Value="_batchName" Label="Batch Name" Placeholder="Weekly Deposit Batch" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_controlAmountInput" Label="Control Amount (USD)" />
+                    <FluentTextInput @bind-Value="_controlCountInput" Label="Control Count (0 = any)" />
+                </FluentStack>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateAndOpenBatchAsync">
+                    Create &amp; Open Batch
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Post Transaction to Open Batch</h2>
+                <FluentSelect TOption="FinancialBatchResponse"
+                              TValue="Guid"
+                              Label="Open Batch"
+                              Items="@_openBatches"
+                              OptionText="@(static b => $"{b.Name} (Actual: {b.ActualAmount:F2} / Ctrl: {b.ControlAmount:F2})")"
+                              OptionValue="@(static b => b.Id)"
+                              @bind-Value="_selectedBatchId" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Account / Fund"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_selectedAccountId" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_txPersonIdInput" Label="Person GUID" />
+                    <FluentTextInput @bind-Value="_txAmountInput" Label="Amount (USD)" />
+                    <FluentTextInput @bind-Value="_txCode" Label="Check / Ref #" />
+                </FluentStack>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@PostTransactionAsync">
+                    Record Transaction
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    </div>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Batches (@_batches.Count)</h2>
+            @foreach (var batch in _batches)
+            {
+                <div class="ruth-kiosk-member-row" @key="batch.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@batch.Name</strong>
+                        <span class="ruth-room-status-pill">@batch.Status</span>
+                        <span>Actual: @batch.ActualAmount.ToString("F2") / Control: @batch.ControlAmount.ToString("F2") (Var: @batch.VarianceAmount.ToString("F2"))</span>
+                        @if (batch.Status == FinancialBatchStatus.Open)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => CloseBatchAsync(batch.Id))">
+                                Reconcile &amp; Close
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Recent Transactions (@_transactions.Count)</h2>
+            @foreach (var tx in _transactions)
+            {
+                <div class="ruth-kiosk-member-row" @key="tx.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@tx.TotalAmount.ToString("F2") @tx.CurrencyCode</strong>
+                        <span>(@tx.TenderType — @tx.Status — Net: @tx.NetAmount.ToString("F2"))</span>
+                        @if (tx.NetAmount > 0m)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => RefundFullAsync(tx))">
+                                Refund Remaining
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

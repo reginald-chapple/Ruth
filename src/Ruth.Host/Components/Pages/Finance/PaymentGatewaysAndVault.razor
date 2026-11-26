@@ -1,0 +1,74 @@
+@page "/admin/finance/gateways"
+@rendermode InteractiveServer
+
+<PageTitle>Payment Gateways &amp; Customer Vault — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Payment Gateways, Hosted Tokenizer &amp; Customer Vault</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Configure Payment Gateway</h2>
+                <FluentTextInput @bind-Value="_gatewayName" Label="Gateway Name" Placeholder="Primary NMI Card & ACH" />
+                <FluentSelect TOption="RegisteredPaymentGatewayProviderResponse"
+                              TValue="string"
+                              Label="Provider Adapter"
+                              Items="@_providers"
+                              OptionText="@(static p => $"{p.DisplayName} ({p.ProviderKey})")"
+                              OptionValue="@(static p => p.ProviderKey)"
+                              @bind-Value="_providerKey" />
+                <FluentCheckbox @bind-Value="_isTestMode" Label="Sandbox / Test Mode" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateGatewayAsync">
+                    Add Gateway Profile
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Hosted Tokenizer Vault (Zero Raw PAN on Server)</h2>
+                <FluentSelect TOption="FinancialGatewayResponse"
+                              TValue="Guid"
+                              Label="Gateway"
+                              Items="@_gateways"
+                              OptionText="@(static g => $"{g.Name} ({g.ProviderKey})")"
+                              OptionValue="@(static g => g.Id)"
+                              @bind-Value="_selectedGatewayId" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_personIdInput" Label="Constituent Person GUID" />
+                    <FluentTextInput @bind-Value="_last4Hint" Label="Hosted Frame Last-4 Simulation" />
+                </FluentStack>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@TokenizeAndVaultAsync">
+                    Tokenize in Browser &amp; Vault Method
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    </div>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Saved Vault Payment Methods (@_savedMethods.Count)</h2>
+            @foreach (var method in _savedMethods)
+            {
+                <div class="ruth-kiosk-member-row" @key="method.Id">
+                    <strong>@method.DisplayName</strong> — @method.GatewayName (@method.MethodKind)
+                    @if (method.IsDefault)
+                    {
+                        <span class="ruth-room-status-pill">Default</span>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

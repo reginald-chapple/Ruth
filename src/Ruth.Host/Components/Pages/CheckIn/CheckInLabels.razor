@@ -1,0 +1,101 @@
+@page "/admin/checkin/labels"
+@rendermode InteractiveServer
+
+<PageTitle>Badge &amp; Zebra ZPL Label Designer — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Badge &amp; Label Designer (Zebra ZPL II)</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <CheckInLabelSavedListCard Labels="@_labels"
+                               OnSelect="@LoadLabelIntoDesignerAsync"
+                               OnDelete="@DeleteLabelAsync" />
+
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>@(_editingLabelId.HasValue ? "Edit Label Definition" : "Create Custom Label")</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_name" Label="Label Name" Placeholder="Conference VIP Badge" />
+                    <FluentTextInput @bind-Value="_key" Label="Slug Key" Placeholder="conference-vip-badge" />
+                    <FluentSelect TOption="CheckInLabelKind"
+                                  TValue="CheckInLabelKind"
+                                  Label="Label Role"
+                                  Items="@_labelKinds"
+                                  OptionText="@(static k => k.ToString())"
+                                  OptionValue="@(static k => k)"
+                                  @bind-Value="_labelKind" />
+                    <FluentSelect TOption="LabelDpi"
+                                  TValue="LabelDpi"
+                                  Label="Printhead DPI"
+                                  Items="@_dpis"
+                                  OptionText="@(static d => d == LabelDpi.Dpi300 ? "300 DPI" : "203 DPI")"
+                                  OptionValue="@(static d => d)"
+                                  @bind-Value="_dpi" />
+                </FluentStack>
+
+                <FluentTextInput @bind-Value="_description"
+                                 Label="Description"
+                                 Placeholder="4x2 direct thermal label with inverted allergy alert" />
+
+                <h3>Sample Merge Context (Live Preview)</h3>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_sampleNickName" Label="NickName" />
+                    <FluentTextInput @bind-Value="_sampleLastName" Label="LastName" />
+                    <FluentTextInput @bind-Value="_samplePickupCode" Label="Pickup Code" />
+                    <FluentTextInput @bind-Value="_sampleRoomName" Label="Room / Zone" />
+                    <FluentTextInput @bind-Value="_sampleAllergyAlert" Label="Allergy / Medical Alert" />
+                    <FluentTextInput @bind-Value="_sampleTier" Label="Membership Tier" />
+                </FluentStack>
+
+                <FluentTextArea @bind-Value="_customZplOverride"
+                                Label="Optional Raw ZPL II Override (Leave blank to compile from structured layout)"
+                                Rows="3" />
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CompilePreviewAsync">
+                        Refresh Preview &amp; ZPL
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveLabelAsync">
+                        @(_editingLabelId.HasValue ? "Update Label" : "Save Custom Label")
+                    </FluentButton>
+                    @if (_editingLabelId.HasValue)
+                    {
+                        <FluentButton OnClick="@ResetForm">New Draft</FluentButton>
+                    }
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>Visual Thermal Preview (4&quot; &times; 2&quot;) &amp; ZPL Output</h2>
+                @if (_preview is not null)
+                {
+                    <LabelVisualPreviewCanvas Preview="@_preview" />
+
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@PrintViaWebUsbAsync">
+                            Test Print via WebUSB (Zebra USB)
+                        </FluentButton>
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@PrintViaBrowserFallbackAsync">
+                            Browser Local Print
+                        </FluentButton>
+                    </FluentStack>
+
+                    <h3>Compiled Zebra ZPL II (@_preview.WidthDots &times; @_preview.HeightDots dots)</h3>
+                    <pre class="ruth-zpl-code">@_preview.CompiledZpl</pre>
+                }
+            </FluentStack>
+        </FluentCard>
+    </div>
+</FluentStack>

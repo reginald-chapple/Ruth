@@ -1,0 +1,42 @@
+@host = http://localhost:5000
+@token = REPLACE_WITH_BEARER_TOKEN
+
+### List Event Calendars
+GET {{host}}/api/events/calendars
+Authorization: Bearer {{token}}
+
+### Download Public RFC 5545 iCalendar Feed
+GET {{host}}/api/events/calendars/public-events/feed.ics
+
+### Create Interactive Session
+POST {{host}}/api/events/interactive-sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Q4 Member Town Hall",
+  "initialActions": [
+    {
+      "title": "Opening Poll",
+      "promptText": "Which session track are you attending?",
+      "actionType": "MultipleChoicePoll",
+      "options": ["Leadership", "Community Impact", "Operations"]
+    }
+  ]
+}
+
+### List Registration Instances
+GET {{host}}/api/events/registrations/instances
+Authorization: Bearer {{token}}
+
+### Bootstrap Public Registration Wizard
+GET {{host}}/api/events/registrations/public/fall-conference-2026
+
+### Acquire TTL Seat Hold
+POST {{host}}/api/events/registrations/public/fall-conference-2026/holds
+Content-Type: application/json
+
+{
+  "instanceIdOrSlug": "fall-conference-2026",
+  "requestedSeatCount": 2
+}

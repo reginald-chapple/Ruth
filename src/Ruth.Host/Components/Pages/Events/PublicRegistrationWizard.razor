@@ -1,0 +1,121 @@
+@page "/events/register/{Slug}"
+@rendermode InteractiveServer
+
+<PageTitle>Event Registration Wizard — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>@(_wizard is null ? "Event Registration" : _wizard.Instance.Name)</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_wizard is null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <p>The requested event registration instance could not be found or is currently unavailable.</p>
+    </FluentCard>
+}
+else if (_completedRegistration is not null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Registration Confirmed — @_completedRegistration.ConfirmationCode</h2>
+            <p>
+                Total: @_completedRegistration.TotalAmount.ToString("F2") @_completedRegistration.CurrencyCode
+                | Paid: @_completedRegistration.PaidAmount.ToString("F2")
+                | Balance Due: @_completedRegistration.BalanceDue.ToString("F2")
+            </p>
+            @foreach (var att in _completedRegistration.Registrants)
+            {
+                <div class="ruth-kiosk-member-row" @key="att.Id">
+                    <strong>@att.FirstName @att.LastName</strong>
+                    <span class="ruth-room-status-pill">@att.Status</span>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Step 1 — Reserve Seats (TTL Seat Hold)</h2>
+                <p>
+                    Base Cost: @_wizard.Instance.EffectiveBaseCostPerRegistrant.ToString("F2") @_wizard.Instance.CurrencyCode
+                    @if (_wizard.Instance.RemainingConfirmedSeats.HasValue)
+                    {
+                        <span> | Remaining Confirmed Seats: @_wizard.Instance.RemainingConfirmedSeats.Value</span>
+                    }
+                </p>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_seatCountInput" Label="Number of Registrants" />
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ReserveSeatsAsync">
+                        Hold Seats &amp; Continue
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+
+        @if (_step >= 2)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Step 2 — Registrar &amp; Dynamic Attendee Details</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_registrarFirstName" Label="Registrar First Name" />
+                        <FluentTextInput @bind-Value="_registrarLastName" Label="Registrar Last Name" />
+                        <FluentTextInput @bind-Value="_registrarEmail" Label="Registrar Email" />
+                    </FluentStack>
+                    @foreach (var form in _wizard.Template.Forms)
+                    {
+                        <h3>@form.Name</h3>
+                        @foreach (var fld in form.Fields)
+                        {
+                            <FluentTextInput @key="fld.Id"
+                                             Value="@GetPrimaryFieldValue(fld.FieldKey)"
+                                             ValueChanged="@(val => SetPrimaryFieldValue(fld.FieldKey, val))"
+                                             Label="@fld.Label" />
+                        }
+                    }
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@AdvanceToPricingAsync">
+                        Continue to Fees &amp; Discounts
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+
+        @if (_step >= 3 && _quote is not null)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Step 3 — Pricing Summary, Discount &amp; Payment</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_discountCode" Label="Promo / Discount Code" />
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RefreshQuoteAsync">
+                            Apply Code
+                        </FluentButton>
+                    </FluentStack>
+                    <p>
+                        Confirmed Seats: @_quote.ConfirmedRegistrantCount | Waitlisted: @_quote.WaitlistedRegistrantCount
+                        | Total: @_quote.TotalAmount.ToString("F2") @_quote.CurrencyCode
+                        | Minimum Due Today: @_quote.MinimumInitialAmountDue.ToString("F2")
+                    </p>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_paymentAmountInput" Label="Payment Amount Today" />
+                        <FluentTextInput @bind-Value="_paymentTokenInput" Label="Hosted Payment Token" />
+                    </FluentStack>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitWizardAsync">
+                        Complete Registration
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+}

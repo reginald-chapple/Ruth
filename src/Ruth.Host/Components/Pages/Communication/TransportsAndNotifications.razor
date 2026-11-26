@@ -1,0 +1,64 @@
+@page "/admin/communication/transports"
+@rendermode InteractiveServer
+
+<PageTitle>Transports &amp; System Notifications — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Communication Transports, System Notifications &amp; SMS Numbers</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <CommunicationTransportStatusCard Transports="@_transports" />
+
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Dispatch Test System Notification</h2>
+                <FluentSelect TOption="SystemCommunicationResponse"
+                              TValue="string"
+                              Label="System Communication"
+                              Items="@_systemCommunications"
+                              OptionText="@(static c => $"{c.Title} ({c.Key})")"
+                              OptionValue="@(static c => c.Key)"
+                              @bind-Value="_selectedKey" />
+                <FluentTextInput @bind-Value="_testEmail" Label="Recipient Email" Placeholder="member@example.org" />
+                <FluentTextInput @bind-Value="_testPhone" Label="Recipient SMS (E.164)" Placeholder="+15552345678" />
+                <FluentTextInput @bind-Value="_testRecipientName" Label="Recipient Name" Placeholder="Jordan Taylor" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SendTestNotificationAsync">
+                    Render &amp; Dispatch Notification
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Register Organization SMS Phone Number (E.164)</h2>
+                <FluentTextInput @bind-Value="_phoneName" Label="Phone Label" Placeholder="Member Support SMS" />
+                <FluentTextInput @bind-Value="_phoneNumber" Label="E.164 Number" Placeholder="+15559876543" />
+                <FluentCheckbox @bind-Value="_phoneSmsEnabled" Label="Enable Outbound &amp; Inbound SMS" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePhoneNumberAsync">
+                    Save System Phone Number
+                </FluentButton>
+                @if (_phoneNumbers.Count > 0)
+                {
+                    <ul>
+                        @foreach (var p in _phoneNumbers)
+                        {
+                            <li><strong>@p.Name</strong> — @p.Number (SMS: @(p.IsSmsEnabled ? "Yes" : "No"))</li>
+                        }
+                    </ul>
+                }
+            </FluentStack>
+        </FluentCard>
+    </div>
+
+    <SystemNotificationLogCard Logs="@_logs" />
+</FluentStack>

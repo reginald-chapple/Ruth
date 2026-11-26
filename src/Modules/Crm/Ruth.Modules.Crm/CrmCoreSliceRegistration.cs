@@ -15,6 +15,12 @@ internal static class CrmCoreSliceRegistration
 {
     public static void RegisterPeopleHandlers(IServiceCollection services)
     {
+        RegisterPeopleWriteHandlers(services);
+        RegisterPeopleReadHandlers(services);
+    }
+
+    private static void RegisterPeopleWriteHandlers(IServiceCollection services)
+    {
         _ = services.AddCommandHandler<
             CreatePersonCommand,
             PersonDetailResponse,
@@ -55,6 +61,10 @@ internal static class CrmCoreSliceRegistration
             PersonDetailResponse,
             UpdatePersonAttributesCommandHandler
         >();
+    }
+
+    private static void RegisterPeopleReadHandlers(IServiceCollection services)
+    {
         _ = services.AddQueryHandler<
             GetPersonByIdQuery,
             PersonDetailResponse,
@@ -69,6 +79,11 @@ internal static class CrmCoreSliceRegistration
             GetMetaNameInsightsQuery,
             MetaNameInsightsResponse,
             GetMetaNameInsightsQueryHandler
+        >();
+        _ = services.AddQueryHandler<
+            LookupKioskHouseholdsQuery,
+            IReadOnlyList<KioskHouseholdLookupResponse>,
+            LookupKioskHouseholdsQueryHandler
         >();
     }
 

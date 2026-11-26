@@ -1,0 +1,42 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>SMS Keyword Responder Pipelines</h2>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentTextInput @bind-Value="_pipelineName" Label="Pipeline Name" Placeholder="Event RSVP Responder" />
+            <FluentTextInput @bind-Value="_keyword" Label="Keyword" Placeholder="RSVP" />
+            <FluentTextInput @bind-Value="_replyTemplate" Label="Auto-Reply Template" Placeholder="Thanks {{ RecipientName }}, your RSVP is recorded!" />
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePipelineAsync">
+                Add Keyword Pipeline
+            </FluentButton>
+        </FluentStack>
+
+        @foreach (var p in Pipelines)
+        {
+            <div @key="p.Id" class="ruth-kiosk-member-row">
+                <div>
+                    <strong>@p.Name</strong> (Priority: @p.PriorityOrder, @(p.IsSystem ? "System" : "Custom"))
+                </div>
+                <div>
+                    Keywords: @string.Join(", ", p.Actions.Select(static a => $"{a.Keyword ?? "*"} → {a.ActionKind}"))
+                </div>
+            </div>
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private string _pipelineName = "Workshop Info Keyword";
+    private string _keyword = "INFO";
+    private string _replyTemplate = "Visit {{ OrganizationName | default:'Ruth' }} online for upcoming sessions.";
+
+    [Parameter]
+    public IReadOnlyList<SmsPipelineResponse> Pipelines { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<(string Name, string Keyword, string ReplyTemplate)> OnCreatePipeline { get; set; }
+
+    private Task CreatePipelineAsync()
+    {
+        return OnCreatePipeline.InvokeAsync((_pipelineName, _keyword, _replyTemplate));
+    }
+}

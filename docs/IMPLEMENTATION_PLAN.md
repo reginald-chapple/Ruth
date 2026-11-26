@@ -292,32 +292,32 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W3-S3` — High-Throughput Check-In Session Engine, Kiosk UI & Room/Facility Manager
+#### `W3-S3` — High-Throughput Check-In Session Engine, Kiosk UI & Room/Facility Manager ✅ *(Completed)*
 * **Scope:** `AttendanceCheckInSession`, collision-free daily `SecurityPickupCode` generator (configurable alpha/numeric pickup/badge codes with profanity filter), sub-50ms phone-number/household/member-card/barcode search, touch-optimized Blazor Check-In Kiosk UI + Check-Out flow + live Room/Facility Manager roster/override tablet UI + Mobile Check-In Minimal APIs.
 * **Authoring Skills:** `architecture`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint` (Kiosk touch/a11y/perf audit).
 
-#### `W3-S4` — Badge & Label Designer & Zebra ZPL Print Pipeline
+#### `W3-S4` — Badge & Label Designer & Zebra ZPL Print Pipeline ✅ *(Completed)*
 * **Scope:** `CheckInLabel` aggregate (JSON layout schema + Zebra ZPL compilation), merge fields (Pickup Security Code, Medical/Allergy/Compliance Alerts, Room/Zone, Guardian Receipt, Badge/Tier icons), server TCP raw-socket printer dispatch (for local/VPN Zebra printers) + browser local-print/WebUSB JS interop module, and visual Blazor Label Preview/Editor.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `complexity`, `crap-score`.
 
-#### `W3-S5` — Communication Transports, System Notifications & Snippets
+#### `W3-S5` — Communication Transports, System Notifications & Snippets ✅ *(Completed)*
 * **Scope:** `Communication` module (`comms` schema): `ICommunicationTransport` modular contracts + providers (SMTP, SendGrid, Mailgun, Twilio SMS, Push Notification stub, Dev In-Memory Sink), `SystemCommunication` transactional email/SMS templates (wired to Identity/Group/Finance/Workflow events), `SystemPhoneNumber`, `PersonalDevice` push tokens.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`.
 
-#### `W3-S6` — Bulk Communications, Email Builder, Recipients & Two-Way SMS Pipeline
+#### `W3-S6` — Bulk Communications, Email Builder, Recipients & Two-Way SMS Pipeline ✅ *(Completed)*
 * **Scope:** `CommunicationTemplate`, `EmailSection` structured email composer, `Communication` lifecycle (Draft -> Pending Approval -> Approved -> Sending -> Sent), `CommunicationRecipient` batch sending job, bounce/open/click webhook Minimal APIs, unsubscribe/preference center management, two-way SMS Conversations inbox (`CommunicationResponse`) + `SmsPipeline`/`SmsAction` keyword responder.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`, `crap-score`.
 
-#### `W3-S7` — Communication Flows & Automated Drip Campaigns
+#### `W3-S7` — Communication Flows & Automated Drip Campaigns ✅ *(Completed)*
 * **Scope:** `CommunicationFlow` (multi-step timed onboarding/renewal/engagement drip sequences, exit/conversion conditions), `CommunicationFlowInstance`, `CommunicationFlowInstanceRecipient`, `CommunicationFlowConversion`, Flow Builder & Performance Analytics UI.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W3-S8` — Smart Wallet Passes (Apple `.pkpass` & Google Wallet Member/Event Cards)
+#### `W3-S8` — Smart Wallet Passes (Apple `.pkpass` & Google Wallet Member/Event Cards) ✅ *(Completed)*
 * **Scope:** `CheckIn` module (`Slices/WalletPasses/`) + `IWalletPassProvider` strategy (`ApplePkpassProvider` using native `.NET 10` PKCS#7 detached signature packaging + Apple PassKit WebService device registration/push-update endpoints, `GoogleWalletJwtProvider`, and deterministic `PreviewWalletPassProvider` when pass certificates are unconfigured): `WalletPassTemplate`, `IssuedWalletPass` (`SerialNumber`, `AuthTokenHash`, `ScanToken`, dynamic fields for Membership Tier, Punch/Credit Balance, Next Shift/Booking, or Event Ticket), `<50ms` Kiosk scan resolution hook, email/SMS pass claim links, and Staff/Member Pass Preview & Issuance UI.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
@@ -327,52 +327,52 @@ flowchart TD
 ### Wave 4 — Finance (Funds, Dues, Fees, Invoices & Grants) & Events
 *Goal: Deliver a dual-capable financial ledger supporting both tax-deductible charitable funds/pledges/grants and standard membership dues, program fees, and invoices—paired with calendars and event registrations.*
 
-#### `W4-S1` — Financial Accounts, Funds, Revenue Categories, Organizations & Pledges
+#### `W4-S1` — Financial Accounts, Funds, Revenue Categories, Organizations & Pledges ✅ *(Completed)*
 * **Scope:** `Finance` module (`finance` schema): hierarchical `FinancialAccount` (`AccountKind`: CharitableFund, MembershipDues, ProgramFee, GrantFund, OperatingRevenue; `IsTaxDeductible` flag, `BranchId` mapping, GL/cost-center codes, start/end dates), `Money` value object (strict decimal ISO-4217 currency invariants), Organization/Sponsor CRM facade (`OrganizationList`, `OrganizationDetail`), and `FinancialPledge` / commitment tracking + analytics.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S2` — Payment Gateways & Tokenized Saved Payment Methods
+#### `W4-S2` — Payment Gateways & Tokenized Saved Payment Methods ✅ *(Completed)*
 * **Scope:** `FinancialGateway` configuration, modular `IPaymentGateway` (hosted tokenizer JS interop, ACH/card charge, refund, customer vault, recurring subscription sync), Test Gateway + modular `NmiGatewayProvider` / Stripe-ready contract, `SavedPaymentMethod` & hashed routing/account `BankAccountIdentifier` (for check/ACH matching).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `biome`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `complexity`, `crap-score`.
 
-#### `W4-S3` — Financial Batches, Invoices, Dues/Fee Billings, Transactions & Refunds
+#### `W4-S3` — Financial Batches, Invoices, Dues/Fee Billings, Transactions & Refunds ✅ *(Completed)*
 * **Scope:** `Invoice` aggregate (line items, due dates, partial/full balance tracking for membership dues, tuition, facility rentals, or sponsorships), `FinancialBatch` aggregate (Pending -> Open -> Closed state machine, control amount/count reconciliation, audit locks), `FinancialTransaction` + `FinancialTransactionDetail` multi-account splits (settling charitable contributions, direct fees, or open `Invoice`s), `FinancialTransactionImage` (RustFS encrypted check/remittance images), `FinancialTransactionRefund`, Batch/Invoice/Transaction staff screens + check-scanner Minimal API.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W4-S4` — Recurring Contributions, Membership Subscriptions & Cadence Alerts
+#### `W4-S4` — Recurring Contributions, Membership Subscriptions & Cadence Alerts ✅ *(Completed)*
 * **Scope:** `RecurringScheduleTransaction` (recurring charitable gifts AND recurring membership dues/retainers), gateway webhook & nightly settlement sync job, member/donor self-service billing & recurring management component, and `TransactionCadenceAlertType` / `TransactionCadenceAlert` (churn/lapse risk and unusual spike detector).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W4-S5` — Tax Receipts, Account Statements & Assistance / Grant Case Management
+#### `W4-S5` — Tax Receipts, Account Statements & Assistance / Grant Case Management ✅ *(Completed)*
 * **Scope:** `FinancialStatementTemplate` (compiled `.razor` layout via `HtmlRenderer` + merge tokens -> print-CSS / PDF generation separating **Tax-Deductible Charitable Receipts** from **Non-Deductible Dues/Fee/Invoice Statements** for individuals, households, and corporate sponsors, online download + batch run), plus `AssistanceProgram`, `AssistanceCase` (`AssistanceDocument`, `AssistanceDisbursement` — supporting community aid, scholarships, fee waivers, and micro-grants).
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `htmlhint`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`.
 
-#### `W4-S6` — Peer-to-Peer & Project Campaign Fundraising
+#### `W4-S6` — Peer-to-Peer & Project Campaign Fundraising ✅ *(Completed)*
 * **Scope:** Campaign / project / team fundraising configuration on Groups + Financial Accounts, participant & team goal overrides, public contribution portal (supporting donor privacy options and participant fundraising credit), `CampaignLeaderToolbox` & progress widgets.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S7` — Event Calendars, Occurrences & Live Interactive Sessions
+#### `W4-S7` — Event Calendars, Occurrences & Live Interactive Sessions ✅ *(Completed)*
 * **Scope:** `Events` module (`events` schema): `EventCalendar`, `EventItem`, `EventItemAudience`, `EventItemOccurrence` (`BranchId`, `LocationId`, `ScheduleId`), `iCal` feed endpoint, and real-time SignalR `InteractiveSession` (`InteractiveAction`, `Occurrence`, `Response` for live town-hall/conference/classroom polls, Q&A, and stage projections).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W4-S8` — Event Registrations, Dynamic Forms, Fees, Invoices, Discounts & Waitlists
+#### `W4-S8` — Event Registrations, Dynamic Forms, Fees, Invoices, Discounts & Waitlists ✅ *(Completed)*
 * **Scope:** `RegistrationTemplate` (`Form`, `FormField`, `Fee`, `FeeItem`, `Discount`, `GroupPlacement`), `RegistrationInstance`, `RegistrationSession` (seat holds with TTL), `Registration`, `RegistrationRegistrant`, waitlist auto-promotion, deposit/installment/invoice payment integration (`Finance.Contracts`), and multi-step public Registration Wizard.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
 
-#### `W4-S9` — Commerce Catalog, Member Pricing, Punch Passes & Quid-Pro-Quo Checkout
+#### `W4-S9` — Commerce Catalog, Member Pricing, Punch Passes & Quid-Pro-Quo Checkout ✅ *(Completed)*
 * **Scope:** `Commerce` module (`commerce` schema): `Product` & `ProductVariant` (Digital `RustFS` downloads, Pickup/Flat-Rate physical items, and `PunchPassType` multi-visit/credit packs), `MemberPricingRule` (tier/group automatic discounts), IRS *quid-pro-quo* split mapping (fair-market value routed to non-deductible `OperatingRevenue` account + excess routed to tax-deductible `CharitableFund` account via `Finance.Contracts`), `CommerceOrder` lifecycle, `IssuedPunchPass` balance ledger (syncing to `W3-S8` Wallet Passes), Staff Catalog/Order Manager, and Storefront Checkout UI. *(Scope guardrail: flat/gateway tax hooks and pickup/flat-rate fulfillment—no multi-warehouse WMS or carrier-rate ERP bloat.)*
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W4-S10` — Bookable Services, 1-on-1 Appointments & Facility/Resource Rentals
+#### `W4-S10` — Bookable Services, 1-on-1 Appointments & Facility/Resource Rentals ✅ *(Completed)*
 * **Scope:** `Commerce` module (`Slices/Bookings/`): `BookableService` (1-on-1 coaching, counseling, tutoring, intake, or paid virtual workshops) and `RentableResource` (referencing `Core` `Location` rooms, courts, studios, or equipment), `AvailabilityRule` (provider/location `Schedule` windows, setup/teardown buffers, lead/cancel rules, blackout checks), conflict-free slot engine with TTL reservation holds, member-free vs. paid checkout (`Finance.Contracts` `Invoice`/charge), `ServiceBookingConfirmedIntegrationEvent` (updating Wallet Passes and provisioning virtual rooms), Coordinator Calendar UI, and Public Booking Wizard.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.

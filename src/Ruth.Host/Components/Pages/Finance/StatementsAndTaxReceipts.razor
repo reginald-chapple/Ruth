@@ -1,0 +1,83 @@
+@page "/finance/statements"
+@rendermode InteractiveServer
+
+<PageTitle>Tax Receipts &amp; Account Statements — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Tax Receipts &amp; Account Statements</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Generate Single Statement or Execute Batch Run</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="FinancialStatementTemplateResponse"
+                              TValue="Guid"
+                              Label="Statement Template"
+                              Items="@_templates"
+                              OptionText="@(static t => $"{t.Name} [{t.StatementKind}]")"
+                              OptionValue="@(static t => t.Id)"
+                              @bind-Value="_selectedTemplateId" />
+                <FluentSelect TOption="FinancialStatementRecipientScope"
+                              TValue="FinancialStatementRecipientScope"
+                              Label="Recipient Scope"
+                              Items="@_scopes"
+                              OptionText="@(static s => s.ToString())"
+                              OptionValue="@(static s => s)"
+                              @bind-Value="_selectedScope" />
+                <FluentTextInput @bind-Value="_targetIdInput" Label="Person / Household / Org GUID" />
+                <FluentTextInput @bind-Value="_startDateInput" Label="Period Start (YYYY-MM-DD)" />
+                <FluentTextInput @bind-Value="_endDateInput" Label="Period End (YYYY-MM-DD)" />
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@GenerateSingleAsync">
+                    Generate Statement / Receipt
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RunBatchAsync">
+                    Run Annual / Period Batch
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_previewHtml is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <h2>Rendered Print Preview</h2>
+                <div class="ruth-statement-preview-frame">
+                    @((MarkupString)_previewHtml)
+                </div>
+            </FluentStack>
+        </FluentCard>
+    }
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Generated Statements &amp; Receipts (@_statements.Count)</h2>
+            @foreach (var stmt in _statements)
+            {
+                <div class="ruth-kiosk-member-row" @key="stmt.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@stmt.StatementNumber</strong>
+                        <span>@stmt.RecipientDisplayName (@stmt.RecipientScope)</span>
+                        <span class="ruth-room-status-pill">@stmt.StatementKind</span>
+                        <span>Deductible: <strong>@stmt.TaxDeductibleTotal.ToString("F2") @stmt.CurrencyCode</strong></span>
+                        <span>Non-Deductible: <strong>@stmt.NonDeductiblePaidTotal.ToString("F2") @stmt.CurrencyCode</strong></span>
+                        <a href="@($"/api/finance/statements/{stmt.Id:D}/download?format=Pdf")" target="_blank" rel="noopener">PDF</a>
+                        <a href="@($"/api/finance/statements/{stmt.Id:D}/download?format=Html")" target="_blank" rel="noopener">Print HTML</a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

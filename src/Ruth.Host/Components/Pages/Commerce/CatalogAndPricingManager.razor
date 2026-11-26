@@ -1,0 +1,137 @@
+@page "/commerce/catalog"
+@rendermode InteractiveServer
+
+<PageTitle>Commerce Catalog &amp; Member Pricing — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Commerce Catalog, Member Pricing &amp; Punch Pass Packs</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Punch Pass / Credit Pack Type</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_passName" Label="Pack Name" />
+                <FluentTextInput @bind-Value="_passCode" Label="Pack Code" />
+                <FluentTextInput @bind-Value="_passCreditsInput" Label="Visit / Credit Units" />
+                <FluentTextInput @bind-Value="_passValidityDaysInput" Label="Validity Days (Optional)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreatePunchPassTypeAsync">
+                Create Punch Pass Type
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Catalog Product &amp; Variant (Physical, Digital, Punch Pack, or Quid-Pro-Quo)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_productName" Label="Product Name" />
+                <FluentTextInput @bind-Value="_productSlug" Label="URL Slug" />
+                <FluentSelect TOption="ProductKind"
+                              TValue="ProductKind"
+                              Label="Product Kind"
+                              Items="@_productKinds"
+                              OptionText="@(static k => k.ToString())"
+                              OptionValue="@(static k => k)"
+                              @bind-Value="_selectedKind" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Operating / Fee Revenue Account"
+                              Items="@_nonDeductibleAccounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_revenueAccountId" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Quid-Pro-Quo Charitable Fund (Optional)"
+                              Items="@_deductibleAccounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_charitableAccountId" />
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_sku" Label="Variant SKU" />
+                <FluentTextInput @bind-Value="_variantName" Label="Variant Label" />
+                <FluentTextInput @bind-Value="_unitPriceInput" Label="Unit Price (USD)" />
+                <FluentTextInput @bind-Value="_fmvInput" Label="Quid-Pro-Quo FMV (0 for standard)" />
+                <FluentTextInput @bind-Value="_taxRateInput" Label="Flat Tax %" />
+                <FluentTextInput @bind-Value="_stockInput" Label="Initial Stock Qty" />
+                @if (_selectedKind == ProductKind.PunchPassPack && _punchPassTypes.Count > 0)
+                {
+                    <FluentSelect TOption="PunchPassTypeResponse"
+                                  TValue="Guid"
+                                  Label="Linked Punch Pass Type"
+                                  Items="@_punchPassTypes"
+                                  OptionText="@(static p => $"{p.Name} ({p.CreditUnits} credits)")"
+                                  OptionValue="@(static p => p.Id)"
+                                  @bind-Value="_linkedPunchPassTypeId" />
+                }
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateProductAsync">
+                Save Catalog Product
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Automatic Member Pricing Rules (@_rules.Count)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_ruleName" Label="Rule Name" />
+                <FluentTextInput @bind-Value="_ruleTier" Label="Required Membership Tier" />
+                <FluentTextInput @bind-Value="_rulePercentInput" Label="Discount Percentage (%)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateMemberRuleAsync">
+                    Add Member Rule
+                </FluentButton>
+            </FluentStack>
+            @foreach (var rule in _rules)
+            {
+                <div class="ruth-kiosk-member-row" @key="rule.Id">
+                    <strong>@rule.Name</strong>
+                    <span class="ruth-room-status-pill">@rule.DiscountKind: @rule.DiscountValue</span>
+                    @if (!string.IsNullOrWhiteSpace(rule.RequiredMembershipTier))
+                    {
+                        <span class="ruth-room-status-pill">Tier: @rule.RequiredMembershipTier</span>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Catalog Products (@_products.Count)</h2>
+            @foreach (var prod in _products)
+            {
+                <div class="ruth-kiosk-member-row" @key="prod.Id">
+                    <strong>@prod.Name</strong>
+                    <span class="ruth-room-status-pill">@prod.Kind</span>
+                    @if (prod.IsQuidProQuo)
+                    {
+                        <span class="ruth-room-status-pill">IRS Quid-Pro-Quo</span>
+                    }
+                    @foreach (var v in prod.Variants)
+                    {
+                        <span @key="v.Id">
+                            | @v.Sku: @v.UnitPrice.ToString("F2") @prod.CurrencyCode
+                            @if (prod.IsQuidProQuo)
+                            {
+                                <span>(FMV @v.FairMarketValueAmount.ToString("F2") / Charitable @v.EstimatedTaxDeductibleExcess.ToString("F2"))</span>
+                            }
+                        </span>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

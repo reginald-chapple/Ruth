@@ -1,0 +1,17 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>Registered Communication Transports</h2>
+        <FluentDataGrid Items="@Transports.AsQueryable()">
+            <PropertyColumn Property="@(static t => t.DisplayName)" Title="Provider" Sortable="true" />
+            <PropertyColumn Property="@(static t => t.TransportKey)" Title="Key" />
+            <PropertyColumn Property="@(static t => t.Channel)" Title="Channel" Sortable="true" />
+            <PropertyColumn Property="@(static t => t.IsConfigured)" Title="Configured" />
+            <PropertyColumn Property="@(static t => t.IsActiveDefault)" Title="Active Channel Default" />
+        </FluentDataGrid>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CommunicationTransportStatusResponse> Transports { get; set; } = [];
+}

@@ -1,0 +1,739 @@
+@baseUrl = http://localhost:5080
+@token = REPLACE_WITH_JWT_ACCESS_TOKEN
+@personId = 0196f4a0-0000-7000-8000-000000000001
+@accountId = 0196f840-0001-7000-8000-000000000401
+@gatewayId = 0196f840-0003-7000-8000-000000000403
+@savedMethodId = 0196f840-0004-7000-8000-000000000404
+@invoiceId = 0196f840-0006-7000-8000-000000000406
+@batchId = 0196f840-0007-7000-8000-000000000407
+@transactionId = 0196f840-0008-7000-8000-000000000408
+@imageId = 0196f840-000c-7000-8000-00000000040c
+@pledgeId = 0196f840-0002-7000-8000-000000000402
+@scheduleId = 0196f840-0009-7000-8000-000000000409
+@alertTypeId = 0196f840-000a-7000-8000-00000000040a
+@alertId = 0196f840-000b-7000-8000-00000000040b
+
+### W4-S1: List Financial Accounts
+GET {{baseUrl}}/api/finance/accounts?activeOnly=true
+Authorization: Bearer {{token}}
+
+### W4-S1: Create Tax-Deductible Charitable Fund Account
+POST {{baseUrl}}/api/finance/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Scholarship Fund",
+  "publicName": "Community Scholarship Fund",
+  "code": "SCHOLARSHIP-FUND",
+  "accountKind": "CharitableFund",
+  "isTaxDeductible": true,
+  "defaultCurrencyCode": "USD",
+  "glCode": "4100-10",
+  "costCenterCode": "CC-EDU"
+}
+
+### W4-S1: Get Financial Account By ID
+GET {{baseUrl}}/api/finance/accounts/{{accountId}}
+Authorization: Bearer {{token}}
+
+### W4-S1: Update Financial Account
+PUT {{baseUrl}}/api/finance/accounts/{{accountId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Scholarship Endowment",
+  "publicName": "Scholarship Endowment",
+  "code": "SCHOLARSHIP-FUND",
+  "accountKind": "CharitableFund",
+  "isTaxDeductible": true,
+  "defaultCurrencyCode": "USD"
+}
+
+### W4-S1: Create Organization / Corporate Sponsor
+POST {{baseUrl}}/api/finance/organizations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Civic Horizon Foundation",
+  "email": "grants@civichorizon.org",
+  "phoneNumber": "+13035550199",
+  "taxIdentifier": "84-7654321",
+  "sponsorTier": "Gold Grantor",
+  "websiteUrl": "https://civichorizon.org"
+}
+
+### W4-S1: List Organizations & Sponsors
+GET {{baseUrl}}/api/finance/organizations
+Authorization: Bearer {{token}}
+
+### W4-S1: Get Organization By ID
+GET {{baseUrl}}/api/finance/organizations/{{personId}}
+Authorization: Bearer {{token}}
+
+### W4-S1: Update Organization
+PUT {{baseUrl}}/api/finance/organizations/{{personId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "organizationPersonId": "{{personId}}",
+  "name": "Civic Horizon Foundation",
+  "email": "grants@civichorizon.org",
+  "sponsorTier": "Platinum Grantor",
+  "isActive": true
+}
+
+### W4-S1: Create Financial Pledge
+POST {{baseUrl}}/api/finance/pledges
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "accountId": "{{accountId}}",
+  "totalAmount": 1200.00,
+  "currencyCode": "USD",
+  "frequency": "Monthly",
+  "startDate": "2026-01-01",
+  "endDate": "2026-12-31",
+  "notes": "Annual scholarship pledge"
+}
+
+### W4-S1: List Pledges & Analytics
+GET {{baseUrl}}/api/finance/pledges
+Authorization: Bearer {{token}}
+
+### W4-S1: Get Pledge Analytics
+GET {{baseUrl}}/api/finance/pledges/analytics?currencyCode=USD
+Authorization: Bearer {{token}}
+
+### W4-S1: Update Pledge
+PUT {{baseUrl}}/api/finance/pledges/{{pledgeId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pledgeId": "{{pledgeId}}",
+  "totalAmount": 1500.00,
+  "frequency": "Monthly",
+  "startDate": "2026-01-01",
+  "endDate": "2026-12-31"
+}
+
+### W4-S1: Cancel Pledge
+POST {{baseUrl}}/api/finance/pledges/{{pledgeId}}/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pledgeId": "{{pledgeId}}",
+  "reason": "Superseded by corporate grant"
+}
+
+### W4-S2: List Registered Payment Gateway Providers
+GET {{baseUrl}}/api/finance/gateways/providers
+Authorization: Bearer {{token}}
+
+### W4-S2: List Configured Gateways
+GET {{baseUrl}}/api/finance/gateways
+Authorization: Bearer {{token}}
+
+### W4-S2: Create Payment Gateway
+POST {{baseUrl}}/api/finance/gateways
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Sandbox Card & ACH Gateway",
+  "providerKey": "test",
+  "supportsCards": true,
+  "supportsAch": true,
+  "supportsRecurring": true,
+  "isTestMode": true,
+  "isActive": true
+}
+
+### W4-S2: Update Payment Gateway
+PUT {{baseUrl}}/api/finance/gateways/{{gatewayId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Sandbox Card & ACH Gateway",
+  "providerKey": "test",
+  "supportsCards": true,
+  "supportsAch": true,
+  "supportsRecurring": true,
+  "isTestMode": true,
+  "isActive": true
+}
+
+### W4-S2: Vault Tokenized Saved Payment Method
+POST {{baseUrl}}/api/finance/payment-methods
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "financialGatewayId": "{{gatewayId}}",
+  "hostedPaymentToken": "tok_hosted_card_demo123",
+  "methodKind": "CreditCard",
+  "displayName": "Personal Visa",
+  "maskedLast4Hint": "4242",
+  "cardBrandHint": "Visa",
+  "expiryMonthHint": 12,
+  "expiryYearHint": 2029,
+  "setAsDefault": true
+}
+
+### W4-S2: List Saved Payment Methods
+GET {{baseUrl}}/api/finance/payment-methods?personId={{personId}}
+Authorization: Bearer {{token}}
+
+### W4-S2: Set Default Saved Payment Method
+POST {{baseUrl}}/api/finance/payment-methods/{{savedMethodId}}/default
+Authorization: Bearer {{token}}
+
+### W4-S2: Deactivate Saved Payment Method
+DELETE {{baseUrl}}/api/finance/payment-methods/{{savedMethodId}}
+Authorization: Bearer {{token}}
+
+### W4-S2: Register Hashed ABA Bank Account Identifier
+POST {{baseUrl}}/api/finance/payment-methods/bank-identifiers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "routingNumber": "021000021",
+  "accountNumber": "987654321",
+  "bankName": "Community Credit Union"
+}
+
+### W4-S2: Resolve Person By Routing & Account Numbers
+POST {{baseUrl}}/api/finance/payment-methods/bank-identifiers/resolve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "routingNumber": "021000021",
+  "accountNumber": "987654321"
+}
+
+### W4-S3: Create Membership Dues Invoice
+POST {{baseUrl}}/api/finance/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "issueDate": "2026-11-01",
+  "dueDate": "2026-12-01",
+  "currencyCode": "USD",
+  "issueImmediately": true,
+  "lineItems": [
+    {
+      "accountId": "{{accountId}}",
+      "description": "Annual Chapter Membership Dues",
+      "quantity": 1,
+      "unitAmount": 180.00
+    }
+  ]
+}
+
+### W4-S3: List Invoices
+GET {{baseUrl}}/api/finance/invoices
+Authorization: Bearer {{token}}
+
+### W4-S3: Get Invoice By ID
+GET {{baseUrl}}/api/finance/invoices/{{invoiceId}}
+Authorization: Bearer {{token}}
+
+### W4-S3: Issue Draft Invoice
+POST {{baseUrl}}/api/finance/invoices/{{invoiceId}}/issue
+Authorization: Bearer {{token}}
+
+### W4-S3: Void Unpaid Invoice
+POST {{baseUrl}}/api/finance/invoices/{{invoiceId}}/void
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "invoiceId": "{{invoiceId}}",
+  "reason": "Issued in error"
+}
+
+### W4-S3: Create Financial Batch
+POST {{baseUrl}}/api/finance/batches
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "November Lockbox Deposit",
+  "currencyCode": "USD",
+  "controlAmount": 180.00,
+  "controlItemCount": 1,
+  "openImmediately": false
+}
+
+### W4-S3: Open Batch
+POST {{baseUrl}}/api/finance/batches/{{batchId}}/open
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "batchId": "{{batchId}}",
+  "controlAmount": 180.00,
+  "controlItemCount": 1
+}
+
+### W4-S3: List Batches & Get Batch By ID
+GET {{baseUrl}}/api/finance/batches
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/finance/batches/{{batchId}}
+Authorization: Bearer {{token}}
+
+### W4-S3: Record Multi-Split Financial Transaction
+POST {{baseUrl}}/api/finance/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "authorizedPersonId": "{{personId}}",
+  "currencyCode": "USD",
+  "sourceType": "StaffEntry",
+  "tenderType": "CreditCard",
+  "batchId": "{{batchId}}",
+  "financialGatewayId": "{{gatewayId}}",
+  "savedPaymentMethodId": "{{savedMethodId}}",
+  "splits": [
+    {
+      "accountId": "{{accountId}}",
+      "amount": 180.00,
+      "invoiceId": "{{invoiceId}}",
+      "summary": "Dues payment"
+    }
+  ]
+}
+
+### W4-S3: List & Get Transactions
+GET {{baseUrl}}/api/finance/transactions
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/finance/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+
+### W4-S3: Close Reconciled Batch
+POST {{baseUrl}}/api/finance/batches/{{batchId}}/close
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "batchId": "{{batchId}}",
+  "auditNote": "Balanced deposit verified"
+}
+
+### W4-S3: Reopen Closed Batch With Audit Reason
+POST {{baseUrl}}/api/finance/batches/{{batchId}}/reopen
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "batchId": "{{batchId}}",
+  "auditReason": "Adjustment approved by controller"
+}
+
+### W4-S3: Upload & Download Encrypted Check Image
+POST {{baseUrl}}/api/finance/transactions/{{transactionId}}/images
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transactionId": "{{transactionId}}",
+  "imageSide": "Front",
+  "contentType": "image/png",
+  "imageBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+}
+
+###
+GET {{baseUrl}}/api/finance/transactions/{{transactionId}}/images/{{imageId}}
+Authorization: Bearer {{token}}
+
+### W4-S3: Ingest Scanned Check
+POST {{baseUrl}}/api/finance/check-scanner/ingest
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "routingNumber": "021000021",
+  "accountNumber": "987654321",
+  "checkNumber": "1098",
+  "amount": 250.00,
+  "currencyCode": "USD",
+  "accountId": "{{accountId}}",
+  "frontImageBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+}
+
+### W4-S3: Refund Transaction
+POST {{baseUrl}}/api/finance/transactions/{{transactionId}}/refunds
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transactionId": "{{transactionId}}",
+  "amount": 50.00,
+  "reason": "Partial adjustment",
+  "executeGatewayRefund": true
+}
+
+### W4-S4: Create Recurring Schedule
+POST {{baseUrl}}/api/finance/recurring
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": "{{personId}}",
+  "financialGatewayId": "{{gatewayId}}",
+  "savedPaymentMethodId": "{{savedMethodId}}",
+  "purpose": "MembershipSubscription",
+  "frequency": "Monthly",
+  "currencyCode": "USD",
+  "startDate": "2026-11-25",
+  "splits": [
+    {
+      "accountId": "{{accountId}}",
+      "amount": 45.00,
+      "summary": "Monthly Membership"
+    }
+  ]
+}
+
+### W4-S4: List, Update, Pause, Resume, Cancel & Process Due Recurring Schedules
+GET {{baseUrl}}/api/finance/recurring
+Authorization: Bearer {{token}}
+
+###
+PUT {{baseUrl}}/api/finance/recurring/{{scheduleId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "scheduleId": "{{scheduleId}}",
+  "savedPaymentMethodId": "{{savedMethodId}}",
+  "frequency": "Monthly",
+  "nextPaymentDate": "2026-12-25",
+  "splits": [
+    {
+      "accountId": "{{accountId}}",
+      "amount": 55.00
+    }
+  ]
+}
+
+###
+POST {{baseUrl}}/api/finance/recurring/{{scheduleId}}/pause
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/finance/recurring/{{scheduleId}}/resume
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "scheduleId": "{{scheduleId}}"
+}
+
+###
+POST {{baseUrl}}/api/finance/recurring/{{scheduleId}}/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "scheduleId": "{{scheduleId}}",
+  "reason": "Member relocated"
+}
+
+###
+POST {{baseUrl}}/api/finance/recurring/process-due
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maxBatchSize": 100
+}
+
+### W4-S4: Receive Payment Gateway Webhook
+POST {{baseUrl}}/api/finance/gateways/{{gatewayId}}/webhooks
+X-Ruth-Signature: sha256=COMPUTED_HMAC
+Content-Type: application/json
+
+{
+  "eventId": "evt_test_001",
+  "eventKind": "SubscriptionChargeSucceeded",
+  "subscriptionReference": "tsub_demo",
+  "transactionId": "ttx_demo",
+  "amount": 45.00,
+  "currencyCode": "USD"
+}
+
+### W4-S4: Cadence Alert Rules, Scan & Review
+GET {{baseUrl}}/api/finance/cadence-alerts/types
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/finance/cadence-alerts/types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Major Gift Spike Detector",
+  "alertKind": "UnusualAmountSpike",
+  "minHistoricalSamples": 3,
+  "multiplierThreshold": 3.0,
+  "standardDeviationSensitivity": 2.0,
+  "minimumAmountThreshold": 500.00,
+  "cooldownDays": 14,
+  "isActive": true
+}
+
+###
+PUT {{baseUrl}}/api/finance/cadence-alerts/types/{{alertTypeId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Major Gift Spike Detector",
+  "alertKind": "UnusualAmountSpike",
+  "minHistoricalSamples": 3,
+  "multiplierThreshold": 3.5,
+  "standardDeviationSensitivity": 2.0,
+  "minimumAmountThreshold": 500.00,
+  "cooldownDays": 14,
+  "isActive": true
+}
+
+###
+POST {{baseUrl}}/api/finance/cadence-alerts/scan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+GET {{baseUrl}}/api/finance/cadence-alerts
+Authorization: Bearer {{token}}
+
+###
+PATCH {{baseUrl}}/api/finance/cadence-alerts/{{alertId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "alertId": "{{alertId}}",
+  "newStatus": "Acknowledged",
+  "notes": "Assigned to stewardship coordinator"
+}
+
+
+### W4-S5: List Statement & Tax Receipt Templates
+GET {{baseUrl}}/api/finance/statements/templates?activeOnly=true
+Authorization: Bearer {{token}}
+
+### W4-S5: Create Combined Separated Statement Template
+POST {{baseUrl}}/api/finance/statements/templates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Annual Combined Separated Receipt & Statement",
+  "statementKind": "CombinedSeparatedStatement",
+  "organizationDisplayName": "Civic Horizon Foundation",
+  "organizationTaxId": "84-7654321",
+  "currencyCode": "USD",
+  "headerMergeTemplate": "<p>Prepared for {{ RecipientName }} ({{ PeriodStart }} to {{ PeriodEnd }}).</p>",
+  "footerMergeTemplate": "<p>Tax-deductible total: {{ TaxDeductibleTotal }} {{ CurrencyCode }}. Non-deductible total: {{ NonDeductiblePaidTotal }} {{ CurrencyCode }}.</p>",
+  "includePledgeSummary": true,
+  "includeOpenInvoices": true,
+  "minimumTotalThreshold": 10.00,
+  "isDefault": true,
+  "isActive": true
+}
+
+### W4-S5: Generate Individual Statement & Tax Receipt
+POST {{baseUrl}}/api/finance/statements/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "templateId": "0196f840-000d-7000-8000-00000000040d",
+  "recipientScope": "Individual",
+  "targetPersonId": "{{personId}}",
+  "periodStartDate": "2026-01-01",
+  "periodEndDate": "2026-12-31",
+  "persistArchiveToStorage": true
+}
+
+### W4-S5: Run Annual Batch Statement Generation
+POST {{baseUrl}}/api/finance/statements/batch-run
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "templateId": "0196f840-000d-7000-8000-00000000040d",
+  "periodStartDate": "2026-01-01",
+  "periodEndDate": "2026-12-31",
+  "consolidateHouseholds": true,
+  "includeOrganizations": true,
+  "persistArchiveToStorage": true
+}
+
+### W4-S5: List Generated Statements
+GET {{baseUrl}}/api/finance/statements?limit=50
+Authorization: Bearer {{token}}
+
+### W4-S5: Download Generated Statement PDF
+GET {{baseUrl}}/api/finance/statements/0196f840-000e-7000-8000-00000000040e/download?format=Pdf
+Authorization: Bearer {{token}}
+
+### W4-S5: Create Assistance / Scholarship Program
+POST {{baseUrl}}/api/finance/assistance/programs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Youth Camp Scholarship & Relief",
+  "code": "CAMP-SCHOLAR-2026",
+  "category": "Scholarship",
+  "fundingAccountId": "{{accountId}}",
+  "totalBudgetAmount": 25000.00,
+  "maxAwardPerCase": 1500.00,
+  "currencyCode": "USD",
+  "requiresDocumentation": true,
+  "isActive": true
+}
+
+### W4-S5: List Assistance Programs
+GET {{baseUrl}}/api/finance/assistance/programs
+Authorization: Bearer {{token}}
+
+### W4-S5: Submit Assistance Case
+POST {{baseUrl}}/api/finance/assistance/cases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "programId": "0196f840-000f-7000-8000-00000000040f",
+  "applicantPersonId": "{{personId}}",
+  "requestedAmount": 750.00,
+  "summary": "Summer program tuition fee scholarship"
+}
+
+### W4-S5: Attach Verification Document to Case
+POST {{baseUrl}}/api/finance/assistance/cases/0196f840-0010-7000-8000-000000000410/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "caseId": "0196f840-0010-7000-8000-000000000410",
+  "title": "Household Income Verification",
+  "documentCategory": "IncomeProof",
+  "isVerified": true
+}
+
+### W4-S5: Approve Assistance Case
+POST {{baseUrl}}/api/finance/assistance/cases/0196f840-0010-7000-8000-000000000410/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "caseId": "0196f840-0010-7000-8000-000000000410",
+  "decisionStatus": "Approved",
+  "approvedAmount": 750.00,
+  "decisionNotes": "Income documentation verified"
+}
+
+### W4-S5: Record Assistance Disbursement / Fee Waiver
+POST {{baseUrl}}/api/finance/assistance/cases/0196f840-0010-7000-8000-000000000410/disbursements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "caseId": "0196f840-0010-7000-8000-000000000410",
+  "disbursementMethod": "InternalFeeWaiverCredit",
+  "amount": 750.00,
+  "payeeName": "Internal Tuition Ledger",
+  "targetInvoiceId": "{{invoiceId}}"
+}
+
+
+### W4-S6: Create Group + Financial Account Fundraising Campaign
+POST {{baseUrl}}/api/finance/campaigns
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Clean Water Project 2026",
+  "slug": "clean-water-2026",
+  "groupId": "0196f840-0011-7000-8000-000000000411",
+  "financialAccountId": "{{accountId}}",
+  "campaignGoalAmount": 10000.00,
+  "defaultParticipantGoalAmount": 1000.00,
+  "currencyCode": "USD",
+  "allowTeamGoalOverride": true,
+  "allowParticipantGoalOverride": true,
+  "allowPublicContributions": true
+}
+
+### W4-S6: List Fundraising Campaigns
+GET {{baseUrl}}/api/finance/campaigns
+Authorization: Bearer {{token}}
+
+### W4-S6: Set Team Goal Override
+PUT {{baseUrl}}/api/finance/campaigns/0196f840-0011-7000-8000-000000000411/team-goal
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": "0196f840-0011-7000-8000-000000000411",
+  "teamGoalOverrideAmount": 12500.00
+}
+
+### W4-S6: Enroll Participant with Custom Goal Override
+POST {{baseUrl}}/api/finance/campaigns/0196f840-0011-7000-8000-000000000411/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "campaignId": "0196f840-0011-7000-8000-000000000411",
+  "personId": "{{personId}}",
+  "displayName": "Alex Morgan",
+  "customGoalAmount": 1500.00,
+  "isPublicProfileEnabled": true
+}
+
+### W4-S6: Get Campaign Leader Toolbox
+GET {{baseUrl}}/api/finance/campaigns/0196f840-0011-7000-8000-000000000411/toolbox
+Authorization: Bearer {{token}}
+
+### W4-S6: Get Public Campaign Portal (Anonymous)
+GET {{baseUrl}}/api/finance/campaigns/public/clean-water-2026
+
+### W4-S6: Submit Public Campaign Contribution
+POST {{baseUrl}}/api/finance/campaigns/public/clean-water-2026/contributions
+Content-Type: application/json
+
+{
+  "campaignIdOrSlug": "clean-water-2026",
+  "amount": 250.00,
+  "currencyCode": "USD",
+  "donorDisplayName": "Taylor Reed",
+  "donorPrivacy": "PublicNameHideAmount",
+  "tenderType": "CreditCard",
+  "donorComment": "Cheering the team on!"
+}

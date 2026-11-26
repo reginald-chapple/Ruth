@@ -1,0 +1,77 @@
+@using System.Globalization
+
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <h2>Check-In Complete!</h2>
+        @if (!string.IsNullOrWhiteSpace(Receipt.SecurityPickupCode))
+        {
+            <div class="ruth-kiosk-code-banner" role="status" aria-live="polite">
+                <span class="ruth-kiosk-code-label">Guardian Security Pickup Code</span>
+                <strong class="ruth-kiosk-code-value">@Receipt.SecurityPickupCode</strong>
+            </div>
+        }
+        <ul>
+            @foreach (var entry in Receipt.Entries)
+            {
+                <li @key="entry.EntryId">
+                    <strong>@entry.PersonFullName</strong> — @entry.AreaName (@entry.LocationName)
+                </li>
+            }
+        </ul>
+        @if (!string.IsNullOrWhiteSpace(_printStatus))
+        {
+            <p>@_printStatus</p>
+        }
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@PrintLabelsAsync">
+                Print Badges &amp; Guardian Receipt
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@OnReset">
+                Next Family / Member
+            </FluentButton>
+        </FluentStack>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private string? _printStatus;
+
+    [Parameter, EditorRequired]
+    public required CheckInSessionReceiptResponse Receipt { get; set; }
+
+    [Parameter]
+    public EventCallback OnReset { get; set; }
+
+    [Inject]
+    private ICommandDispatcher CommandDispatcher { get; set; } = default!;
+
+    [Inject]
+    private IJSRuntime JsRuntime { get; set; } = default!;
+
+    private async Task PrintLabelsAsync()
+    {
+        var result = await CommandDispatcher.SendAsync<
+            PrintCheckInSessionLabelsCommand,
+            PrintCheckInSessionLabelsResponse
+        >(new PrintCheckInSessionLabelsCommand(Receipt.SessionId));
+        if (!result.IsSuccess)
+        {
+            _printStatus = result.PrimaryError.Description;
+            return;
+        }
+
+        await using var module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./ruth-label-print.js"
+        );
+        foreach (var job in result.Value.Jobs.Where(static j => !j.DispatchedFromServer))
+        {
+            await module.InvokeVoidAsync("printZplViaWebUsb", job.CompiledZpl);
+        }
+
+        _printStatus = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Prepared {result.Value.Jobs.Count} badge/receipt label job(s)."
+        );
+    }
+}

@@ -1,0 +1,132 @@
+@page "/checkin/room-manager"
+@rendermode InteractiveServer
+
+<PageTitle>Room &amp; Facility Manager — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Live Room &amp; Facility Manager</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+            <FluentSelect TOption="CheckInConfigurationSummaryResponse"
+                          TValue="Guid"
+                          Label="Check-In Configuration"
+                          Items="@_configurations"
+                          OptionText="@(static c => c.Name)"
+                          OptionValue="@(static c => c.Id)"
+                          Value="@_selectedConfigId"
+                          ValueChanged="@OnConfigurationChangedAsync" />
+
+            <FluentCheckbox @bind-Value="_includeCheckedOut" Label="Show Checked-Out History" />
+
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RefreshRosterAsync">
+                Refresh Live Counts
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_roster is not null)
+    {
+        <FluentCard Padding="@Padding.All3">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="20" Wrap="true">
+                <strong>@_roster.ConfigurationName (@_roster.ServiceDate)</strong>
+                <span>Active Checked-In: <strong>@_roster.TotalCheckedIn</strong></span>
+                <span>Checked Out: <strong>@_roster.TotalCheckedOut</strong></span>
+            </FluentStack>
+        </FluentCard>
+
+        <div class="ruth-room-manager-grid">
+            @foreach (var room in _roster.Rooms)
+            {
+                <FluentCard @key="@($"{room.AreaId}:{room.LocationId}")" Padding="@Padding.All4">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <strong>@room.LocationName</strong>
+                            <span>(@room.AreaName)</span>
+                            <span class="ruth-room-status-pill">@room.ThresholdStatus</span>
+                        </FluentStack>
+
+                        <div>
+                            Occupancy: <strong>@room.ActiveOccupancy</strong>
+                            / Soft: @(room.SoftCapacity?.ToString() ?? "∞")
+                            / Firm: @(room.FirmCapacity?.ToString() ?? "∞")
+                        </div>
+
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                            <FluentButton Size="ButtonSize.Small"
+                                          Appearance="@(room.IsOpenForCheckIn ? ButtonAppearance.Outline : ButtonAppearance.Primary)"
+                                          OnClick="@(() => ToggleRoomAvailabilityAsync(room))">
+                                @(room.IsOpenForCheckIn ? "Close Room" : "Open Room")
+                            </FluentButton>
+                        </FluentStack>
+
+                        @if (room.Participants.Count == 0)
+                        {
+                            <p>No active participants in this room.</p>
+                        }
+                        else
+                        {
+                            <FluentDataGrid Items="@room.Participants.AsQueryable()">
+                                <PropertyColumn Property="@(static p => p.PersonFullName)" Title="Participant" />
+                                <PropertyColumn Property="@(static p => p.SecurityPickupCode)" Title="Code" />
+                                <PropertyColumn Property="@(static p => p.Status)" Title="Status" />
+                                <PropertyColumn Property="@(static p => p.AttendanceNote)" Title="Notes / Alerts" />
+                                <TemplateColumn Title="Actions">
+                                    @if (context.Status == CheckInEntryStatus.CheckedIn)
+                                    {
+                                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6">
+                                            <FluentButton Size="ButtonSize.Small"
+                                                          OnClick="@(() => StaffCheckOutAsync(context.EntryId))">
+                                                Check Out
+                                            </FluentButton>
+                                            <FluentButton Size="ButtonSize.Small"
+                                                          Appearance="ButtonAppearance.Transparent"
+                                                          OnClick="@(() => BeginMoveParticipant(context, room.AreaId))">
+                                                Move
+                                            </FluentButton>
+                                        </FluentStack>
+                                    }
+                                </TemplateColumn>
+                            </FluentDataGrid>
+                        }
+                    </FluentStack>
+                </FluentCard>
+            }
+        </div>
+    }
+
+    @if (_movingParticipant is not null && _roster is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Reassign Room — @_movingParticipant.PersonFullName</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentSelect TOption="LiveRoomSummaryDto"
+                                  TValue="Guid"
+                                  Label="Destination Room"
+                                  Items="@_roster.Rooms"
+                                  OptionText="@(static r => $"{r.AreaName} — {r.LocationName} ({r.ActiveOccupancy})")"
+                                  OptionValue="@(static r => r.LocationId)"
+                                  @bind-Value="_moveTargetLocationId" />
+                    <FluentTextInput @bind-Value="_moveOverrideReason"
+                                     Label="Staff Override Reason"
+                                     Placeholder="Balancing ratio / sibling grouping" />
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ConfirmMoveParticipantAsync">
+                        Confirm Move
+                    </FluentButton>
+                    <FluentButton OnClick="@CancelMove">Cancel</FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

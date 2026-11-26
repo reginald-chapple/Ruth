@@ -1,0 +1,104 @@
+@page "/give/campaigns/{Slug}"
+@rendermode InteractiveServer
+
+<PageTitle>@(_portal?.Name ?? "Campaign Portal") — Ruth RMS</PageTitle>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_portal is null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <h1>Campaign Not Found</h1>
+        <p>No active public fundraising campaign matched slug <code>@Slug</code>.</p>
+    </FluentCard>
+}
+else
+{
+    <div class="ruth-page-header">
+        <h1>@_portal.Name</h1>
+    </div>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                @if (!string.IsNullOrWhiteSpace(_portal.Summary))
+                {
+                    <p>@_portal.Summary</p>
+                }
+                <CampaignProgressWidget Title="Campaign Goal Progress"
+                                        RaisedAmount="@_portal.TotalRaisedAmount"
+                                        GoalAmount="@_portal.EffectiveGoalAmount"
+                                        ProgressPercent="@_portal.ProgressPercent"
+                                        CurrencyCode="@_portal.CurrencyCode"
+                                        DonorCount="@_portal.DonorCount" />
+            </FluentStack>
+        </FluentCard>
+
+        @if (_portal.AcceptingContributions)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Make a Contribution</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_donorName" Label="Your Name" />
+                        <FluentTextInput @bind-Value="_amountInput" Label="@($"Amount ({_portal.CurrencyCode})")" />
+                        <FluentSelect TOption="CampaignDonorPrivacy"
+                                      TValue="CampaignDonorPrivacy"
+                                      Label="Public Display Privacy"
+                                      Items="@_privacyOptions"
+                                      OptionText="@(static p => p.ToString())"
+                                      OptionValue="@(static p => p)"
+                                      @bind-Value="_selectedPrivacy" />
+                        @if (_portal.PublicParticipants.Count > 0)
+                        {
+                            <FluentSelect TOption="CampaignParticipantResponse"
+                                          TValue="Guid"
+                                          Label="Credit Team Member (Optional)"
+                                          Items="@_portal.PublicParticipants"
+                                          OptionText="@(static p => $"{p.DisplayName} ({p.RaisedAmount:F2} / {p.EffectiveGoalAmount:F2})")"
+                                          OptionValue="@(static p => p.Id)"
+                                          @bind-Value="_selectedParticipantId" />
+                        }
+                        <FluentTextInput @bind-Value="_comment" Label="Encouragement / Note" />
+                    </FluentStack>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitContributionAsync">
+                        Contribute Now
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+
+        @if (_portal.RecentPublicContributions.Count > 0)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                    <h2>Recent Supporters</h2>
+                    @foreach (var item in _portal.RecentPublicContributions)
+                    {
+                        <div class="ruth-kiosk-member-row" @key="item.CreditId">
+                            <strong>@item.DisplayDonorName</strong>
+                            @if (item.VisibleAmount.HasValue)
+                            {
+                                <span> — @item.VisibleAmount.Value.ToString("F2") @item.CurrencyCode</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(item.CreditedParticipantDisplayName))
+                            {
+                                <span> supporting @item.CreditedParticipantDisplayName</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(item.DonorComment))
+                            {
+                                <div><em>"@item.DonorComment"</em></div>
+                            }
+                        </div>
+                    }
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+}

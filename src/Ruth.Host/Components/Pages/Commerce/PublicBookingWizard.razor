@@ -1,0 +1,121 @@
+@page "/commerce/book"
+@page "/commerce/book/{Slug}"
+@rendermode InteractiveServer
+
+<PageTitle>Public Booking Wizard — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Appointments, Virtual Workshops &amp; Facility Rentals Wizard</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_confirmedBooking is not null)
+{
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Booking Confirmed — @_confirmedBooking.ConfirmationCode</h2>
+            <p>
+                <strong>@_confirmedBooking.TargetName</strong>
+                | @_confirmedBooking.StartUtc.ToString("yyyy-MM-dd HH:mm") – @_confirmedBooking.EndUtc.ToString("HH:mm") UTC
+            </p>
+            <p>
+                Pricing: @_confirmedBooking.PricingKind
+                | Total: @_confirmedBooking.TotalAmount.ToString("F2") @_confirmedBooking.CurrencyCode
+                | Paid: @_confirmedBooking.PaidAmount.ToString("F2")
+            </p>
+            @if (_confirmedBooking.RequiresVirtualRoom && !string.IsNullOrWhiteSpace(_confirmedBooking.VirtualRoomReferenceKey))
+            {
+                <p>Virtual Room Provisioning Key: <code>@_confirmedBooking.VirtualRoomReferenceKey</code></p>
+            }
+        </FluentStack>
+    </FluentCard>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Step 1 — Choose a Bookable Service or Facility Resource</h2>
+                @foreach (var svc in _services)
+                {
+                    <div class="ruth-kiosk-member-row" @key="svc.Id">
+                        <strong>@svc.Name (@svc.DeliveryMode, @svc.DurationMinutes min)</strong>
+                        <span>Standard: @svc.StandardPrice.ToString("F2") @svc.CurrencyCode</span>
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      OnClick="@(() => SelectTargetAsync(BookingTargetKind.Service, svc.Slug))">
+                            View Conflict-Free Slots
+                        </FluentButton>
+                    </div>
+                }
+                @foreach (var res in _resources)
+                {
+                    <div class="ruth-kiosk-member-row" @key="res.Id">
+                        <strong>@res.Name (@res.ResourceKind)</strong>
+                        <span>@res.HourlyRate.ToString("F2") @res.CurrencyCode / hr</span>
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      OnClick="@(() => SelectTargetAsync(BookingTargetKind.Resource, res.Slug))">
+                            View Conflict-Free Slots
+                        </FluentButton>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        @if (_availableSlots.Count > 0)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Step 2 — Reserve a Conflict-Free Slot (TTL Hold)</h2>
+                    @foreach (var slot in _availableSlots.Take(12))
+                    {
+                        <div class="ruth-kiosk-member-row" @key="slot.SlotStartUtc">
+                            <strong>@slot.SlotStartUtc.ToString("ddd MMM d, HH:mm") – @slot.SlotEndUtc.ToString("HH:mm") UTC</strong>
+                            <span class="ruth-room-status-pill">Remaining: @slot.RemainingCapacity</span>
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => HoldSlotAsync(slot))">
+                                Hold Slot
+                            </FluentButton>
+                        </div>
+                    }
+                </FluentStack>
+            </FluentCard>
+        }
+
+        @if (_activeHold is not null && _quote is not null)
+        {
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                    <h2>Step 3 — Participant Details &amp; Confirmation (Hold @_activeHold.HoldToken)</h2>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentTextInput @bind-Value="_customerName" Label="Your Full Name" />
+                        <FluentTextInput @bind-Value="_customerEmail" Label="Your Email" />
+                        <FluentTextInput @bind-Value="_memberTierInput" Label="Member Tier (Optional)" />
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RefreshQuoteAsync">
+                            Recalculate Member Benefit
+                        </FluentButton>
+                    </FluentStack>
+                    <p>
+                        Pricing Mode: <strong>@_quote.PricingKind</strong>
+                        | List: @_quote.ListAmount.ToString("F2")
+                        | Member Savings: -@_quote.DiscountAmount.ToString("F2")
+                        | <strong>Due Today: @_quote.TotalAmount.ToString("F2") @_quote.CurrencyCode</strong>
+                    </p>
+                    @if (_quote.TotalAmount > 0m)
+                    {
+                        <FluentTextInput @bind-Value="_paymentTokenInput" Label="Hosted Payment Token" />
+                    }
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ConfirmBookingAsync">
+                        Confirm Booking
+                    </FluentButton>
+                </FluentStack>
+            </FluentCard>
+        }
+    </FluentStack>
+}

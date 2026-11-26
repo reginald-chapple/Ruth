@@ -1,0 +1,36 @@
+namespace Ruth.Modules.Commerce.Contracts.Bookings;
+
+/// <summary>Read projection representing a configured RentableResource.</summary>
+public sealed record RentableResourceResponse(
+    Guid Id,
+    string Name,
+    string Slug,
+    string? Description,
+    RentableResourceKind ResourceKind,
+    Guid CoreLocationId,
+    Guid? BranchId,
+    int QuantityAvailable,
+    int MinDurationMinutes,
+    int MaxDurationMinutes,
+    int SlotIncrementMinutes,
+    int SetupBufferMinutes,
+    int TeardownBufferMinutes,
+    int MinimumLeadTimeMinutes,
+    int MaximumAdvanceDays,
+    int CancellationNoticeMinutes,
+    string CurrencyCode,
+    decimal HourlyRate,
+    decimal FlatCleaningOrSetupFee,
+    bool IsFreeForMembers,
+    decimal? MemberHourlyRate,
+    Guid? FreeOrDiscountedMemberGroupId,
+    string? FreeOrDiscountedMemberTier,
+    Guid? RevenueAccountId,
+    Guid? DefaultFinancialGatewayId,
+    bool AllowInvoiceBilling,
+    bool IsActive,
+    bool IsPublic,
+    IReadOnlyDictionary<string, string?> Attributes,
+    DateTimeOffset CreatedOnUtc,
+    DateTimeOffset? ModifiedOnUtc
+);

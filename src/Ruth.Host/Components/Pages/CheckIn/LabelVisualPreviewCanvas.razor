@@ -1,0 +1,43 @@
+@using System.Globalization
+
+<div class="ruth-label-canvas" role="img" aria-label="Thermal label visual preview: @Preview.LabelName">
+    @foreach (var el in Preview.VisualElements)
+    {
+        <div @key="el.ElementKey"
+             class="@(el.InvertPrint ? "ruth-label-el ruth-label-el-inverted" : "ruth-label-el")"
+             style="@FormatElementStyle(el)">
+            @if (el.Kind == LabelElementKind.BarcodeCode128)
+            {
+                <span class="ruth-label-barcode">|||| || ||| |||| (@el.ResolvedText)</span>
+            }
+            else if (el.Kind == LabelElementKind.QrCode)
+            {
+                <span class="ruth-label-barcode">[QR: @el.ResolvedText]</span>
+            }
+            else
+            {
+                <span>@el.ResolvedText</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required CheckInLabelPreviewResponse Preview { get; set; }
+
+    private static string FormatElementStyle(RenderedLabelElementPreviewDto el)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        var align = el.Alignment switch
+        {
+            LabelTextAlignment.Center => "center",
+            LabelTextAlignment.Right => "right",
+            _ => "left",
+        };
+        return string.Create(
+            inv,
+            $"left:{el.LeftPercent}%;top:{el.TopPercent}%;width:{el.WidthPercent}%;min-height:{el.HeightPercent}%;text-align:{align};"
+        );
+    }
+}

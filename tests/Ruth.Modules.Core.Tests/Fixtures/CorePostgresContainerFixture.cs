@@ -1,5 +1,6 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -32,7 +33,9 @@ public sealed class CorePostgresContainerFixture : IAsyncLifetime
             )
             .WithDockerfile("Dockerfile")
             .WithName(PostgresPostGisImageTag)
+            .WithImageBuildPolicy(PullPolicy.Missing)
             .WithDeleteIfExists(false)
+            .WithCleanUp(false)
             .Build();
         await image.CreateAsync();
 

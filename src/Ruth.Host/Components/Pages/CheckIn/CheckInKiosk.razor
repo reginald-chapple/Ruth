@@ -1,0 +1,127 @@
+@page "/checkin/kiosk"
+@rendermode InteractiveServer
+
+<PageTitle>Check-In Kiosk — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Touch Check-In &amp; Check-Out Kiosk</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+            <FluentSelect TOption="CheckInConfigurationSummaryResponse"
+                          TValue="Guid"
+                          Label="Check-In Station Profile"
+                          Items="@_configurations"
+                          OptionText="@(static c => c.Name)"
+                          OptionValue="@(static c => c.Id)"
+                          Value="@_selectedConfigId"
+                          ValueChanged="@OnConfigurationChangedAsync" />
+
+            <FluentSelect TOption="ScheduleResponse"
+                          TValue="Guid"
+                          Label="Active Session / Schedule"
+                          Items="@_schedules"
+                          OptionText="@(static s => s.Name)"
+                          OptionValue="@(static s => s.Id)"
+                          @bind-Value="_selectedScheduleId" />
+
+            <FluentButton Appearance="@(!_isCheckOutMode ? ButtonAppearance.Primary : ButtonAppearance.Outline)"
+                          OnClick="@(() => SwitchMode(false))">
+                Check-In Mode
+            </FluentButton>
+            <FluentButton Appearance="@(_isCheckOutMode ? ButtonAppearance.Primary : ButtonAppearance.Outline)"
+                          OnClick="@(() => SwitchMode(true))">
+                Check-Out Mode
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_completedReceipt is not null)
+    {
+        <CheckInKioskReceiptBanner Receipt="@_completedReceipt" OnReset="@ResetKioskSession" />
+    }
+    else if (!_isCheckOutMode)
+    {
+        <div class="ruth-kiosk-grid">
+            <CheckInKioskKeypad @bind-SearchText="_searchInput" OnSearch="@RunSearchAsync" />
+
+            <FluentCard Padding="@Padding.All4">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <h2>Select Participants &amp; Destinations</h2>
+                    @if (_families.Count == 0)
+                    {
+                        <p>Enter phone digits, scan a barcode/pass, or search by name to begin.</p>
+                    }
+                    else
+                    {
+                        @foreach (var family in _families)
+                        {
+                            <FluentCard @key="family.HouseholdId" Padding="@Padding.All3">
+                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                                    <strong>@family.HouseholdName (@family.MatchKind)</strong>
+                                    @foreach (var member in family.Members)
+                                    {
+                                        <div @key="member.PersonId" class="ruth-kiosk-member-row">
+                                            <div>
+                                                <strong>@member.FullName</strong>
+                                                @if (member.AlreadyCheckedIn)
+                                                {
+                                                    <span> (Already Checked In)</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(member.MedicalOrAllergyNote))
+                                                {
+                                                    <div class="ruth-kiosk-alert-pill">
+                                                        Alert: @member.MedicalOrAllergyNote
+                                                    </div>
+                                                }
+                                            </div>
+                                            @if (!member.AlreadyCheckedIn)
+                                            {
+                                                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                                                    @foreach (var opt in member.AreaOptions.Where(static o => o.IsEligible && o.RecommendedLocationId.HasValue))
+                                                    {
+                                                        var isSelected = IsSelected(member.PersonId, opt.AreaId);
+                                                        <FluentButton @key="opt.AreaId"
+                                                                      Appearance="@(isSelected ? ButtonAppearance.Primary : ButtonAppearance.Outline)"
+                                                                      OnClick="@(() => ToggleSelection(family.HouseholdId, member.PersonId, opt.AreaId, opt.RecommendedLocationId))">
+                                                            @opt.AreaName → @opt.RecommendedLocationName
+                                                        </FluentButton>
+                                                    }
+                                                </FluentStack>
+                                            }
+                                        </div>
+                                    }
+                                </FluentStack>
+                            </FluentCard>
+                        }
+
+                        <FluentTextInput @bind-Value="_sessionNote"
+                                         Label="Optional Pickup / Accommodation Note"
+                                         Placeholder="EpiPen in backpack, quiet corner requested" />
+
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      Disabled="@(_selectedByPerson.Count == 0)"
+                                      OnClick="@CompleteCheckInAsync">
+                            Complete Check-In (@SelectedCountText Selected)
+                        </FluentButton>
+                    }
+                </FluentStack>
+            </FluentCard>
+        </div>
+    }
+    else
+    {
+        <CheckInKioskCheckOutPanel ConfigurationId="@_selectedConfigId"
+                                   OnOutcome="@HandleCheckOutOutcome" />
+    }
+</FluentStack>

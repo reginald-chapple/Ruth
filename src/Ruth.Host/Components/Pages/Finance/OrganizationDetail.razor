@@ -1,0 +1,27 @@
+@page "/finance/organizations/{Id:guid}"
+@rendermode InteractiveServer
+
+<PageTitle>Organization Financial Profile — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>@(_detail?.Name ?? "Organization Detail")</h1>
+</div>
+
+@if (_detail is null)
+{
+    <p>Organization record was not found.</p>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Wrap="true">
+                <div><strong>Sponsor Tier:</strong> @(_detail.SponsorTier ?? "Standard")</div>
+                <div><strong>Tax ID:</strong> @(_detail.TaxIdentifier ?? "N/A")</div>
+                <div><strong>Active Pledged:</strong> @_detail.ActivePledgedTotal.ToString("F2")</div>
+                <div><strong>Open Invoices Balance:</strong> @_detail.OpenInvoiceBalance.ToString("F2")</div>
+                <div><strong>Lifetime Settled:</strong> @_detail.LifetimeSettledTotal.ToString("F2")</div>
+            </FluentStack>
+        </FluentCard>
+    </FluentStack>
+}

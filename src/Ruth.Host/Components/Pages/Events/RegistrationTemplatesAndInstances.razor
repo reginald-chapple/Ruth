@@ -1,0 +1,113 @@
+@page "/events/registrations"
+@rendermode InteractiveServer
+
+<PageTitle>Event Registrations &amp; Waitlists — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Event Registration Templates, Instances &amp; Waitlists</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Registration Template</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_templateName" Label="Template Name" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Revenue / Fee Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_accountId" />
+                <FluentTextInput @bind-Value="_baseCostInput" Label="Base Cost (USD)" />
+                <FluentTextInput @bind-Value="_depositInput" Label="Minimum Deposit (USD)" />
+                <FluentTextInput @bind-Value="_discountCodeInput" Label="Promo Discount Code" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateTemplateAsync">
+                Create Registration Template
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Launch Registration Instance</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="RegistrationTemplateResponse"
+                              TValue="Guid"
+                              Label="Registration Template"
+                              Items="@_templates"
+                              OptionText="@(static t => t.Name)"
+                              OptionValue="@(static t => t.Id)"
+                              @bind-Value="_selectedTemplateId" />
+                <FluentTextInput @bind-Value="_instanceName" Label="Instance Name" />
+                <FluentTextInput @bind-Value="_instanceSlug" Label="Wizard URL Slug" />
+                <FluentTextInput @bind-Value="_maxAttendeesInput" Label="Max Confirmed Seats" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateInstanceAsync">
+                Launch Instance
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Active Registration Instances (@_instances.Count)</h2>
+            @foreach (var inst in _instances)
+            {
+                <div class="ruth-kiosk-member-row" @key="inst.Id">
+                    <strong>@inst.Name</strong>
+                    <span class="ruth-room-status-pill">Confirmed: @inst.ConfirmedCount</span>
+                    <span class="ruth-room-status-pill">Held: @inst.ActiveHeldSeatCount</span>
+                    <span class="ruth-room-status-pill">Waitlist: @inst.WaitlistedCount</span>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => LoadSubmissionsAsync(inst.Id))">
+                            Manage Roster
+                        </FluentButton>
+                        <a href="@($"/events/register/{inst.Slug}")">Open Public Registration Wizard</a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_selectedInstanceId != Guid.Empty)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Instance Submissions (@_registrations.Count)</h2>
+                @foreach (var reg in _registrations)
+                {
+                    <div class="ruth-kiosk-member-row" @key="reg.Id">
+                        <strong>@reg.ConfirmationCode</strong>
+                        <span> — @reg.RegistrarFirstName @reg.RegistrarLastName (@reg.RegistrarEmail)</span>
+                        <span> | Total: @reg.TotalAmount.ToString("F2") @reg.CurrencyCode | Balance: @reg.BalanceDue.ToString("F2")</span>
+                        @foreach (var att in reg.Registrants)
+                        {
+                            <div @key="att.Id">
+                                <span>@att.FirstName @att.LastName (@att.Status)</span>
+                                @if (att.Status != RegistrantStatus.Cancelled)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                                  OnClick="@(() => CancelRegistrantAsync(reg.Id, att.Id))">
+                                        Cancel Seat
+                                    </FluentButton>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

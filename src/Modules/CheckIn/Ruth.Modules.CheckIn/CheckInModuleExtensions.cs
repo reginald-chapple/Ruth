@@ -2,7 +2,12 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Ruth.Modules.CheckIn.Infrastructure;
+using Ruth.Modules.CheckIn.Infrastructure.Printing;
+using Ruth.Modules.CheckIn.Infrastructure.WalletPasses;
 using Ruth.Modules.CheckIn.Slices.Configurations;
+using Ruth.Modules.CheckIn.Slices.Labels;
+using Ruth.Modules.CheckIn.Slices.Sessions;
+using Ruth.Modules.CheckIn.Slices.WalletPasses;
 using Ruth.Persistence.DependencyInjection;
 
 namespace Ruth.Modules.CheckIn;
@@ -31,8 +36,17 @@ public static class CheckInModuleExtensions
             CheckInDbContext.SchemaName
         );
 
+        _ = services.Configure<ZplPrintingOptions>(
+            configuration.GetSection(ZplPrintingOptions.SectionName)
+        );
+        _ = services.Configure<WalletPassSecurityOptions>(
+            configuration.GetSection(WalletPassSecurityOptions.SectionName)
+        );
         _ = services.AddHostedService<CheckInBootstrapHostedService>();
         CheckInConfigurationSliceRegistration.RegisterHandlers(services);
+        CheckInSessionSliceRegistration.RegisterHandlers(services);
+        CheckInLabelSliceRegistration.RegisterHandlers(services);
+        WalletPassSliceRegistration.RegisterHandlers(services);
 
         foreach (var entityType in CheckInEntityTypeCatalog.GetAll())
         {
@@ -49,6 +63,10 @@ public static class CheckInModuleExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         _ = endpoints.MapCheckInConfigurationEndpoints();
+        _ = endpoints.MapCheckInSessionEndpoints();
+        _ = endpoints.MapCheckInLabelEndpoints();
+        _ = endpoints.MapWalletPassStaffAndClaimEndpoints();
+        _ = endpoints.MapApplePassKitWebServiceEndpoints();
         return endpoints;
     }
 }

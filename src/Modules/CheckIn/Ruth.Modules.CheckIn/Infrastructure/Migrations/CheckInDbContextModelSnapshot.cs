@@ -202,6 +202,542 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.ToTable("check_in_configurations", "checkin");
                 });
 
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Labels.CheckInLabel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AreaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Copies")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomZplOverride")
+                        .HasMaxLength(16000)
+                        .HasColumnType("character varying(16000)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("LabelKind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Layout")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("layout");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("PrintOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfigurationId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("LabelKind", "IsActive");
+
+                    b.ToTable("check_in_labels", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Sessions.AttendanceCheckInSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("CheckInConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CheckedInByPersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientIpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CompletedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConfigurationName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("HouseholdId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("KioskDeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MobileExpressToken")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SearchModeUsed")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("SearchTermSummary")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("SecurityPickupCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("MobileExpressToken");
+
+                    b.HasIndex("CheckInConfigurationId", "ServiceDate");
+
+                    b.HasIndex("ServiceDate", "SecurityPickupCode");
+
+                    b.ToTable("attendance_check_in_sessions", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Sessions.CheckInAttendanceEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AreaName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("AttendanceNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CheckInAreaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CheckInConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CheckedInOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CheckedOutByPersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CheckedOutOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCapacityOverride")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEligibilityOverride")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LinkedGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LocationName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("OverrideByPersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OverrideReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PersonFullName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("PrintBadgeRequested")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SecurityPickupCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("VerifiedPickupCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("ServiceDate", "SecurityPickupCode");
+
+                    b.HasIndex("CheckInConfigurationId", "ServiceDate", "Status");
+
+                    b.HasIndex("LocationId", "ServiceDate", "Status");
+
+                    b.HasIndex("PersonId", "ServiceDate", "ScheduleId");
+
+                    b.ToTable("check_in_attendance_entries", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Sessions.DailySecurityPickupCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BranchScopeKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset>("IssuedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceDate", "BranchScopeKey", "Code")
+                        .IsUnique();
+
+                    b.ToTable("daily_security_pickup_codes", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.IssuedWalletPass", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("AuthTokenSalt")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CardStyle")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ClaimTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DynamicFields")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("dynamic_fields");
+
+                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("IssuedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LastUpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PassTypeIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<string>("ScanToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("UpdatedSequence")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("ScanToken")
+                        .IsUnique();
+
+                    b.HasIndex("SerialNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("PassTypeIdentifier", "SerialNumber")
+                        .IsUnique();
+
+                    b.ToTable("issued_wallet_passes", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.WalletPassDeviceRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceLibraryIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("IssuedPassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LastNotifiedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PassTypeIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("PushToken")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("RegisteredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssuedPassId");
+
+                    b.HasIndex("DeviceLibraryIdentifier", "PassTypeIdentifier");
+
+                    b.HasIndex("DeviceLibraryIdentifier", "PassTypeIdentifier", "SerialNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_wallet_pass_device_registrations_DeviceLibraryIdentifier_P~1");
+
+                    b.ToTable("wallet_pass_device_registrations", "checkin");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.WalletPassTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BackgroundColorHex")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("CardStyle")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DefaultValidityDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ForegroundColorHex")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("LabelColorHex")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("LogoText")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OrganizationName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("PassTypeIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("SystemGuid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("SystemGuid")
+                        .IsUnique();
+
+                    b.ToTable("wallet_pass_templates", "checkin");
+                });
+
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
                     b.Property<Guid>("MessageId")
@@ -300,6 +836,15 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Sessions.CheckInAttendanceEntry", b =>
+                {
+                    b.HasOne("Ruth.Modules.CheckIn.Domain.Sessions.AttendanceCheckInSession", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Configurations.CheckInArea", b =>
                 {
                     b.Navigation("Rooms");
@@ -308,6 +853,11 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
             modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Configurations.CheckInConfiguration", b =>
                 {
                     b.Navigation("Areas");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.Sessions.AttendanceCheckInSession", b =>
+                {
+                    b.Navigation("Entries");
                 });
 #pragma warning restore 612, 618
         }

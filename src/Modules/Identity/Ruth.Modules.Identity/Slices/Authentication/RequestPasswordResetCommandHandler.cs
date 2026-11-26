@@ -49,6 +49,16 @@ internal sealed class RequestPasswordResetCommandHandler(
         );
 
         _ = dbContext.AccountTokens.Add(tokenEntity);
+        dbContext.EnqueueIntegrationEvent(
+            new PasswordResetRequestedIntegrationEvent(
+                account.Id.Value,
+                account.Email,
+                account.UserName,
+                rawToken,
+                expires,
+                utcNow
+            )
+        );
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 
         return new IssuedTokenResponse(Issued: true, rawToken, expires);

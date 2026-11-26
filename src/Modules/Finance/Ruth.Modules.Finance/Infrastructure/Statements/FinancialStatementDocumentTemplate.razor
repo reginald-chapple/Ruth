@@ -1,0 +1,421 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+@using Ruth.Modules.Finance.Contracts.Statements
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@DocumentTitle</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #111827;
+            background-color: #ffffff;
+            line-height: 1.5;
+        }
+        .stmt-sheet {
+            max-width: 820px;
+            margin: 0 auto;
+            border: 1px solid #d1d5db;
+            padding: 28px 32px;
+        }
+        .stmt-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #0f6cbd;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+        .stmt-org-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .stmt-meta {
+            text-align: right;
+            font-size: 13px;
+            color: #374151;
+        }
+        .stmt-section {
+            margin-top: 24px;
+            page-break-inside: avoid;
+        }
+        .stmt-section-deductible {
+            border-top: 3px solid #0f766e;
+            padding-top: 12px;
+        }
+        .stmt-section-nondeductible {
+            border-top: 3px solid #4b5563;
+            padding-top: 12px;
+        }
+        .stmt-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-radius: 4px;
+        }
+        .stmt-badge-deductible {
+            background-color: #ccfbf1;
+            color: #115e59;
+        }
+        .stmt-badge-nondeductible {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+        table.stmt-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        table.stmt-table th,
+        table.stmt-table td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 8px 6px;
+            text-align: left;
+        }
+        table.stmt-table th.num,
+        table.stmt-table td.num {
+            text-align: right;
+        }
+        .stmt-total-row td {
+            font-weight: 700;
+            border-top: 2px solid #111827;
+        }
+        .stmt-footer {
+            margin-top: 28px;
+            padding-top: 14px;
+            border-top: 1px solid #d1d5db;
+            font-size: 12px;
+            color: #4b5563;
+        }
+        @@media print {
+            body {
+                padding: 0;
+            }
+            .stmt-sheet {
+                border: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .stmt-page-break {
+                page-break-before: always;
+            }
+        }
+        @if (!string.IsNullOrWhiteSpace(CustomPrintCss))
+        {
+            @((MarkupString)CustomPrintCss)
+        }
+    </style>
+</head>
+<body>
+    <div class="stmt-sheet" id="statement-root">
+        <div class="stmt-header">
+            <div>
+                @if (!string.IsNullOrWhiteSpace(LogoUrl))
+                {
+                    <img src="@LogoUrl" alt="@OrganizationDisplayName logo" style="max-height:48px;margin-bottom:8px;" />
+                }
+                <h1 class="stmt-org-name">@OrganizationDisplayName</h1>
+                @if (!string.IsNullOrWhiteSpace(OrganizationTaxId))
+                {
+                    <div style="font-size:12px;color:#4b5563;">Tax ID / Reg #: @OrganizationTaxId</div>
+                }
+            </div>
+            <div class="stmt-meta">
+                <div><strong>@StatementNumber</strong></div>
+                <div>Period: @PeriodStartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) to @PeriodEndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+                <div>Issued: @GeneratedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</div>
+            </div>
+        </div>
+
+        <div id="recipient-summary">
+            <strong>Prepared For (@RecipientScope):</strong> @RecipientDisplayName
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(RenderedHeaderHtml))
+        {
+            <div class="stmt-section" id="statement-custom-header">
+                @((MarkupString)RenderedHeaderHtml)
+            </div>
+        }
+
+        @if (ShowTaxDeductibleSection)
+        {
+            <section class="stmt-section stmt-section-deductible" id="tax-deductible-receipt-section">
+                <span class="stmt-badge stmt-badge-deductible">Tax-Deductible Charitable Contribution Receipt</span>
+                <h2 style="margin:8px 0 4px;font-size:17px;">Charitable Funds &amp; Grants</h2>
+                @if (TaxDeductibleLines.Count == 0)
+                {
+                    <p>No tax-deductible charitable contributions were recorded during this period.</p>
+                }
+                else
+                {
+                    <table class="stmt-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Fund / Account</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th class="num">Deductible Amount (@CurrencyCode)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in TaxDeductibleLines)
+                            {
+                                <tr>
+                                    <td>@line.TransactionDateUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@line.AccountName (@line.AccountCode)</td>
+                                    <td>@line.TenderLabel</td>
+                                    <td>@(line.ReferenceCode ?? "-")</td>
+                                    <td class="num">@line.NetDeductibleAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                </tr>
+                            }
+                            <tr class="stmt-total-row">
+                                <td colspan="4">Total Tax-Deductible Contributions</td>
+                                <td class="num">@TaxDeductibleTotal.ToString("F2", CultureInfo.InvariantCulture) @CurrencyCode</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+
+                @if (PledgeSummaries.Count > 0)
+                {
+                    <h3 style="margin:16px 0 6px;font-size:14px;">Pledge Commitments</h3>
+                    <table class="stmt-table">
+                        <thead>
+                            <tr>
+                                <th>Fund</th>
+                                <th>Window</th>
+                                <th class="num">Committed</th>
+                                <th class="num">Fulfilled</th>
+                                <th class="num">Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pledge in PledgeSummaries)
+                            {
+                                <tr>
+                                    <td>@pledge.AccountName</td>
+                                    <td>@pledge.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) to @pledge.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td class="num">@pledge.TotalCommittedAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                    <td class="num">@pledge.FulfilledAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                    <td class="num">@pledge.RemainingAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+        }
+
+        @if (ShowTaxDeductibleSection && ShowNonDeductibleSection)
+        {
+            <div class="stmt-page-break"></div>
+        }
+
+        @if (ShowNonDeductibleSection)
+        {
+            <section class="stmt-section stmt-section-nondeductible" id="non-deductible-statement-section">
+                <span class="stmt-badge stmt-badge-nondeductible">Non-Deductible Account Statement (Not a Charitable Tax Receipt)</span>
+                <h2 style="margin:8px 0 4px;font-size:17px;">Membership Dues, Program Fees &amp; Invoice Activity</h2>
+                @if (NonDeductibleLines.Count == 0)
+                {
+                    <p>No non-deductible dues or fee payments were settled during this period.</p>
+                }
+                else
+                {
+                    <table class="stmt-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Account</th>
+                                <th>Description</th>
+                                <th class="num">Paid Amount (@CurrencyCode)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in NonDeductibleLines)
+                            {
+                                <tr>
+                                    <td>@line.TransactionDateUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@line.AccountName (@line.AccountCode)</td>
+                                    <td>@(line.Summary ?? "-")</td>
+                                    <td class="num">@line.NetPaidAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                </tr>
+                            }
+                            <tr class="stmt-total-row">
+                                <td colspan="3">Total Non-Deductible Payments</td>
+                                <td class="num">@NonDeductiblePaidTotal.ToString("F2", CultureInfo.InvariantCulture) @CurrencyCode</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+
+                @if (InvoiceSummaries.Count > 0)
+                {
+                    <h3 style="margin:16px 0 6px;font-size:14px;">Invoices &amp; Open Balances</h3>
+                    <table class="stmt-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th class="num">Subtotal</th>
+                                <th class="num">Paid</th>
+                                <th class="num">Balance Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inv in InvoiceSummaries)
+                            {
+                                <tr>
+                                    <td>@inv.InvoiceNumber</td>
+                                    <td>@inv.IssueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@inv.DueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@inv.Status</td>
+                                    <td class="num">@inv.SubtotalAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                    <td class="num">@inv.PaidAmount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                    <td class="num">@inv.BalanceDue.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                </tr>
+                            }
+                            <tr class="stmt-total-row">
+                                <td colspan="6">Total Open Invoice Balance</td>
+                                <td class="num">@OpenInvoiceBalanceTotal.ToString("F2", CultureInfo.InvariantCulture) @CurrencyCode</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+            </section>
+        }
+
+        <footer class="stmt-footer" id="statement-footer">
+            @if (!string.IsNullOrWhiteSpace(RenderedFooterHtml))
+            {
+                @((MarkupString)RenderedFooterHtml)
+            }
+            else if (ShowTaxDeductibleSection && !ShowNonDeductibleSection)
+            {
+                <p>No goods or services were provided in exchange for the tax-deductible charitable contributions listed above.</p>
+            }
+            else if (!ShowTaxDeductibleSection && ShowNonDeductibleSection)
+            {
+                <p>Payments toward membership dues, fees, and invoices listed on this statement are not deductible as charitable contributions.</p>
+            }
+            else
+            {
+                <p>Only items in the Tax-Deductible Charitable Contribution Receipt section qualify as charitable contributions with no goods or services provided in exchange. Items in the Non-Deductible Account Statement section represent dues, fees, or services and are not charitable deductions.</p>
+            }
+        </footer>
+    </div>
+</body>
+</html>
+
+@code {
+    /// <summary>Gets or sets the HTML document title.</summary>
+    [Parameter]
+    public string DocumentTitle { get; set; } = "Financial Statement";
+
+    /// <summary>Gets or sets the statement or receipt reference number.</summary>
+    [Parameter]
+    public string StatementNumber { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the statement classification.</summary>
+    [Parameter]
+    public FinancialStatementKind StatementKind { get; set; }
+
+    /// <summary>Gets or sets the recipient scope.</summary>
+    [Parameter]
+    public FinancialStatementRecipientScope RecipientScope { get; set; }
+
+    /// <summary>Gets or sets the recipient display name.</summary>
+    [Parameter]
+    public string RecipientDisplayName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the organization display name.</summary>
+    [Parameter]
+    public string OrganizationDisplayName { get; set; } = "Organization";
+
+    /// <summary>Gets or sets the optional organization tax identifier.</summary>
+    [Parameter]
+    public string? OrganizationTaxId { get; set; }
+
+    /// <summary>Gets or sets the optional organization logo URL.</summary>
+    [Parameter]
+    public string? LogoUrl { get; set; }
+
+    /// <summary>Gets or sets the period start date.</summary>
+    [Parameter]
+    public DateOnly PeriodStartDate { get; set; }
+
+    /// <summary>Gets or sets the period end date.</summary>
+    [Parameter]
+    public DateOnly PeriodEndDate { get; set; }
+
+    /// <summary>Gets or sets the UTC generation timestamp.</summary>
+    [Parameter]
+    public DateTimeOffset GeneratedAtUtc { get; set; }
+
+    /// <summary>Gets or sets the currency code.</summary>
+    [Parameter]
+    public string CurrencyCode { get; set; } = "USD";
+
+    /// <summary>Gets or sets the tax-deductible contribution lines.</summary>
+    [Parameter]
+    public IReadOnlyList<StatementContributionLineDto> TaxDeductibleLines { get; set; } = [];
+
+    /// <summary>Gets or sets the non-deductible payment lines.</summary>
+    [Parameter]
+    public IReadOnlyList<StatementNonDeductibleLineDto> NonDeductibleLines { get; set; } = [];
+
+    /// <summary>Gets or sets the invoice summary lines.</summary>
+    [Parameter]
+    public IReadOnlyList<StatementInvoiceSummaryDto> InvoiceSummaries { get; set; } = [];
+
+    /// <summary>Gets or sets the pledge summary lines.</summary>
+    [Parameter]
+    public IReadOnlyList<StatementPledgeSummaryDto> PledgeSummaries { get; set; } = [];
+
+    /// <summary>Gets or sets the tax-deductible total.</summary>
+    [Parameter]
+    public decimal TaxDeductibleTotal { get; set; }
+
+    /// <summary>Gets or sets the non-deductible paid total.</summary>
+    [Parameter]
+    public decimal NonDeductiblePaidTotal { get; set; }
+
+    /// <summary>Gets or sets the open invoice balance total.</summary>
+    [Parameter]
+    public decimal OpenInvoiceBalanceTotal { get; set; }
+
+    /// <summary>Gets or sets pre-rendered merge header HTML.</summary>
+    [Parameter]
+    public string? RenderedHeaderHtml { get; set; }
+
+    /// <summary>Gets or sets pre-rendered merge footer HTML.</summary>
+    [Parameter]
+    public string? RenderedFooterHtml { get; set; }
+
+    /// <summary>Gets or sets validated custom print CSS.</summary>
+    [Parameter]
+    public string? CustomPrintCss { get; set; }
+
+    private bool ShowTaxDeductibleSection =>
+        StatementKind
+            is FinancialStatementKind.TaxDeductibleReceipt
+                or FinancialStatementKind.CombinedSeparatedStatement;
+
+    private bool ShowNonDeductibleSection =>
+        StatementKind
+            is FinancialStatementKind.NonDeductibleStatement
+                or FinancialStatementKind.CombinedSeparatedStatement;
+}

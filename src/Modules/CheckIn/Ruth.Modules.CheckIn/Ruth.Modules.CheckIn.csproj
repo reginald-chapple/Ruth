@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Ruth.Persistence\Ruth.Persistence.csproj" />
     <ProjectReference Include="..\..\..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Communication\Ruth.Modules.Communication.Contracts\Ruth.Modules.Communication.Contracts.csproj" />
     <ProjectReference Include="..\..\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
     <ProjectReference Include="..\..\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
     <ProjectReference Include="..\..\Groups\Ruth.Modules.Groups.Contracts\Ruth.Modules.Groups.Contracts.csproj" />

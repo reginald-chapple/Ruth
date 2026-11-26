@@ -1,0 +1,65 @@
+@page "/finance/organizations"
+@rendermode InteractiveServer
+
+<PageTitle>Organizations &amp; Corporate Sponsors — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Organizations, Grantors &amp; Corporate Sponsors</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Register Organization / Sponsor</h2>
+                <FluentTextInput @bind-Value="_name" Label="Organization Legal Name" Placeholder="Horizon Civic Foundation" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_email" Label="Billing / Contact Email" Placeholder="grants@horizon.org" />
+                    <FluentTextInput @bind-Value="_phone" Label="Primary Phone" Placeholder="+13035550199" />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_taxId" Label="Tax ID / EIN" Placeholder="84-1234567" />
+                    <FluentTextInput @bind-Value="_sponsorTier" Label="Sponsor Tier" Placeholder="Platinum Grantor" />
+                    <FluentTextInput @bind-Value="_websiteUrl" Label="Website URL" Placeholder="https://horizon.org" />
+                </FluentStack>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateOrganizationAsync">
+                    Register Organization
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Directory (@_organizations.Count)</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                    <FluentTextInput @bind-Value="_searchTerm" Label="Search Organizations" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SearchAsync">
+                        Search
+                    </FluentButton>
+                </FluentStack>
+
+                @foreach (var org in _organizations)
+                {
+                    <div class="ruth-kiosk-member-row" @key="org.OrganizationPersonId">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <strong>@org.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(org.SponsorTier))
+                            {
+                                <span class="ruth-room-status-pill">@org.SponsorTier</span>
+                            }
+                            <a href="@($"/finance/organizations/{org.OrganizationPersonId:D}")">View Ledger Profile</a>
+                        </FluentStack>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    </div>
+</FluentStack>

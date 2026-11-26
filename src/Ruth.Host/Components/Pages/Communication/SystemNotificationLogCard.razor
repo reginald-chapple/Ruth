@@ -1,0 +1,18 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>Recent Transactional Notification Logs &amp; Dev Sink</h2>
+        <FluentDataGrid Items="@Logs.AsQueryable()">
+            <PropertyColumn Property="@(static l => l.SystemCommunicationKey)" Title="Template Key" Sortable="true" />
+            <PropertyColumn Property="@(static l => l.Channel)" Title="Channel" />
+            <PropertyColumn Property="@(static l => l.TransportKey)" Title="Transport" />
+            <PropertyColumn Property="@(static l => l.RecipientAddress)" Title="Recipient" />
+            <PropertyColumn Property="@(static l => l.TriggerSource)" Title="Trigger" />
+            <PropertyColumn Property="@(static l => l.ProviderMessageId)" Title="Provider Message ID" />
+        </FluentDataGrid>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SystemNotificationLogResponse> Logs { get; set; } = [];
+}

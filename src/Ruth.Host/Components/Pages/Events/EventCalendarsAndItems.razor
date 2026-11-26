@@ -1,0 +1,84 @@
+@page "/events/calendars"
+@rendermode InteractiveServer
+
+<PageTitle>Event Calendars &amp; iCal Feeds — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Event Calendars, Occurrences &amp; RFC 5545 iCal Feeds</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Event Calendar</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_calendarName" Label="Calendar Name" />
+                <FluentTextInput @bind-Value="_calendarSlug" Label="Calendar URL Slug" />
+                <FluentTextInput @bind-Value="_calendarDescription" Label="Description" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateCalendarAsync">
+                Create Calendar
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configured Calendars (@_calendars.Count)</h2>
+            @foreach (var cal in _calendars)
+            {
+                <div class="ruth-kiosk-member-row" @key="cal.Id">
+                    <strong>@cal.Name</strong>
+                    <span> (/@cal.Slug)</span>
+                    <span class="ruth-room-status-pill">@(cal.IsPublic ? "Public" : "Internal")</span>
+                    <a href="@($"/api/events/calendars/{cal.Slug}/feed.ics")">Subscribe iCal (.ics)</a>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Publish Event Item &amp; Occurrence</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="EventCalendarResponse"
+                              TValue="Guid"
+                              Label="Target Calendar"
+                              Items="@_calendars"
+                              OptionText="@(static c => c.Name)"
+                              OptionValue="@(static c => c.Id)"
+                              @bind-Value="_selectedCalendarId" />
+                <FluentTextInput @bind-Value="_eventName" Label="Event Name" />
+                <FluentTextInput @bind-Value="_eventSlug" Label="Event Slug" />
+                <FluentTextInput @bind-Value="_audienceLabel" Label="Audience Label" />
+                <FluentTextInput @bind-Value="_locationDescription" Label="Location / Room" />
+                <FluentTextInput @bind-Value="_startIsoUtc" Label="Start UTC (ISO-8601)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateEventWithOccurrenceAsync">
+                Publish Event &amp; Occurrence
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Event Items (@_items.Count)</h2>
+            @foreach (var item in _items)
+            {
+                <div class="ruth-kiosk-member-row" @key="item.Id">
+                    <strong>@item.Name</strong>
+                    <span class="ruth-room-status-pill">@item.ApprovalStatus</span>
+                    <span> — @item.Occurrences.Count occurrence(s)</span>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

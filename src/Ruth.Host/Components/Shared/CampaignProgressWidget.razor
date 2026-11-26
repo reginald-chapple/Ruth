@@ -1,0 +1,51 @@
+@using System.Globalization
+
+<div class="ruth-campaign-progress" role="region" aria-label="@Title">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+        <strong>@Title</strong>
+        <span>
+            Raised: <strong>@RaisedAmount.ToString("F2", CultureInfo.InvariantCulture) @CurrencyCode</strong>
+            @if (GoalAmount > 0m)
+            {
+                <span> of @GoalAmount.ToString("F2", CultureInfo.InvariantCulture) @CurrencyCode (@ProgressPercent.ToString("F1", CultureInfo.InvariantCulture)%)</span>
+            }
+        </span>
+        @if (DonorCount.HasValue)
+        {
+            <span class="ruth-room-status-pill">@DonorCount.Value supporter(s)</span>
+        }
+    </FluentStack>
+    <div class="ruth-progress-track" style="margin-top:6px;">
+        <div class="ruth-progress-fill"
+             style="@($"width:{ClampedWidthPercent.ToString("F1", CultureInfo.InvariantCulture)}%;")">
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>Gets or sets the widget heading.</summary>
+    [Parameter]
+    public string Title { get; set; } = "Fundraising Progress";
+
+    /// <summary>Gets or sets the total raised amount.</summary>
+    [Parameter]
+    public decimal RaisedAmount { get; set; }
+
+    /// <summary>Gets or sets the effective goal amount.</summary>
+    [Parameter]
+    public decimal GoalAmount { get; set; }
+
+    /// <summary>Gets or sets the computed progress percentage.</summary>
+    [Parameter]
+    public decimal ProgressPercent { get; set; }
+
+    /// <summary>Gets or sets the currency code.</summary>
+    [Parameter]
+    public string CurrencyCode { get; set; } = "USD";
+
+    /// <summary>Gets or sets optional donor count badge.</summary>
+    [Parameter]
+    public int? DonorCount { get; set; }
+
+    private decimal ClampedWidthPercent => Math.Clamp(ProgressPercent, 0m, 100m);
+}

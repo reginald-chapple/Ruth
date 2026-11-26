@@ -1,0 +1,40 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <h2>Live Mobile Wallet Preview</h2>
+        @if (!string.IsNullOrWhiteSpace(SvgMarkup))
+        {
+            <div class="ruth-wallet-card-frame">
+                @((MarkupString)SvgMarkup)
+            </div>
+        }
+
+        @if (SelectedPass is not null)
+        {
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <span class="ruth-room-status-pill">Serial: @SelectedPass.SerialNumber</span>
+                <span class="ruth-room-status-pill">Scan: @SelectedPass.ScanToken</span>
+                <span class="ruth-room-status-pill">Rev @SelectedPass.Revision (@SelectedPass.Status)</span>
+                <span class="ruth-room-status-pill">Devices: @SelectedPass.RegisteredDeviceCount</span>
+            </FluentStack>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(LastClaimUrl))
+        {
+            <div>
+                <strong>Member Claim Link:</strong>
+                <a href="@LastClaimUrl" target="_blank" rel="noopener noreferrer">@LastClaimUrl</a>
+            </div>
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter]
+    public string? SvgMarkup { get; set; }
+
+    [Parameter]
+    public IssuedWalletPassResponse? SelectedPass { get; set; }
+
+    [Parameter]
+    public string? LastClaimUrl { get; set; }
+}

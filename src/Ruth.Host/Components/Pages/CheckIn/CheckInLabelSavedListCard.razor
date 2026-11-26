@@ -1,0 +1,35 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>Saved Thermal Badge &amp; Receipt Definitions</h2>
+        <FluentDataGrid Items="@Labels.AsQueryable()">
+            <PropertyColumn Property="@(static l => l.Name)" Title="Label Name" Sortable="true" />
+            <PropertyColumn Property="@(static l => l.Key)" Title="Key" />
+            <PropertyColumn Property="@(static l => l.LabelKind)" Title="Role" />
+            <PropertyColumn Property="@(static l => l.Copies)" Title="Copies" />
+            <PropertyColumn Property="@(static l => l.IsActive)" Title="Active" />
+            <TemplateColumn Title="Actions">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="6">
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => OnSelect.InvokeAsync(context))">
+                        Design &amp; Preview
+                    </FluentButton>
+                    <FluentButton Size="ButtonSize.Small"
+                                  Disabled="@context.IsSystem"
+                                  OnClick="@(() => OnDelete.InvokeAsync(context.Id))">
+                        Delete
+                    </FluentButton>
+                </FluentStack>
+            </TemplateColumn>
+        </FluentDataGrid>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CheckInLabelResponse> Labels { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<CheckInLabelResponse> OnSelect { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnDelete { get; set; }
+}

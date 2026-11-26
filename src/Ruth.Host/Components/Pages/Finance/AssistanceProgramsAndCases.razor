@@ -1,0 +1,102 @@
+@page "/finance/assistance"
+@rendermode InteractiveServer
+
+<PageTitle>Assistance, Scholarships &amp; Grants — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Assistance, Scholarships, Fee Waivers &amp; Micro-Grants</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configure Assistance / Grant Program</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_programName" Label="Program Name" />
+                <FluentTextInput @bind-Value="_programCode" Label="Program Code" />
+                <FluentSelect TOption="AssistanceProgramCategory"
+                              TValue="AssistanceProgramCategory"
+                              Label="Category"
+                              Items="@_categories"
+                              OptionText="@(static c => c.ToString())"
+                              OptionValue="@(static c => c)"
+                              @bind-Value="_category" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Funding Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_fundingAccountId" />
+                <FluentTextInput @bind-Value="_budgetInput" Label="Total Budget (USD)" />
+                <FluentTextInput @bind-Value="_maxAwardInput" Label="Max Award / Case (USD)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateProgramAsync">
+                Create Program
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Submit Intake Case</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentSelect TOption="AssistanceProgramResponse"
+                              TValue="Guid"
+                              Label="Assistance Program"
+                              Items="@_programs"
+                              OptionText="@(static p => $"{p.Name} (Rem: {p.RemainingBudgetAmount:F2})")"
+                              OptionValue="@(static p => p.Id)"
+                              @bind-Value="_selectedProgramId" />
+                <FluentTextInput @bind-Value="_applicantIdInput" Label="Applicant Person GUID" />
+                <FluentTextInput @bind-Value="_requestedAmountInput" Label="Requested Amount" />
+                <FluentTextInput @bind-Value="_caseSummary" Label="Case Summary" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SubmitCaseAsync">
+                Submit Assistance Case
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Active Assistance Cases (@_cases.Count)</h2>
+            @foreach (var item in _cases)
+            {
+                <div class="ruth-kiosk-member-row" @key="item.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@item.CaseNumber</strong>
+                        <span>@item.ProgramName (@item.ProgramCategory)</span>
+                        <span>@item.Summary</span>
+                        <span>Requested: @item.RequestedAmount.ToString("F2")</span>
+                        <span>Approved: @item.ApprovedAmount.ToString("F2")</span>
+                        <span>Disbursed: @item.DisbursedAmount.ToString("F2")</span>
+                        <span class="ruth-room-status-pill">@item.Status</span>
+                        @if (item.Status is AssistanceCaseStatus.Submitted or AssistanceCaseStatus.UnderReview)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => ApproveFullAsync(item))">
+                                Approve
+                            </FluentButton>
+                        }
+                        @if (item.Status is AssistanceCaseStatus.Approved or AssistanceCaseStatus.PartiallyDisbursed && item.RemainingApprovedAmount > 0m)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          OnClick="@(() => DisburseRemainingAsync(item))">
+                                Disburse Remaining
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

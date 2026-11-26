@@ -1,0 +1,84 @@
+@page "/finance/recurring"
+@rendermode InteractiveServer
+
+<PageTitle>Recurring Billing &amp; Cadence Alerts — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Recurring Contributions, Subscriptions &amp; Cadence Alerts</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ProcessDueSettlementsAsync">
+                Run Due Recurring Settlement Sync
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@RunCadenceScanAsync">
+                Run Churn / Spike Cadence Detector
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <h2>Recurring Schedules &amp; Self-Service Controls (@_schedules.Count)</h2>
+                @foreach (var sched in _schedules)
+                {
+                    <div class="ruth-kiosk-member-row" @key="sched.Id">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <strong>@sched.TotalAmount.ToString("F2") @sched.CurrencyCode</strong>
+                            <span>(@sched.Purpose — @sched.Frequency — Next: @sched.NextPaymentDate)</span>
+                            <span class="ruth-room-status-pill">@sched.Status</span>
+                            @if (sched.Status == RecurringScheduleStatus.Active)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => PauseAsync(sched.Id))">
+                                    Pause
+                                </FluentButton>
+                            }
+                            @if (sched.Status is RecurringScheduleStatus.Paused or RecurringScheduleStatus.PastDue)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => ResumeAsync(sched.Id))">
+                                    Resume
+                                </FluentButton>
+                            }
+                        </FluentStack>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                <h2>Cadence &amp; Spike Alerts (@_alerts.Count)</h2>
+                @foreach (var alert in _alerts)
+                {
+                    <div class="ruth-kiosk-member-row" @key="alert.Id">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+                            <div>
+                                <strong>@alert.AlertTypeName</strong>
+                                <span class="ruth-room-status-pill">@alert.Status</span>
+                            </div>
+                            <div>@alert.Summary</div>
+                            @if (alert.Status == CadenceAlertStatus.Open)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                              OnClick="@(() => ResolveAlertAsync(alert.Id))">
+                                    Mark Resolved
+                                </FluentButton>
+                            }
+                        </FluentStack>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    </div>
+</FluentStack>

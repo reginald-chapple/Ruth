@@ -1,0 +1,86 @@
+@using System.Globalization
+
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <h2>Guardian Security Pickup &amp; Check-Out</h2>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+            <FluentTextInput @bind-Value="_pickupCodeInput"
+                             Label="Security Pickup Code"
+                             Placeholder="e.g. BC47" />
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LookupAsync">
+                Find Checked-In Participants
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          Disabled="@string.IsNullOrWhiteSpace(_pickupCodeInput)"
+                          OnClick="@CheckOutAllAsync">
+                Verify Code &amp; Check Out All
+            </FluentButton>
+        </FluentStack>
+
+        @if (_entries.Count > 0)
+        {
+            <FluentDataGrid Items="@_entries.AsQueryable()">
+                <PropertyColumn Property="@(static e => e.PersonFullName)" Title="Participant" />
+                <PropertyColumn Property="@(static e => e.AreaName)" Title="Area" />
+                <PropertyColumn Property="@(static e => e.LocationName)" Title="Room" />
+                <PropertyColumn Property="@(static e => e.SecurityPickupCode)" Title="Pickup Code" />
+            </FluentDataGrid>
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private string _pickupCodeInput = string.Empty;
+    private List<CheckedInEntryReceiptDto> _entries = [];
+
+    [Parameter]
+    public Guid ConfigurationId { get; set; }
+
+    [Parameter]
+    public EventCallback<(bool IsError, string Message)> OnOutcome { get; set; }
+
+    [Inject]
+    private IQueryDispatcher QueryDispatcher { get; set; } = default!;
+
+    [Inject]
+    private ICommandDispatcher CommandDispatcher { get; set; } = default!;
+
+    private async Task LookupAsync()
+    {
+        var result = await QueryDispatcher.QueryAsync<
+            LookupActiveCheckInsQuery,
+            IReadOnlyList<CheckedInEntryReceiptDto>
+        >(new LookupActiveCheckInsQuery(ConfigurationId, _pickupCodeInput));
+
+        if (!result.IsSuccess)
+        {
+            await OnOutcome.InvokeAsync((true, result.PrimaryError.Description));
+            return;
+        }
+
+        _entries = [.. result.Value];
+        if (_entries.Count == 0)
+        {
+            await OnOutcome.InvokeAsync((false, "No active check-ins matched that pickup code today."));
+        }
+    }
+
+    private async Task CheckOutAllAsync()
+    {
+        var result = await CommandDispatcher.SendAsync<
+            CheckOutAttendanceCommand,
+            CheckOutResultResponse
+        >(new CheckOutAttendanceCommand(ConfigurationId, SecurityPickupCode: _pickupCodeInput));
+
+        if (result.IsSuccess)
+        {
+            var countText = result.Value.CheckedOutCount.ToString(CultureInfo.InvariantCulture);
+            _pickupCodeInput = string.Empty;
+            _entries = [];
+            await OnOutcome.InvokeAsync((false, $"Checked out {countText} participant(s)."));
+            return;
+        }
+
+        await OnOutcome.InvokeAsync((true, result.PrimaryError.Description));
+    }
+}

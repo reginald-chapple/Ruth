@@ -1,0 +1,63 @@
+@page "/finance/invoices"
+@rendermode InteractiveServer
+
+<PageTitle>Invoices &amp; Dues Billing — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Membership Dues, Program Fees &amp; Sponsorship Invoices</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Issue New Invoice</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_personIdInput" Label="Billed Person / Org GUID" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Revenue Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_accountId" />
+                <FluentTextInput @bind-Value="_description" Label="Line Description" />
+                <FluentTextInput @bind-Value="_unitAmountInput" Label="Amount (USD)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateInvoiceAsync">
+                Create &amp; Issue Invoice
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>Invoices (@_invoices.Count)</h2>
+            @foreach (var inv in _invoices)
+            {
+                <div class="ruth-kiosk-member-row" @key="inv.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@inv.InvoiceNumber</strong>
+                        <span>Total: @inv.SubtotalAmount.ToString("F2") @inv.CurrencyCode</span>
+                        <span>Balance Due: <strong>@inv.BalanceDue.ToString("F2")</strong></span>
+                        <span class="ruth-room-status-pill">@inv.Status</span>
+                        @if (inv.BalanceDue > 0m && inv.Status is InvoiceStatus.Open or InvoiceStatus.PartiallyPaid)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          OnClick="@(() => SettleFullBalanceAsync(inv))">
+                                Record Full Payment
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

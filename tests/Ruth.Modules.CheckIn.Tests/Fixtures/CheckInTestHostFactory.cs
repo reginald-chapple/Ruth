@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ruth.Modules.Core;
+using Ruth.Modules.Crm;
+using Ruth.Modules.Groups;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
 
@@ -9,7 +11,10 @@ namespace Ruth.Modules.CheckIn.Tests.Fixtures;
 
 internal static class CheckInTestHostFactory
 {
-    public static async Task<ServiceProvider> BuildAndMigrateAsync(string connectionString)
+    public static async Task<ServiceProvider> BuildAndMigrateAsync(
+        string connectionString,
+        Action<IServiceCollection>? configure = null
+    )
     {
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
@@ -25,7 +30,10 @@ internal static class CheckInTestHostFactory
         _ = services.AddSharedKernel();
         _ = services.AddRuthPersistence(configuration);
         _ = services.AddCoreModule(configuration);
+        _ = services.AddCrmModule(configuration);
+        _ = services.AddGroupsModule(configuration);
         _ = services.AddCheckInModule(configuration);
+        configure?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
         foreach (var hosted in provider.GetServices<IHostedService>())

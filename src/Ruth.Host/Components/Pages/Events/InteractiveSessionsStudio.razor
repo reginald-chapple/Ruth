@@ -1,0 +1,81 @@
+@page "/events/interactive"
+@rendermode InteractiveServer
+
+<PageTitle>Live Interactive Sessions — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Live Interactive Sessions, Polls, Q&amp;A &amp; Stage Display</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create Interactive Session</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_sessionTitle" Label="Session Title" />
+                <FluentTextInput @bind-Value="_pollTitle" Label="Initial Poll Title" />
+                <FluentTextInput @bind-Value="_pollPrompt" Label="Poll Prompt" />
+                <FluentTextInput @bind-Value="_pollOptionsCsv" Label="Options (comma-separated)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateSessionAsync">
+                Create Session &amp; Poll
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Moderator Sessions (@_sessions.Count)</h2>
+            @foreach (var session in _sessions)
+            {
+                <div class="ruth-kiosk-member-row" @key="session.Id">
+                    <strong>@session.Title</strong>
+                    <span class="ruth-room-status-pill">Join Code: @session.JoinCode</span>
+                    <span class="ruth-room-status-pill">@session.Status</span>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      OnClick="@(() => StartLiveAsync(session.Id))">
+                            Go Live
+                        </FluentButton>
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => LoadStageAsync(session.JoinCode))">
+                            Preview Stage
+                        </FluentButton>
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => EndSessionAsync(session.Id))">
+                            End Session
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_stageProjection is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Stage Projection — @_stageProjection.Title (Join Code: @_stageProjection.JoinCode)</h2>
+                @if (_stageProjection.ActiveAction is not null)
+                {
+                    <p><strong>@_stageProjection.ActiveAction.PromptText</strong> (@_stageProjection.TotalResponsesForActiveAction responses)</p>
+                    @foreach (var tally in _stageProjection.PollTallies)
+                    {
+                        <div class="ruth-kiosk-member-row" @key="tally.OptionLabel">
+                            <strong>@tally.OptionLabel</strong>
+                            <span>: @tally.VoteCount vote(s) (@tally.VotePercent.ToString("F1")%)</span>
+                        </div>
+                    }
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

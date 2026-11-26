@@ -7,14 +7,20 @@ using Ruth.Host.Health;
 using Ruth.Host.Middleware;
 using Ruth.Host.Observability;
 using Ruth.Modules.CheckIn;
+using Ruth.Modules.Commerce;
 using Ruth.Modules.Communication;
 using Ruth.Modules.Core;
 using Ruth.Modules.Crm;
+using Ruth.Modules.Events;
+using Ruth.Modules.Finance;
 using Ruth.Modules.Groups;
 using Ruth.Modules.Identity;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.Checkr;
+using Ruth.Providers.CommunicationTransports;
+using Ruth.Providers.PaymentGateways;
 using Ruth.Providers.RustFsStorage;
+using Ruth.Providers.WalletPasses;
 using Ruth.SharedKernel.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +34,13 @@ builder.Services.AddCheckrBackgroundCheckProvider(builder.Configuration);
 builder.Services.AddCrmModule(builder.Configuration);
 builder.Services.AddGroupsModule(builder.Configuration);
 builder.Services.AddCheckInModule(builder.Configuration);
+builder.Services.AddWalletPassProviders(builder.Configuration);
 builder.Services.AddCommunicationModule(builder.Configuration);
+builder.Services.AddCommunicationTransportProviders(builder.Configuration);
+builder.Services.AddFinanceModule(builder.Configuration);
+builder.Services.AddPaymentGatewayProviders(builder.Configuration);
+builder.Services.AddEventsModule(builder.Configuration);
+builder.Services.AddCommerceModule(builder.Configuration);
 builder.Services.AddRuthJwtConfiguration();
 
 builder.Services.AddProblemDetails();
@@ -59,6 +71,7 @@ app.UseWhen(
     static context =>
         HttpMethods.IsGet(context.Request.Method)
         && !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+        && !context.Request.Path.StartsWithSegments("/hubs", StringComparison.OrdinalIgnoreCase)
         && !context.Request.Path.StartsWithSegments("/openapi", StringComparison.OrdinalIgnoreCase)
         && !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
     static branch =>
@@ -122,5 +135,8 @@ app.MapCrmModuleEndpoints();
 app.MapGroupsModuleEndpoints();
 app.MapCheckInModuleEndpoints();
 app.MapCommunicationModuleEndpoints();
+app.MapFinanceModuleEndpoints();
+app.MapEventsModuleEndpoints();
+app.MapCommerceModuleEndpoints();
 
 await app.RunAsync();

@@ -1,0 +1,42 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <h2>Funnel &amp; Conversion Performance Analytics</h2>
+        @if (Analytics is null)
+        {
+            <p>Select an automated drip flow to inspect enrollment, step reach, and conversion rates.</p>
+        }
+        else
+        {
+            <div class="ruth-attr-summary-grid">
+                <div><strong>Instances:</strong> @Analytics.TotalInstances</div>
+                <div><strong>Enrolled:</strong> @Analytics.TotalEnrolled</div>
+                <div><strong>Active In-Flight:</strong> @Analytics.ActiveInFlight</div>
+                <div><strong>Completed All Steps:</strong> @Analytics.CompletedAllSteps</div>
+                <div><strong>Converted Exits:</strong> @Analytics.ConvertedExitedCount</div>
+                <div><strong>Conversions:</strong> @Analytics.TotalConversions (@Analytics.ConversionRatePercent%)</div>
+                <div><strong>Open Rate:</strong> @Analytics.OpenRatePercent%</div>
+                <div><strong>Click Rate:</strong> @Analytics.ClickRatePercent%</div>
+            </div>
+
+            <h3>Step-by-Step Drip Funnel</h3>
+            @foreach (var step in Analytics.StepFunnel)
+            {
+                <div @key="step.StepKey" class="ruth-kiosk-member-row">
+                    <div>
+                        <strong>Step @(step.Order + 1): @step.StepName</strong> (<code>@step.StepKey</code>) —
+                        @step.Channel | Delay: @step.DelayMinutes min
+                    </div>
+                    <div>
+                        Reached: <strong>@step.RecipientsReached</strong> |
+                        Conversions at Step: <strong>@step.ConversionsAttributed</strong>
+                    </div>
+                </div>
+            }
+        }
+    </FluentStack>
+</FluentCard>
+
+@code {
+    [Parameter]
+    public CommunicationFlowAnalyticsResponse? Analytics { get; set; }
+}

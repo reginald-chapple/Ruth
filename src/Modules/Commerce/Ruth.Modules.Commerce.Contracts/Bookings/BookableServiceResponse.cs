@@ -1,0 +1,38 @@
+namespace Ruth.Modules.Commerce.Contracts.Bookings;
+
+/// <summary>Read projection representing a configured BookableService.</summary>
+public sealed record BookableServiceResponse(
+    Guid Id,
+    string Name,
+    string Slug,
+    string? Summary,
+    string? Description,
+    BookingDeliveryMode DeliveryMode,
+    int DurationMinutes,
+    int SlotIncrementMinutes,
+    int SetupBufferMinutes,
+    int TeardownBufferMinutes,
+    int MaxParticipantsPerSlot,
+    int MinimumLeadTimeMinutes,
+    int MaximumAdvanceDays,
+    int CancellationNoticeMinutes,
+    string CurrencyCode,
+    decimal StandardPrice,
+    bool IsFreeForMembers,
+    decimal? MemberOverridePrice,
+    Guid? FreeOrDiscountedMemberGroupId,
+    string? FreeOrDiscountedMemberTier,
+    bool AllowPunchPassRedemption,
+    int PunchPassCreditsRequired,
+    Guid? RevenueAccountId,
+    Guid? DefaultFinancialGatewayId,
+    bool AllowInvoiceBilling,
+    Guid? BranchId,
+    Guid? DefaultLocationId,
+    IReadOnlyList<Guid> AssignedProviderPersonIds,
+    bool IsActive,
+    bool IsPublic,
+    IReadOnlyDictionary<string, string?> Attributes,
+    DateTimeOffset CreatedOnUtc,
+    DateTimeOffset? ModifiedOnUtc
+);

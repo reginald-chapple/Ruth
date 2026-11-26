@@ -1,0 +1,99 @@
+@page "/commerce/bookings"
+@rendermode InteractiveServer
+
+<PageTitle>Services, Rentals &amp; Coordinator Calendar — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Bookable Services, Facility Rentals &amp; Coordinator Calendar</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configure Bookable Service (1-on-1 Coaching, Counseling, Intake, or Workshop)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_serviceName" Label="Service Name" />
+                <FluentTextInput @bind-Value="_serviceSlug" Label="URL Slug" />
+                <FluentSelect TOption="BookingDeliveryMode"
+                              TValue="BookingDeliveryMode"
+                              Label="Delivery Mode"
+                              Items="@_deliveryModes"
+                              OptionText="@(static m => m.ToString())"
+                              OptionValue="@(static m => m)"
+                              @bind-Value="_deliveryMode" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Revenue Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_revenueAccountId" />
+                <FluentTextInput @bind-Value="_serviceDurationInput" Label="Duration (Minutes)" />
+                <FluentTextInput @bind-Value="_servicePriceInput" Label="Standard Price (USD)" />
+                <FluentTextInput @bind-Value="_memberTierFreeInput" Label="Free Member Tier (Optional)" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateServiceAsync">
+                Create Service &amp; Default Weekly Hours
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Services (@_services.Count) &amp; Rentable Resources (@_resources.Count)</h2>
+            @foreach (var svc in _services)
+            {
+                <div class="ruth-kiosk-member-row" @key="svc.Id">
+                    <strong>@svc.Name</strong>
+                    <span class="ruth-room-status-pill">@svc.DeliveryMode</span>
+                    <span class="ruth-room-status-pill">@svc.DurationMinutes min</span>
+                    <span>@svc.StandardPrice.ToString("F2") @svc.CurrencyCode</span>
+                    <a href="@($"/commerce/book/{svc.Slug}")">Open Public Booking Wizard</a>
+                </div>
+            }
+            @foreach (var res in _resources)
+            {
+                <div class="ruth-kiosk-member-row" @key="res.Id">
+                    <strong>@res.Name</strong>
+                    <span class="ruth-room-status-pill">@res.ResourceKind</span>
+                    <span>@res.HourlyRate.ToString("F2") / hr</span>
+                    <a href="@($"/commerce/book/{res.Slug}")">Open Public Booking Wizard</a>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Coordinator Calendar — Upcoming &amp; Historical Bookings (@_bookings.Count)</h2>
+            @foreach (var b in _bookings)
+            {
+                <div class="ruth-kiosk-member-row" @key="b.Id">
+                    <strong>@b.ConfirmationCode — @b.TargetName</strong>
+                    <span class="ruth-room-status-pill">@b.Status</span>
+                    <span>@b.StartUtc.ToString("yyyy-MM-dd HH:mm") – @b.EndUtc.ToString("HH:mm") UTC</span>
+                    <span>| @b.CustomerName (@b.PricingKind: @b.TotalAmount.ToString("F2") @b.CurrencyCode)</span>
+                    @if (b.RequiresVirtualRoom && !string.IsNullOrWhiteSpace(b.VirtualRoomReferenceKey))
+                    {
+                        <span class="ruth-room-status-pill">Virtual Room: @b.VirtualRoomReferenceKey</span>
+                    }
+                    @if (b.Status == ServiceBookingStatus.Confirmed)
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => CoordinatorCancelAsync(b.Id))">
+                            Coordinator Cancel
+                        </FluentButton>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

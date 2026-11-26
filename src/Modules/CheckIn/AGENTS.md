@@ -3,7 +3,7 @@
 ## Purpose & Boundaries
 - Owns the `checkin` PostgreSQL schema across two projects: `Ruth.Modules.CheckIn.Contracts` and `Ruth.Modules.CheckIn`.
 - `Ruth.Modules.CheckIn.Domain` must remain pure C# with **zero** dependencies on EF Core, ASP.NET Core, Blazor, Npgsql, Redis, or `Ruth.Persistence` (enforced by `Ruth.ArchitectureTests`).
-- Other modules may reference only `Ruth.Modules.CheckIn.Contracts`. `Ruth.Modules.CheckIn` may reference only `Ruth.SharedKernel`, `Ruth.Persistence`, and other modules' `*.Contracts` assemblies (`Core.Contracts`, `Crm.Contracts`, `Groups.Contracts`).
+- Other modules may reference only `Ruth.Modules.CheckIn.Contracts`. `Ruth.Modules.CheckIn` may reference only `Ruth.SharedKernel`, `Ruth.Persistence`, and other modules' `*.Contracts` assemblies (`Core.Contracts`, `Crm.Contracts`, `Groups.Contracts`, `Communication.Contracts`).
 
 ## Durable Invariants
 - **W3-S2 (`Configurations`, `Areas`, `Eligibility`, `RoomBalancing`):**
@@ -11,6 +11,18 @@
   - `CheckInEligibilityRule` enforces `MinAgeYears <= MaxAgeYears`, `MinBirthDate <= MaxBirthDate`, `MinGrade <= MaxGrade`, normalized membership tier and skill/badge prerequisites, accommodation flags, and enrollment gating (`OpenToEligible`, `PreEnrolledMembersOnly`, `ScheduledShiftOnly`).
   - `CheckInAreaLocation` enforces `SoftCapacity <= FirmCapacity` (`>= 0`), unique `(CheckInAreaId, LocationId)` matrix cells, and schedule activation lists.
   - `RoomBalancingDomainService` enforces `FirmCapacity` hard stops, holds `IsOverflowRoom` cells back until primary rooms reach `SoftCapacity`, and deterministically ranks eligible rooms via `OrderedPriority`, `LeastOccupancyCount`, or `LowestCapacityRatio`.
+- **W3-S3 (`Sessions`, `SecurityPickupCode`, `KioskSearch`, `RoomManager`, `MobileCheckIn`):**
+  - `SecurityPickupCodeGenerator` uses unambiguous uppercase letters (`BCDFGHJKLMNPQRSTVWXYZ`) and digits (`23456789`) with leetspeak-normalized `SearchValues<string>` profanity filtering, and `DailySecurityPickupCode` enforces `(ServiceDate, Code)` database uniqueness across concurrent kiosks.
+  - `AttendanceCheckInSession` and `CheckInAttendanceEntry` manage kiosk, staff, and mobile pre-check-in (`CHK-*` express token) lifecycles, check-out transitions, staff room overrides, and `PersonMergedIntegrationEvent` person-ID repointing.
+  - Kiosk search batches household/member candidate resolution via `LookupKioskHouseholdsQuery` (`Crm.Contracts`) without cross-module `DbContext` coupling.
+- **W3-S4 (`Labels`, `ZplCompiler`, `TcpRawSocketDispatcher`, `WebUsbPrint`):**
+  - `CheckInLabel` validates 203/300 DPI thermal layouts (`CheckInLabelLayoutSchema`) and protects built-in system definitions (`participant-safety-badge`, `guardian-pickup-receipt`) from deletion.
+  - `ZplLabelCompiler` and `ZplTextSanitizer` escape all interpolated merge values using Zebra ZPL II `^FH_` hexadecimal encoding (`_5E`, `_7E`, `_5C`, `_5F`) to prevent ZPL command injection (`^XA`/`^XZ`/`~` control injection).
+  - Server-side printing dispatches raw UTF-8 ZPL over TCP port `9100` (`IZplPrinterDispatcher` / `TcpRawSocketZplPrinterDispatcher`), while client kiosks use `wwwroot/ruth-label-print.js` (WebUSB bulk-OUT with HTML print fallback).
+- **W3-S8 (`WalletPasses`, `ApplePkpassProvider`, `GoogleWalletJwtProvider`, `PassKitWebService`, `KioskScan`):**
+  - `WalletPassTemplate` validates reverse-DNS `PassTypeIdentifier` (`pass.*`), `#RRGGBB` colors, and protects built-in system templates (`member-access-pass`) and templates with issued passes from deletion.
+  - `IssuedWalletPass` stores only SHA-256 token digests (`AuthTokenHash`, `ClaimTokenHash` verified in constant time via `CryptographicOperations.FixedTimeEquals`), derives 64-character PassKit `authenticationToken` values via server-keyed HMAC-SHA256 (`WalletPassSecurityTokens`), issues indexed `WLT-*` `ScanToken` payloads resolved in `<50ms` by `ResolveKioskWalletPassScanQueryHandler` and `KioskSearchCandidatesQueryHandler`, and repoints `PersonId` on `PersonMergedIntegrationEvent`.
+  - `IWalletPassProvider` supports `ApplePkpassProvider` (native `.NET 10` RFC 5652 DER PKCS#7 `SignedData` detached `signature` via `Pkcs7DetachedCmsBuilder` over SHA-256 `manifest.json` in `Ruth.Providers.WalletPasses`), `GoogleWalletJwtProvider` (RS256 Save-to-Google-Wallet JWT), and deterministic `PreviewWalletPassProvider` fallback when signing certificates are unconfigured, paired with Apple PassKit WebService v1 device registration, serial delta (`passesUpdatedSince`), `Last-Modified`/`304` pass delivery, and `IWalletPassPushNotifier` push-update dispatch.
 
 ## Verification
 ```bash

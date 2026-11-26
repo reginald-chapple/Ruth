@@ -1,0 +1,118 @@
+@page "/finance/campaigns"
+@rendermode InteractiveServer
+
+<PageTitle>Campaign Fundraising &amp; Leader Toolbox — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Peer-to-Peer &amp; Project Campaign Fundraising</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Configure Group + Account Fundraising Campaign</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_campaignName" Label="Campaign Name" />
+                <FluentTextInput @bind-Value="_campaignSlug" Label="Portal URL Slug" />
+                <FluentTextInput @bind-Value="_groupIdInput" Label="Group GUID" />
+                <FluentSelect TOption="FinancialAccountResponse"
+                              TValue="Guid"
+                              Label="Target Fund / Account"
+                              Items="@_accounts"
+                              OptionText="@(static a => $"{a.Name} ({a.Code})")"
+                              OptionValue="@(static a => a.Id)"
+                              @bind-Value="_accountId" />
+                <FluentTextInput @bind-Value="_campaignGoalInput" Label="Campaign Goal (USD)" />
+                <FluentTextInput @bind-Value="_defaultParticipantGoalInput" Label="Default Participant Goal" />
+            </FluentStack>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateCampaignAsync">
+                Create Campaign
+            </FluentButton>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Active Campaigns (@_campaigns.Count)</h2>
+            @foreach (var camp in _campaigns)
+            {
+                <div class="ruth-kiosk-member-row" @key="camp.Id">
+                    <CampaignProgressWidget Title="@($"{camp.Name} (/{camp.Slug})")"
+                                            RaisedAmount="@camp.TotalRaisedAmount"
+                                            GoalAmount="@camp.EffectiveTeamGoalAmount"
+                                            ProgressPercent="@camp.ProgressPercent"
+                                            CurrencyCode="@camp.CurrencyCode"
+                                            DonorCount="@camp.DonorCount" />
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => LoadToolboxAsync(camp.Id))">
+                            Open Leader Toolbox
+                        </FluentButton>
+                        <a href="@($"/give/campaigns/{camp.Slug}")">Public Contribution Portal</a>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_toolbox is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>Campaign Leader Toolbox — @_toolbox.Campaign.Name</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_teamGoalOverrideInput" Label="Team Goal Override (USD)" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ApplyTeamGoalOverrideAsync">
+                        Save Team Goal Override
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@SyncGroupRosterAsync">
+                        Sync Group Members
+                    </FluentButton>
+                </FluentStack>
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentTextInput @bind-Value="_participantPersonIdInput" Label="Participant Person GUID" />
+                    <FluentTextInput @bind-Value="_participantNameInput" Label="Display Name" />
+                    <FluentTextInput @bind-Value="_participantGoalInput" Label="Custom Goal Override" />
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@EnrollParticipantAsync">
+                        Add Participant
+                    </FluentButton>
+                </FluentStack>
+
+                <h3>Participant Progress (@_toolbox.Participants.Count)</h3>
+                @foreach (var part in _toolbox.Participants)
+                {
+                    <CampaignProgressWidget @key="part.Id"
+                                            Title="@part.DisplayName"
+                                            RaisedAmount="@part.RaisedAmount"
+                                            GoalAmount="@part.EffectiveGoalAmount"
+                                            ProgressPercent="@part.ProgressPercent"
+                                            CurrencyCode="@_toolbox.Campaign.CurrencyCode"
+                                            DonorCount="@part.ContributionCount" />
+                }
+
+                <h3>Contribution Ledger (@_toolbox.Contributions.Count)</h3>
+                @foreach (var row in _toolbox.Contributions)
+                {
+                    <div class="ruth-kiosk-member-row" @key="row.CreditId">
+                        <strong>@row.DonorDisplayName</strong>
+                        <span> — @row.NetAmount.ToString("F2") @row.CurrencyCode</span>
+                        <span class="ruth-room-status-pill">@row.DonorPrivacy</span>
+                        @if (!string.IsNullOrWhiteSpace(row.CreditedParticipantName))
+                        {
+                            <span> (Credited: @row.CreditedParticipantName)</span>
+                        }
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

@@ -9,50 +9,175 @@ Authorization: Bearer {{Token}}
 GET {{HostAddress}}/api/communication/snippets
 Authorization: Bearer {{Token}}
 
-### Create a reusable merge snippet
-POST {{HostAddress}}/api/communication/snippets
+### List registered communication transports (SMTP, SendGrid, Mailgun, Twilio SMS, Push Stub, Dev Sink)
+GET {{HostAddress}}/api/communication/transports
+Authorization: Bearer {{Token}}
+
+### List seeded & custom transactional SystemCommunications
+GET {{HostAddress}}/api/communication/system-communications
+Authorization: Bearer {{Token}}
+
+### Register an organization E.164 SystemPhoneNumber
+POST {{HostAddress}}/api/communication/phone-numbers
 Authorization: Bearer {{Token}}
 Content-Type: application/json
 
 {
-  "name": "Call To Action Button",
-  "key": "cta_button",
-  "description": "Styled link button for HTML emails",
-  "markup": "<a href=\"{{ url }}\" style=\"padding:10px 16px;background:#0f6cbd;color:#fff;border-radius:6px;text-decoration:none;\">{{ label | default:'Learn More' }}</a>",
-  "outputMode": "Html",
-  "defaultParameters": {
-    "label": "Learn More",
-    "url": "https://example.org"
-  },
+  "name": "Main Member Support SMS",
+  "number": "+15552345678",
+  "isSmsEnabled": true,
+  "isSmsForwardingEnabled": false,
   "isActive": true
 }
 
-### Preview a safe merge template
-POST {{HostAddress}}/api/communication/templates/preview-merge
+### Register a PersonalDevice push token
+POST {{HostAddress}}/api/communication/personal-devices
 Authorization: Bearer {{Token}}
 Content-Type: application/json
 
 {
-  "template": "<p>Hi {{ Person.NickName | default:'Friend' }}! {{ snippet:cta_button label=\"Give Online\" url=\"https://example.org/give\" }}</p>",
-  "contextJson": "{\"Person\":{\"NickName\":\"Jordan\"}}",
-  "outputMode": "Html",
-  "strictMissingTokens": false
+  "platform": "Ios",
+  "pushRegistrationToken": "apns-device-token-demo-0123456789abcdef",
+  "deviceName": "Jordan iPhone 16",
+  "notificationsEnabled": true
 }
 
-### Preview a compiled Razor template via HtmlRenderer
-POST {{HostAddress}}/api/communication/templates/preview-razor
+### Dispatch a transactional SystemCommunication
+POST {{HostAddress}}/api/communication/system-communications/send
 Authorization: Bearer {{Token}}
 Content-Type: application/json
 
 {
-  "templateKey": "Communication.StandardEmail",
-  "parameters": {
-    "OrganizationName": "Civic Community Foundation",
-    "Subject": "Welcome",
-    "Heading": "Welcome, {{ Person.NickName }}!",
-    "BodyHtml": "<p>Thank you for your payment of {{ Transaction.Amount | currency }}.</p>",
-    "ActionLabel": "View Receipt",
-    "ActionUrl": "https://example.org/receipts/1"
+  "systemCommunicationKey": "finance.payment-or-gift-receipt",
+  "recipientEmail": "jordan@example.org",
+  "recipientName": "Jordan Taylor",
+  "recipientPhoneNumber": "+15559990000",
+  "mergeFields": {
+    "ReceiptNumber": "RCPT-1042",
+    "Amount": "$250.00",
+    "AccountName": "Annual Community Scholarship Fund",
+    "TaxDeductibleNotice": "Tax-deductible charitable contribution"
   },
-  "mergeContextJson": "{\"Person\":{\"NickName\":\"Jordan\"},\"Transaction\":{\"Amount\":125.50}}"
+  "triggerSource": "ManualHttpTest"
+}
+
+### Inspect recent transactional notification logs
+GET {{HostAddress}}/api/communication/system-communications/logs?limit=25
+Authorization: Bearer {{Token}}
+
+### Inspect dev in-memory captured messages
+GET {{HostAddress}}/api/communication/transports/in-memory-messages?limit=25
+Authorization: Bearer {{Token}}
+
+### List reusable bulk communication templates (W3-S6)
+GET {{HostAddress}}/api/communication/bulk-templates
+Authorization: Bearer {{Token}}
+
+### Preview structured EmailSection composer output (W3-S6)
+POST {{HostAddress}}/api/communication/bulk-templates/preview-email
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "subjectTemplate": "{{ OrganizationName | default:'Ruth' }} — Weekly Update",
+  "sections": [
+    {
+      "order": 0,
+      "kind": "HeroBanner",
+      "heading": "Hello {{ RecipientName | default:'Member' }}",
+      "bodyMarkup": "Welcome to this week's community update."
+    },
+    {
+      "order": 1,
+      "kind": "CallToActionButton",
+      "buttonLabel": "Open Member Portal",
+      "buttonUrl": "https://example.org/portal"
+    }
+  ]
+}
+
+### Create a draft bulk Communication campaign (W3-S6)
+POST {{HostAddress}}/api/communication/campaigns
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "title": "Spring Community Digest",
+  "channel": "Email",
+  "topicKey": "community-digest",
+  "isBulk": true,
+  "subject": "Spring Highlights — {{ OrganizationName | default:'Ruth' }}",
+  "sections": [
+    {
+      "order": 0,
+      "kind": "RichText",
+      "heading": "Community Calendar",
+      "bodyMarkup": "<p>Registration is now open for upcoming cohorts.</p>"
+    }
+  ],
+  "recipients": [
+    {
+      "destinationAddress": "alex@example.org",
+      "displayName": "Alex Rivera"
+    }
+  ]
+}
+
+### Dispatch due approved bulk campaigns immediately (W3-S6)
+POST {{HostAddress}}/api/communication/campaigns/dispatch-due
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "maxRecipientsPerRun": 200
+}
+
+### Ingest provider bounce/open/click telemetry webhook (W3-S6)
+POST {{HostAddress}}/api/communication/webhooks/events
+Content-Type: application/json
+
+{
+  "events": [
+    {
+      "eventType": "Opened",
+      "destinationAddress": "alex@example.org"
+    },
+    {
+      "eventType": "Clicked",
+      "destinationAddress": "alex@example.org",
+      "clickedUrl": "https://example.org/portal"
+    }
+  ]
+}
+
+### Ingest inbound two-way SMS webhook (W3-S6)
+POST {{HostAddress}}/api/communication/sms/webhook
+Content-Type: application/json
+
+{
+  "fromPhoneNumber": "+15554443322",
+  "toPhoneNumber": "+15552345678",
+  "messageBody": "HELP",
+  "senderDisplayName": "Alex Rivera"
+}
+
+### List two-way SMS inbox conversations (W3-S6)
+GET {{HostAddress}}/api/communication/sms/conversations
+Authorization: Bearer {{Token}}
+
+### List SMS keyword responder pipelines (W3-S6)
+GET {{HostAddress}}/api/communication/sms/pipelines
+Authorization: Bearer {{Token}}
+
+### List automated multi-step CommunicationFlow drip campaigns (W3-S7)
+GET {{HostAddress}}/api/communication/flows
+Authorization: Bearer {{Token}}
+
+### Advance due CommunicationFlow drip steps immediately (W3-S7)
+POST {{HostAddress}}/api/communication/flows/advance-due
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "maxRecipientsPerRun": 200
 }

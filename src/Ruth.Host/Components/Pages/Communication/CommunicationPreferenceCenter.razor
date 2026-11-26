@@ -1,0 +1,64 @@
+@page "/communication/preferences"
+@rendermode InteractiveServer
+
+<PageTitle>Communication Preferences — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Communication Subscription &amp; Unsubscribe Center</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @if (string.IsNullOrWhiteSpace(Token))
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_lookupDestination"
+                                 Label="Lookup Recipient Email or E.164 Phone"
+                                 Placeholder="member@example.org" />
+                <FluentSelect TOption="CommunicationChannel"
+                              TValue="CommunicationChannel"
+                              Label="Channel"
+                              Items="@_channels"
+                              OptionText="@(static c => c.ToString())"
+                              OptionValue="@(static c => c)"
+                              @bind-Value="_lookupChannel" />
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@LookupPreferencesAsync">
+                    Load Preferences
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    }
+
+    @if (_preferences is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>Preferences for @_preferences.DestinationAddress (@_preferences.Channel)</h2>
+                <FluentCheckbox @bind-Value="_globalOptOut"
+                                Label="Unsubscribe from ALL bulk communications on this channel" />
+
+                <h3>Topic Subscriptions (Uncheck or mute individual topics)</h3>
+                @foreach (var topic in _preferences.AvailableTopics)
+                {
+                    var isMuted = _mutedTopics.Contains(topic);
+                    <FluentCheckbox @key="topic"
+                                    Value="@isMuted"
+                                    ValueChanged="@((bool v) => ToggleMutedTopic(topic, v))"
+                                    Label="@($"Mute topic: {topic}")" />
+                }
+
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SavePreferencesAsync">
+                    Save Preferences
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

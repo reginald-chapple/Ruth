@@ -1,5 +1,6 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -30,7 +31,9 @@ public sealed class HostContainersFixture : IAsyncLifetime, IAsyncDisposable
             )
             .WithDockerfile("Dockerfile")
             .WithName(PostgresPostGisImageTag)
+            .WithImageBuildPolicy(PullPolicy.Missing)
             .WithDeleteIfExists(false)
+            .WithCleanUp(false)
             .Build();
         await postgresImage.CreateAsync();
 

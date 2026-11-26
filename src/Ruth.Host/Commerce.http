@@ -1,0 +1,429 @@
+@host = http://localhost:5000
+@token = REPLACE_WITH_BEARER_TOKEN
+
+### List Punch Pass & Credit Pack Types
+GET {{host}}/api/commerce/catalog/punch-pass-types?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Create Punch Pass Type
+POST {{host}}/api/commerce/catalog/punch-pass-types
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "10-Visit Facility Access Pack",
+  "code": "FACILITY-10",
+  "creditUnits": 10,
+  "validityDays": 180,
+  "allowHouseholdSharing": true,
+  "isActive": true
+}
+
+### List Staff Catalog Products
+GET {{host}}/api/commerce/catalog/products
+Authorization: Bearer {{token}}
+
+### Create Quid-Pro-Quo Catalog Product
+POST {{host}}/api/commerce/catalog/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Benefactor Gala & Merchandise Bundle",
+  "slug": "benefactor-gala-bundle",
+  "kind": "PhysicalPickupOrFlatRate",
+  "currencyCode": "USD",
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001",
+  "isQuidProQuo": true,
+  "quidProQuoCharitableAccountId": "00000000-0000-0000-0000-000000000002",
+  "isTaxable": true,
+  "flatTaxRatePercent": 8.0,
+  "allowLocalPickup": true,
+  "allowFlatRateShipping": true,
+  "flatShippingFeeAmount": 12.00,
+  "variants": [
+    {
+      "sku": "GALA-BNDL-STD",
+      "name": "Standard Bundle",
+      "unitPrice": 100.00,
+      "fairMarketValueAmount": 35.00,
+      "trackInventory": true,
+      "stockQuantity": 50
+    }
+  ]
+}
+
+### Update Catalog Product
+PUT {{host}}/api/commerce/catalog/products/00000000-0000-0000-0000-000000000003
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Benefactor Gala & Merchandise Bundle",
+  "slug": "benefactor-gala-bundle",
+  "kind": "PhysicalPickupOrFlatRate",
+  "currencyCode": "USD",
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001",
+  "isQuidProQuo": true,
+  "quidProQuoCharitableAccountId": "00000000-0000-0000-0000-000000000002",
+  "allowLocalPickup": true,
+  "variants": [
+    {
+      "sku": "GALA-BNDL-STD",
+      "name": "Standard Bundle",
+      "unitPrice": 110.00,
+      "fairMarketValueAmount": 35.00
+    }
+  ]
+}
+
+### Update Punch Pass Type
+PUT {{host}}/api/commerce/catalog/punch-pass-types/00000000-0000-0000-0000-000000000004
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "10-Visit Facility Access Pack",
+  "code": "FACILITY-10",
+  "creditUnits": 12,
+  "validityDays": 365,
+  "allowHouseholdSharing": true,
+  "isActive": true
+}
+
+### List Member Pricing Rules
+GET {{host}}/api/commerce/catalog/member-pricing-rules?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Create Automatic Member Pricing Rule
+POST {{host}}/api/commerce/catalog/member-pricing-rules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Gold Tier 20% Storefront Discount",
+  "discountKind": "Percentage",
+  "discountValue": 20.0,
+  "requiredMembershipTier": "Gold",
+  "priority": 10,
+  "isActive": true
+}
+
+### Update Member Pricing Rule
+PUT {{host}}/api/commerce/catalog/member-pricing-rules/00000000-0000-0000-0000-000000000005
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Gold Tier 25% Storefront Discount",
+  "discountKind": "Percentage",
+  "discountValue": 25.0,
+  "requiredMembershipTier": "Gold",
+  "priority": 10,
+  "isActive": true
+}
+
+### List Public Storefront Products
+GET {{host}}/api/commerce/storefront/products
+
+### Get Storefront Product by Slug
+GET {{host}}/api/commerce/storefront/products/benefactor-gala-bundle
+
+### Preview Storefront Order Quote & Quid-Pro-Quo Split
+POST {{host}}/api/commerce/storefront/quote
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "variantId": "00000000-0000-0000-0000-000000000006",
+      "quantity": 1
+    }
+  ],
+  "explicitMembershipTier": "Gold",
+  "fulfillmentMethod": "LocalPickup"
+}
+
+### Submit Storefront Checkout Order
+POST {{host}}/api/commerce/storefront/checkout
+Content-Type: application/json
+
+{
+  "buyerName": "Taylor Rivera",
+  "buyerEmail": "taylor.rivera@example.org",
+  "items": [
+    {
+      "variantId": "00000000-0000-0000-0000-000000000006",
+      "quantity": 1
+    }
+  ],
+  "fulfillmentMethod": "LocalPickup",
+  "oneTimeHostedPaymentToken": "tok_storefront_4242"
+}
+
+### Lookup Order Confirmation
+GET {{host}}/api/commerce/storefront/orders/ORD-20261125-ABCDEF
+
+### Generate Digital Download Link
+GET {{host}}/api/commerce/storefront/orders/ORD-20261125-ABCDEF/lines/00000000-0000-0000-0000-000000000007/download
+
+### List Staff Commerce Orders
+GET {{host}}/api/commerce/orders
+Authorization: Bearer {{token}}
+
+### Advance Order Fulfillment Status
+POST {{host}}/api/commerce/orders/00000000-0000-0000-0000-000000000008/fulfillment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "orderId": "00000000-0000-0000-0000-000000000008",
+  "newStatus": "ReadyForPickup",
+  "trackingReference": "LOCKER-B4"
+}
+
+### Refund Commerce Order
+POST {{host}}/api/commerce/orders/00000000-0000-0000-0000-000000000008/refund
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "orderId": "00000000-0000-0000-0000-000000000008",
+  "amount": 25.00,
+  "reason": "Customer requested item adjustment",
+  "restockInventory": false
+}
+
+### List Issued Punch Passes
+GET {{host}}/api/commerce/punch-passes?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Issue Punch Pass
+POST {{host}}/api/commerce/punch-passes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "punchPassTypeId": "00000000-0000-0000-0000-000000000004",
+  "ownerPersonId": "00000000-0000-0000-0000-000000000009",
+  "referenceNotes": "Member orientation welcome pass"
+}
+
+### Redeem Punch Pass Credits
+POST {{host}}/api/commerce/punch-passes/00000000-0000-0000-0000-000000000010/redeem
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "issuedPunchPassId": "00000000-0000-0000-0000-000000000010",
+  "creditsToRedeem": 1,
+  "referenceNotes": "Lap swim check-in"
+}
+
+### Adjust Punch Pass Balance
+POST {{host}}/api/commerce/punch-passes/00000000-0000-0000-0000-000000000010/adjust
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "issuedPunchPassId": "00000000-0000-0000-0000-000000000010",
+  "deltaCredits": 2,
+  "reason": "Weather closure courtesy credit"
+}
+
+### List Bookable Services (Staff & Public)
+GET {{host}}/api/commerce/bookings/services
+Authorization: Bearer {{token}}
+
+### List Public Bookable Services
+GET {{host}}/api/commerce/bookings/public/services
+
+### Create Bookable Service (1-on-1 Virtual Coaching)
+POST {{host}}/api/commerce/bookings/services
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "1-on-1 Career & Financial Coaching",
+  "slug": "career-coaching-1on1",
+  "deliveryMode": "VirtualRoom",
+  "durationMinutes": 45,
+  "slotIncrementMinutes": 30,
+  "setupBufferMinutes": 5,
+  "teardownBufferMinutes": 10,
+  "maxParticipantsPerSlot": 1,
+  "currencyCode": "USD",
+  "standardPrice": 60.00,
+  "isFreeForMembers": true,
+  "freeOrDiscountedMemberTier": "Gold",
+  "allowPunchPassRedemption": true,
+  "punchPassCreditsRequired": 1,
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001"
+}
+
+### Update Bookable Service
+PUT {{host}}/api/commerce/bookings/services/00000000-0000-0000-0000-000000000011
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "1-on-1 Career & Financial Coaching",
+  "slug": "career-coaching-1on1",
+  "deliveryMode": "Hybrid",
+  "durationMinutes": 60,
+  "slotIncrementMinutes": 30,
+  "currencyCode": "USD",
+  "standardPrice": 75.00,
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001"
+}
+
+### List Rentable Resources (Staff & Public)
+GET {{host}}/api/commerce/bookings/resources
+Authorization: Bearer {{token}}
+
+### List Public Rentable Resources
+GET {{host}}/api/commerce/bookings/public/resources
+
+### Create Rentable Facility Resource
+POST {{host}}/api/commerce/bookings/resources
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Studio A",
+  "slug": "community-studio-a",
+  "resourceKind": "Studio",
+  "coreLocationId": "00000000-0000-0000-0000-000000000012",
+  "minDurationMinutes": 60,
+  "maxDurationMinutes": 240,
+  "slotIncrementMinutes": 60,
+  "setupBufferMinutes": 15,
+  "teardownBufferMinutes": 15,
+  "currencyCode": "USD",
+  "hourlyRate": 50.00,
+  "flatCleaningOrSetupFee": 15.00,
+  "memberHourlyRate": 25.00,
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001"
+}
+
+### Update Rentable Facility Resource
+PUT {{host}}/api/commerce/bookings/resources/00000000-0000-0000-0000-000000000013
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Community Studio A",
+  "slug": "community-studio-a",
+  "resourceKind": "Studio",
+  "coreLocationId": "00000000-0000-0000-0000-000000000012",
+  "minDurationMinutes": 60,
+  "maxDurationMinutes": 240,
+  "slotIncrementMinutes": 60,
+  "currencyCode": "USD",
+  "hourlyRate": 55.00,
+  "revenueAccountId": "00000000-0000-0000-0000-000000000001"
+}
+
+### List & Create Availability / Blackout Rules
+GET {{host}}/api/commerce/bookings/rules
+Authorization: Bearer {{token}}
+
+### Create Availability Rule
+POST {{host}}/api/commerce/bookings/rules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Wednesday Coaching Window",
+  "targetKind": "Service",
+  "ruleType": "RecurringWindow",
+  "bookableServiceId": "00000000-0000-0000-0000-000000000011",
+  "dayOfWeek": "Wednesday",
+  "startLocalTime": "09:00:00",
+  "endLocalTime": "17:00:00",
+  "timeZoneId": "UTC"
+}
+
+### Delete Availability Rule
+DELETE {{host}}/api/commerce/bookings/rules/00000000-0000-0000-0000-000000000014
+Authorization: Bearer {{token}}
+
+### Query Conflict-Free Available Slots
+POST {{host}}/api/commerce/bookings/public/slots
+Content-Type: application/json
+
+{
+  "targetKind": "Service",
+  "targetIdOrSlug": "career-coaching-1on1",
+  "rangeStartUtc": "2026-12-01T00:00:00Z",
+  "rangeEndUtc": "2026-12-08T00:00:00Z",
+  "requestedQuantity": 1
+}
+
+### Acquire TTL Slot Reservation Hold
+POST {{host}}/api/commerce/bookings/public/holds
+Content-Type: application/json
+
+{
+  "targetKind": "Service",
+  "targetIdOrSlug": "career-coaching-1on1",
+  "slotStartUtc": "2026-12-02T14:00:00Z",
+  "quantity": 1,
+  "holdTtlMinutes": 10
+}
+
+### Preview Booking Pricing Quote
+POST {{host}}/api/commerce/bookings/public/quote
+Content-Type: application/json
+
+{
+  "targetKind": "Service",
+  "targetIdOrSlug": "career-coaching-1on1",
+  "slotStartUtc": "2026-12-02T14:00:00Z",
+  "quantity": 1,
+  "explicitMembershipTier": "Gold"
+}
+
+### Confirm Service or Resource Booking
+POST {{host}}/api/commerce/bookings/public/confirm
+Content-Type: application/json
+
+{
+  "targetKind": "Service",
+  "targetIdOrSlug": "career-coaching-1on1",
+  "slotStartUtc": "2026-12-02T14:00:00Z",
+  "customerName": "Casey Morgan",
+  "customerEmail": "casey.morgan@example.org",
+  "quantity": 1,
+  "explicitMembershipTier": "Gold"
+}
+
+### Lookup Booking Confirmation
+GET {{host}}/api/commerce/bookings/public/confirmations/BKG-20261125-123456
+
+### Self-Service Cancel Booking
+POST {{host}}/api/commerce/bookings/public/confirmations/00000000-0000-0000-0000-000000000015/cancel
+Content-Type: application/json
+
+{
+  "bookingId": "00000000-0000-0000-0000-000000000015",
+  "reason": "Rescheduling to next week"
+}
+
+### Query Coordinator Calendar Bookings
+GET {{host}}/api/commerce/bookings
+Authorization: Bearer {{token}}
+
+### Expire Stale Slot Holds
+POST {{host}}/api/commerce/bookings/holds/expire
+Authorization: Bearer {{token}}
+
+### Staff Coordinator Cancel Booking
+POST {{host}}/api/commerce/bookings/00000000-0000-0000-0000-000000000015/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": "00000000-0000-0000-0000-000000000015",
+  "reason": "Facility maintenance override"
+}

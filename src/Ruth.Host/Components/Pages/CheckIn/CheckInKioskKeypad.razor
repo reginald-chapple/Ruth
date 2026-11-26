@@ -1,0 +1,75 @@
+<FluentCard Padding="@Padding.All4">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <h2>Find Family or Member</h2>
+        <FluentTextInput Value="@SearchText"
+                         ValueChanged="@SearchTextChanged"
+                         Label="Phone Digits, Member Card Barcode, or Name"
+                         Placeholder="Enter last 4+ digits or scan pass" />
+
+        <div class="ruth-kiosk-keypad" role="group" aria-label="Touch numeric keypad">
+            @foreach (var digit in _digits)
+            {
+                <button type="button"
+                        class="ruth-kiosk-key"
+                        aria-label="Digit @digit"
+                        @onclick="@(() => AppendAsync(digit))">
+                    @digit
+                </button>
+            }
+            <button type="button"
+                    class="ruth-kiosk-key"
+                    aria-label="Clear input"
+                    @onclick="@ClearAsync">
+                Clear
+            </button>
+            <button type="button"
+                    class="ruth-kiosk-key"
+                    aria-label="Digit 0"
+                    @onclick="@(() => AppendAsync("0"))">
+                0
+            </button>
+            <button type="button"
+                    class="ruth-kiosk-key"
+                    aria-label="Backspace"
+                    @onclick="@BackspaceAsync">
+                ⌫
+            </button>
+        </div>
+
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@OnSearch">
+            Search Check-In Options
+        </FluentButton>
+    </FluentStack>
+</FluentCard>
+
+@code {
+    private static readonly string[] _digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+    [Parameter]
+    public string SearchText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchTextChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnSearch { get; set; }
+
+    private Task AppendAsync(string digit)
+    {
+        return SearchText.Length < 32
+            ? SearchTextChanged.InvokeAsync(SearchText + digit)
+            : Task.CompletedTask;
+    }
+
+    private Task ClearAsync()
+    {
+        return SearchTextChanged.InvokeAsync(string.Empty);
+    }
+
+    private Task BackspaceAsync()
+    {
+        return SearchText.Length > 0
+            ? SearchTextChanged.InvokeAsync(SearchText[..^1])
+            : Task.CompletedTask;
+    }
+}

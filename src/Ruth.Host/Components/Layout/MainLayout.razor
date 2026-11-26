@@ -65,13 +65,54 @@
             <FluentNavCategory Title="Check-In"
                                IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
                                IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
+                <FluentNavItem Href="/checkin/kiosk">Touch Check-In Kiosk</FluentNavItem>
+                <FluentNavItem Href="/checkin/room-manager">Live Room &amp; Facility Manager</FluentNavItem>
+                <FluentNavItem Href="/checkin/wallet-passes">Smart Wallet Passes</FluentNavItem>
                 <FluentNavItem Href="/admin/checkin/configurations">Check-In Configurations</FluentNavItem>
+                <FluentNavItem Href="/admin/checkin/labels">Badge &amp; ZPL Label Designer</FluentNavItem>
             </FluentNavCategory>
 
             <FluentNavCategory Title="Communication"
                                IconRest="@(new Icons.Regular.Size20.Mail())"
                                IconActive="@(new Icons.Filled.Size20.Mail())">
+                <FluentNavItem Href="/communication/campaigns">Bulk Campaigns &amp; Email Builder</FluentNavItem>
+                <FluentNavItem Href="/communication/flows">Automated Drip Flows &amp; Analytics</FluentNavItem>
+                <FluentNavItem Href="/communication/sms-inbox">Two-Way SMS Inbox &amp; Keywords</FluentNavItem>
+                <FluentNavItem Href="/communication/preferences">Preference &amp; Unsubscribe Center</FluentNavItem>
                 <FluentNavItem Href="/admin/communication/templates">Razor Templates &amp; Snippets</FluentNavItem>
+                <FluentNavItem Href="/admin/communication/transports">Transports &amp; System Notifications</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Finance"
+                               IconRest="@(new Icons.Regular.Size20.Money())"
+                               IconActive="@(new Icons.Filled.Size20.Money())">
+                <FluentNavItem Href="/finance/accounts">Accounts, Funds &amp; Pledges</FluentNavItem>
+                <FluentNavItem Href="/finance/organizations">Organizations &amp; Sponsors</FluentNavItem>
+                <FluentNavItem Href="/finance/invoices">Invoices &amp; Dues Billing</FluentNavItem>
+                <FluentNavItem Href="/finance/batches">Batches &amp; Transactions</FluentNavItem>
+                <FluentNavItem Href="/finance/recurring">Recurring &amp; Cadence Alerts</FluentNavItem>
+                <FluentNavItem Href="/finance/statements">Tax Receipts &amp; Statements</FluentNavItem>
+                <FluentNavItem Href="/finance/assistance">Assistance &amp; Grants</FluentNavItem>
+                <FluentNavItem Href="/finance/campaigns">Campaigns &amp; Leader Toolbox</FluentNavItem>
+                <FluentNavItem Href="/admin/finance/gateways">Payment Gateways &amp; Vault</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Events"
+                               IconRest="@(new Icons.Regular.Size20.CalendarLtr())"
+                               IconActive="@(new Icons.Filled.Size20.CalendarLtr())">
+                <FluentNavItem Href="/events/calendars">Event Calendars &amp; iCal Feeds</FluentNavItem>
+                <FluentNavItem Href="/events/interactive">Live Interactive Sessions</FluentNavItem>
+                <FluentNavItem Href="/events/registrations">Registrations &amp; Waitlists</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Commerce"
+                               IconRest="@(new Icons.Regular.Size20.Money())"
+                               IconActive="@(new Icons.Filled.Size20.Money())">
+                <FluentNavItem Href="/commerce/catalog">Catalog, Pricing &amp; Punch Packs</FluentNavItem>
+                <FluentNavItem Href="/commerce/orders">Orders &amp; Issued Punch Passes</FluentNavItem>
+                <FluentNavItem Href="/commerce/storefront">Storefront &amp; Checkout</FluentNavItem>
+                <FluentNavItem Href="/commerce/bookings">Services, Rentals &amp; Calendar</FluentNavItem>
+                <FluentNavItem Href="/commerce/book">Public Booking Wizard</FluentNavItem>
             </FluentNavCategory>
 
             <FluentNavCategory Title="Security"

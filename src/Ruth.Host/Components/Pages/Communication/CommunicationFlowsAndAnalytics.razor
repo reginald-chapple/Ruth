@@ -1,0 +1,60 @@
+@page "/communication/flows"
+@rendermode InteractiveServer
+
+<PageTitle>Communication Drip Flows &amp; Analytics — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Communication Flows &amp; Automated Drip Campaigns</h1>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <div class="ruth-kiosk-grid">
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Select Flow, Enroll Cohort &amp; Advance Steps</h2>
+                <FluentSelect TOption="CommunicationFlowResponse"
+                              TValue="Guid"
+                              Label="Active Drip Flow"
+                              Items="@_flows"
+                              OptionText="@(static f => $"{f.Name} ({f.Steps.Count} steps)")"
+                              OptionValue="@(static f => f.Id)"
+                              Value="@_selectedFlowId"
+                              ValueChanged="@OnFlowSelectedAsync" />
+                <FluentTextInput @bind-Value="_cohortLabel" Label="Cohort Label" />
+                <FluentTextInput @bind-Value="_enrollEmail" Label="Enroll Recipient Email" />
+                <FluentTextInput @bind-Value="_enrollName" Label="Recipient Display Name" />
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@EnrollRecipientAsync">
+                        Enroll Into Flow
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AdvanceDueStepsAsync">
+                        Advance Due Drip Steps
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>Create Custom Automated Drip Flow</h2>
+                <FluentTextInput @bind-Value="_newFlowName" Label="Flow Name" />
+                <FluentTextInput @bind-Value="_newFlowKey" Label="Flow Slug Key" />
+                <FluentTextInput @bind-Value="_step1Subject" Label="Step 1 Immediate Email Subject" />
+                <FluentTextInput @bind-Value="_step2Subject" Label="Step 2 Follow-Up Subject (+3 Days)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateCustomFlowAsync">
+                    Save Drip Flow
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    </div>
+
+    <FlowAnalyticsFunnelCard Analytics="@_analytics" />
+</FluentStack>
