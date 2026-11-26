@@ -1,9 +1,10 @@
 using Ruth.Modules.Crm.Contracts.People;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Crm.Domain.People;
 
 /// <summary>Read-only first-name statistical gender lookup entry.</summary>
-public sealed class MetaFirstNameGenderLookup
+public sealed class MetaFirstNameGenderLookup : ITenantScoped
 {
     private MetaFirstNameGenderLookup() { }
 
@@ -43,6 +44,9 @@ public sealed class MetaFirstNameGenderLookup
         Language = language;
     }
 
+    /// <inheritdoc />
+    public TenantId TenantId { get; private set; }
+
     /// <summary>Gets the unique identifier.</summary>
     public Guid Id { get; private set; }
 
@@ -72,6 +76,24 @@ public sealed class MetaFirstNameGenderLookup
 
     /// <summary>Gets the ISO language code.</summary>
     public string Language { get; private set; } = "en";
+
+    /// <inheritdoc />
+    public void AssignTenant(TenantId tenantId)
+    {
+        if (tenantId.IsEmpty)
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty.", nameof(tenantId));
+        }
+
+        if (!TenantId.IsEmpty && TenantId != tenantId)
+        {
+            throw new CrossTenantAccessException(
+                $"Cannot reassign MetaFirstNameGenderLookup ({Id}) from tenant '{TenantId}' to '{tenantId}'."
+            );
+        }
+
+        TenantId = tenantId;
+    }
 
     /// <summary>Predicts gender when one side holds at least 60% probability.</summary>
     public Gender PredictGender()

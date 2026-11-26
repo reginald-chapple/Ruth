@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Tests.Fixtures;
 
@@ -13,6 +14,7 @@ internal static class CommunicationTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["ConnectionStrings:RuthDatabase"] = connectionString,

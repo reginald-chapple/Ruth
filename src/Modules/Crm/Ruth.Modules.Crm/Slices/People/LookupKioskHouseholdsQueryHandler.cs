@@ -31,7 +31,7 @@ internal sealed class LookupKioskHouseholdsQueryHandler(CrmDbContext dbContext, 
         var term = query.SearchTerm?.Trim() ?? string.Empty;
         var (matchedIds, matchKind) =
             query.ExplicitPersonId.HasValue && query.ExplicitPersonId.Value != Guid.Empty
-                ? ([PersonId.From(query.ExplicitPersonId.Value)], "WalletPass")
+                ? ([PersonId.From(query.ExplicitPersonId.Value)], "DirectPerson")
                 : await ResolveMatchedPersonIdsAsync(
                     query,
                     term,

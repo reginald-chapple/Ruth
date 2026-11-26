@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Lms.Infrastructure;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Lms.Tests.Fixtures;
 
@@ -12,6 +13,8 @@ internal static class LmsTestHostFactory
 {
     public static async Task<ServiceProvider> CreateAsync(string connectionString)
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
                 new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
@@ -30,9 +33,7 @@ internal static class LmsTestHostFactory
         _ = services.AddLmsModule(configuration);
 
         var provider = services.BuildServiceProvider();
-        await using var scope = provider.CreateAsyncScope();
-        var lmsDb = scope.ServiceProvider.GetRequiredService<LmsDbContext>();
-        await lmsDb.Database.MigrateAsync();
+        await provider.MigrateModuleSchemaAsync<LmsDbContext>();
 
         return provider;
     }

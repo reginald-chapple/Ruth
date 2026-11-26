@@ -87,6 +87,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeZoneId")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -97,6 +101,8 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.HasIndex("BookableServiceId");
 
                     b.HasIndex("RentableResourceId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("availability_rules", "commerce");
                 });
@@ -223,16 +229,20 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.Property<int>("TeardownBufferMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
                     b.HasIndex("IsActive", "IsPublic");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("bookable_services", "commerce");
                 });
@@ -288,14 +298,18 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
-                    b.HasKey("Id");
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
-                    b.HasIndex("HoldToken")
-                        .IsUnique();
+                    b.HasKey("Id");
 
                     b.HasIndex("EffectiveBlockStartUtc", "EffectiveBlockEndUtc");
 
                     b.HasIndex("IsCompleted", "ExpiresAtUtc");
+
+                    b.HasIndex("TenantId", "HoldToken")
+                        .IsUnique();
 
                     b.ToTable("booking_slot_holds", "commerce");
                 });
@@ -414,6 +428,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.Property<int>("TeardownBufferMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
@@ -422,7 +440,7 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
 
                     b.HasIndex("CoreLocationId");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("rentable_resources", "commerce");
@@ -539,9 +557,6 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.Property<Guid?>("RentableResourceId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("RequiresVirtualRoom")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTimeOffset>("StartUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -560,20 +575,20 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<string>("VirtualRoomReferenceKey")
-                        .HasMaxLength(96)
-                        .HasColumnType("character varying(96)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ConfirmationCode")
-                        .IsUnique();
-
                     b.HasIndex("CustomerPersonId");
+
+                    b.HasIndex("TenantId", "ConfirmationCode")
+                        .IsUnique();
 
                     b.HasIndex("Status", "EffectiveBlockStartUtc", "EffectiveBlockEndUtc");
 
@@ -672,13 +687,17 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.HasIndex("IsActive", "IsPublic", "Kind");
@@ -723,6 +742,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("TrackInventory")
                         .HasColumnType("boolean");
 
@@ -734,7 +757,7 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("Sku")
+                    b.HasIndex("TenantId", "Sku")
                         .IsUnique();
 
                     b.ToTable("product_variants", "commerce");
@@ -781,12 +804,16 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int?>("ValidityDays")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
                     b.ToTable("punch_pass_types", "commerce");
@@ -885,6 +912,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -897,10 +928,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
 
                     b.HasIndex("BuyerPersonId");
 
-                    b.HasIndex("OrderNumber")
-                        .IsUnique();
-
                     b.HasIndex("Status", "CreatedOnUtc");
+
+                    b.HasIndex("TenantId", "OrderNumber")
+                        .IsUnique();
 
                     b.ToTable("orders", "commerce");
                 });
@@ -988,6 +1019,10 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitMemberDiscountAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -1003,6 +1038,8 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("order_lines", "commerce");
                 });
@@ -1069,7 +1106,13 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("IsActive", "Priority");
 
@@ -1128,12 +1171,16 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PassCode")
-                        .IsUnique();
-
                     b.HasIndex("OwnerPersonId", "Status");
+
+                    b.HasIndex("TenantId", "PassCode")
+                        .IsUnique();
 
                     b.ToTable("issued_punch_passes", "commerce");
                 });
@@ -1167,15 +1214,25 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IssuedPunchPassId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("punch_pass_ledger_entries", "commerce");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1189,7 +1246,7 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "commerce");
                 });
@@ -1246,9 +1303,13 @@ namespace Ruth.Modules.Commerce.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "commerce");

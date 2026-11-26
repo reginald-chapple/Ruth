@@ -5,7 +5,7 @@ using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Crm.Domain.Relationships;
 
-/// <summary>Directed scored peer-network connection synchronized into PostgreSQL Apache AGE.</summary>
+/// <summary>Directed scored peer-network connection between two people.</summary>
 public sealed class PeerNetworkEdge : AggregateRoot<PeerNetworkEdgeId>, IAuditableEntity
 {
     private PeerNetworkEdge() { }

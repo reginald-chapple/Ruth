@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Ruth.Modules.Identity.Domain;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
 
@@ -51,6 +52,14 @@ internal sealed class JwtTokenService(IOptions<IdentityJwtOptions> options) : IT
                 ClaimValueTypes.Integer64
             ),
         };
+
+        var effectiveTenantId = !account.TenantId.IsEmpty
+            ? account.TenantId
+            : AmbientTenantContext.CurrentTenantId;
+        if (!effectiveTenantId.IsEmpty)
+        {
+            claims.Add(new Claim(RuthClaimTypes.TenantId, effectiveTenantId.ToString()));
+        }
 
         foreach (var role in roles)
         {

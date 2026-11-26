@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,8 +5,10 @@ using Ruth.Modules.Search.Contracts.Indexing;
 using Ruth.Modules.Search.Infrastructure;
 using Ruth.Modules.Search.Infrastructure.Querying;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.DependencyInjection;
 using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Search.Tests.Fixtures;
 
@@ -21,6 +22,8 @@ internal static class SearchTestHostFactory
         IReadOnlyList<ISearchDocumentProvider>? extraProviders = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
+
         var auth = new StubEntityAuthorizationService();
         var provider = BuildServiceProvider(connectionString, auth, extraProviders);
         await InitializeDatabaseAsync(provider);
@@ -64,11 +67,10 @@ internal static class SearchTestHostFactory
 
     private static async Task InitializeDatabaseAsync(ServiceProvider provider)
     {
-        await using var scope = provider.CreateAsyncScope();
-        var searchDb = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
-        await searchDb.Database.MigrateAsync();
+        await provider.MigrateModuleSchemaAsync<SearchDbContext>();
         await SearchPostgresIndexInitializer.EnsureFullTextIndexesAsync(
-            searchDb,
+            provider.GetService<PostgresRlsRoleProvisioner>(),
+            fallbackDb: null,
             CancellationToken.None
         );
     }

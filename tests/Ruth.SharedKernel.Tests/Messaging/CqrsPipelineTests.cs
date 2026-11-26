@@ -3,13 +3,22 @@ using Microsoft.Extensions.Logging;
 using Ruth.SharedKernel.DependencyInjection;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Tests.TestDoubles;
 using Xunit;
 
 namespace Ruth.SharedKernel.Tests.Messaging;
 
-public sealed class CqrsPipelineTests
+public sealed class CqrsPipelineTests : IDisposable
 {
+    private readonly AmbientTenantContext.TenantScope _tenantScope =
+        AmbientTenantContext.BeginScope(TenantId.Create());
+
+    public void Dispose()
+    {
+        _tenantScope.Dispose();
+    }
+
     private sealed record PingCommand(string Value, bool FailDomain = false, bool Throw = false)
         : ICommand;
 
@@ -284,6 +293,28 @@ public sealed class CqrsPipelineTests
 
         _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             dispatcher.QueryAsync<LookupGreetingQuery, string>(null!)
+        );
+    }
+
+    [Fact]
+    public async Task Pipeline_Throws_TenantContextRequiredException_When_No_Tenant_Is_Active()
+    {
+        using var unresolved = AmbientTenantContext.BeginUnresolvedScope();
+        var services = new ServiceCollection();
+        _ = services
+            .AddSingleton(new InvocationTracker())
+            .AddSingleton<ILogger<LoggingCommandHandler<PingCommand>>>(
+                new RecordingLogger<LoggingCommandHandler<PingCommand>>()
+            )
+            .AddSharedKernel()
+            .AddCommandHandler<PingCommand, PingCommandHandler>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var dispatcher = scope.ServiceProvider.GetRequiredService<ICommandDispatcher>();
+
+        _ = await Assert.ThrowsAsync<TenantContextRequiredException>(() =>
+            dispatcher.SendAsync(new PingCommand("abc"))
         );
     }
 }

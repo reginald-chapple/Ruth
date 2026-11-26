@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ruth.Modules.Identity.Contracts.Onboarding;
-using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.Modules.Identity.Slices.Onboarding;
 using Ruth.Modules.Identity.Tests.Fixtures;
@@ -145,7 +144,7 @@ public sealed class IdentityPersistenceIntegrationTests(Postgres18ContainerFixtu
         Assert.Equal("MAIN", org.PrimaryBranchShortCode);
         Assert.True(org.IsOnboardingCompleted);
         Assert.True(org.SelfRegistrationLocked);
-        Assert.Equal(SecurityRole.AdministratorsRoleId, role.Id);
+        Assert.Equal(IdentityTestHostFactory.CurrentTenantAdministratorsRoleId, role.Id);
         Assert.Equal("admin", user.UserName);
         Assert.NotEqual("StrongPass#2026!", user.PasswordHash, StringComparer.Ordinal);
         _ = Assert.Single(user.Roles);

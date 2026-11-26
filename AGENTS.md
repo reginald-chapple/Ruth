@@ -2,12 +2,12 @@
 
 ## 1. Purpose & Solution Boundary
 
-`Ruth` is a clean-architecture Modular Monolith Relationship, Community & Operations Platform for member-driven, community, non-profit, and service organizations—built on **.NET 10 / C# 14**, **Fluent UI Blazor v5**, **Domain-Driven Design (DDD)**, **PostgreSQL 18** (`postgis`, `pgvector`, `age`), **Redis 8**, **RustFS (S3)**, and **LiveKit (WebRTC)**.
+`Ruth` is a clean-architecture, white-label Multi-Tenant SaaS Relationship, Community & Operations Platform for **IRS-recognized tax-exempt organizations** (501(c)(3) charities, foundations, humanitarian, educational, faith-based, and community aid organizations)—built on **.NET 10 / C# 14**, **Fluent UI Blazor v5**, **Domain-Driven Design (DDD)**, **PostgreSQL 18** (`postgis`, `pgvector`, `FORCE ROW LEVEL SECURITY`), **Redis 8**, and **RustFS (S3)**.
 
 - **Solution file:** `Ruth.slnx`
 - **Implementation roadmap & slice catalog:** `docs/IMPLEMENTATION_PLAN.md`
-- **Clean-room & licensing boundary:** Design all domain models, scoring algorithms, workflows, and persistence schemas strictly from first-principles functional specifications and open standards (e.g., RFC 5545 iCalendar, OAuth2/OIDC, IRS/GAAP fund & fee accounting, PKCS#7 Apple `.pkpass` & Google Wallet JWTs, Apache-2.0 LiveKit WebRTC, Zebra ZPL). Never reference, inspect, or copy code, proprietary heuristics, magic constants, or schemas from Rock RMS or any restrictively licensed codebase.
-- **Organization-agnostic domain model:** Keep core modules neutral across member, community, non-profit, and service organizations—supporting `Branch` (`Site`/`Branch`/`Chapter`/`Center`) operating units, configurable reporting week boundaries, smart Apple/Google Wallet member passes, per-account tax deductibility (handling both tax-deductible funds/grants and standard dues/fees/invoices/quid-pro-quo commerce), bookable services & facility rentals, embedded LiveKit virtual rooms, volunteer/shift scheduling, and assistance/grant case management.
+- **Clean-room & licensing boundary:** Design all domain models, scoring algorithms, workflows, and persistence schemas strictly from first-principles functional specifications and open standards (e.g., RFC 5545 iCalendar, OAuth2/OIDC, IRS/GAAP fund & fee accounting, Zebra ZPL). Never reference, inspect, or copy code, proprietary heuristics, magic constants, or schemas from Rock RMS or any restrictively licensed codebase.
+- **Tax-exempt SaaS domain & stealth posture:** Serve verified IRS-recognized tax-exempt organizations with zero public directory and zero tech-stack exposure—supporting self-serve `Sandbox` workspace provisioning, IRS EIN / Exempt Organizations Business Master File (EO BMF) verification & mockable Stripe Connect readiness before `Live` approval, `Branch` (`Site`/`Branch`/`Chapter`/`Center`) operating units, configurable reporting week boundaries, per-account tax deductibility (handling both tax-deductible funds/grants and program fees/invoices/quid-pro-quo splits), bookable services & facility rentals, volunteer/shift scheduling, and assistance/grant case management.
 
 ## 2. MCAF 1.3 Governance Policies
 
@@ -32,6 +32,10 @@ This repository adopts **MCAF 1.3**:
    - Public CMS routes use `Static SSR` + `<DynamicComponent>` interactive islands.
    - Templating uses compiled `.razor` components (`HtmlRenderer`) plus safe declarative merge tokens for database-stored content—never Lava/Liquid or arbitrary runtime C# scripting.
    - External HTTP APIs use ASP.NET Core Minimal APIs (`TypedResults`, `CancellationToken` forwarded everywhere, built-in `AddOpenApi()` — never Swashbuckle).
+4. **Multi-Tenant Defense-in-Depth & White-Label Stealth:**
+   - Every tenant-owned table across all tenant module schemas enforces **both** EF Core Global Query Filters (`ITenantScoped` / `TenantId`) **and** PostgreSQL 18 `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` (`tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid`) under a non-superuser, non-`BYPASSRLS` runtime database role (`ruth_app`).
+   - Platform control-plane entities (`Tenant`, `TenantDomain`, `IrsExemptVerification`, `StripeConnectAccount`, `PlatformOperator`) live exclusively in `Ruth.Modules.Tenancy` (`platform` schema).
+   - Logins, sessions, cookies (`__Host-` / host-only neutral names), caches (`t:{TenantId}:...`), Outbox/Inbox messages, scheduled jobs, and S3 object keys (`tenants/{TenantId}/...`) are strictly isolated per tenant with zero cross-tenant discovery, zero public org directory, and zero `"Powered by Ruth"` or framework-identifying headers on tenant hosts.
 
 ## 4. Tool Ownership & Quality Baseline
 

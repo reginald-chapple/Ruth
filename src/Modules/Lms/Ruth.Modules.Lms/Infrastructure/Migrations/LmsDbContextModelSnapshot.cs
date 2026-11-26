@@ -84,7 +84,13 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<int>("Points")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("LearningClassId", "Order");
 
@@ -156,6 +162,10 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<string>("SubmissionDataJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("WasCompletedOnTime")
                         .HasColumnType("boolean");
 
@@ -165,7 +175,7 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
 
                     b.HasIndex("LearningClassId", "RequiresGrading");
 
-                    b.HasIndex("LearningParticipantId", "LearningActivityId")
+                    b.HasIndex("TenantId", "LearningParticipantId", "LearningActivityId")
                         .IsUnique();
 
                     b.ToTable("learning_activity_completions", "lms");
@@ -218,12 +228,15 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<bool>("TakesAttendance")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("VirtualRoomId")
-                        .HasColumnType("uuid");
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("LearningCourseId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("learning_classes", "lms");
                 });
@@ -247,12 +260,18 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("LearningClassId", "PublishDateTimeUtc");
 
@@ -277,12 +296,18 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("StartDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("LearningClassId", "Order");
 
@@ -334,11 +359,15 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("LearningClassId", "PersonId")
+                    b.HasIndex("TenantId", "LearningClassId", "PersonId")
                         .IsUnique();
 
                     b.ToTable("learning_participants", "lms");
@@ -406,9 +435,13 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("LearningProgramId", "CourseCode")
+                    b.HasIndex("TenantId", "LearningProgramId", "CourseCode")
                         .IsUnique();
 
                     b.ToTable("learning_courses", "lms");
@@ -430,9 +463,15 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("LearningCourseId", "RequiredLearningCourseId")
+                    b.HasIndex("LearningCourseId");
+
+                    b.HasIndex("TenantId", "LearningCourseId", "RequiredLearningCourseId")
                         .IsUnique();
 
                     b.ToTable("learning_course_requirements", "lms");
@@ -465,11 +504,17 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("ThresholdPercentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("LearningGradingSystemId", "Order");
 
@@ -503,7 +548,13 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("learning_grading_systems", "lms");
                 });
@@ -569,7 +620,13 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("learning_programs", "lms");
                 });
@@ -614,15 +671,25 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LearningProgramId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("learning_terms", "lms");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -636,7 +703,7 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "lms");
                 });
@@ -693,9 +760,13 @@ namespace Ruth.Modules.Lms.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "lms");

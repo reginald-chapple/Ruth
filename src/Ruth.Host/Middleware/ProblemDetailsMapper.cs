@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using DomainResult = Ruth.SharedKernel.Results.Result;
 
 namespace Ruth.Host.Middleware;
@@ -109,6 +110,20 @@ internal static class ProblemDetailsMapper
     {
         return exception switch
         {
+            CrossTenantAccessException => (
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "Access to this workspace is denied.",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+                false
+            ),
+            TenantContextRequiredException => (
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                "The requested workspace was not found.",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                false
+            ),
             UnauthorizedAccessException => (
                 StatusCodes.Status401Unauthorized,
                 "Unauthorized",

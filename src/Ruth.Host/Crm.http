@@ -56,7 +56,7 @@ Content-Type: application/json
   "searchValue": "CHK-88421"
 }
 
-### --- W2-S2: Households & Apache AGE Relationship Graph ---
+### --- W2-S2: Households & Relationship Graph ---
 
 ### Create a household with members
 POST {{baseUrl}}/api/crm/households
@@ -81,7 +81,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/crm/households/by-person/{{personId}}
 Authorization: Bearer {{accessToken}}
 
-### Add a known relationship (creates reciprocal inverse + syncs Apache AGE)
+### Add a known relationship (creates reciprocal inverse)
 POST {{baseUrl}}/api/crm/relationships/known
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -107,7 +107,7 @@ Content-Type: application/json
   "relationshipStartDate": "2026-01-01"
 }
 
-### Traverse Apache AGE crm_graph (multi-hop)
+### Traverse multi-hop relationship graph
 GET {{baseUrl}}/api/crm/relationships/graph/{{personId}}?maxHops=2
 Authorization: Bearer {{accessToken}}
 

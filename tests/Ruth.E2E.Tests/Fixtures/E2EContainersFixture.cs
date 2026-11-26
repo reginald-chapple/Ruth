@@ -13,7 +13,7 @@ public sealed class E2EContainersFixture : IAsyncLifetime, IAsyncDisposable
     private const string PostgresUser = "ruth";
     private const string PostgresPassword = "ruth_secret";
     private const string DefaultDatabase = "ruth";
-    private const string PostgresE2EImageTag = "ruth-postgres18-e2e:latest";
+    private const string PostgresE2EImageTag = "ruth-postgres18-postgis:latest";
 
     private PostgreSqlContainer? _postgresContainer;
     private IContainer? _redisContainer;

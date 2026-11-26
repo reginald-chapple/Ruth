@@ -10,7 +10,12 @@ internal sealed class DataViewPersistedValueConfiguration
     public void Configure(EntityTypeBuilder<DataViewPersistedValue> builder)
     {
         _ = builder.ToTable("data_view_persisted_values");
-        _ = builder.HasKey(static x => new { x.DataViewId, x.EntityId });
+        _ = builder.HasKey(static x => new
+        {
+            x.TenantId,
+            x.DataViewId,
+            x.EntityId,
+        });
         _ = builder.HasIndex(static x => x.EntityId);
     }
 }

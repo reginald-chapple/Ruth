@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Slices;
 using Ruth.Modules.Finance.Slices.Accounts;
@@ -17,6 +18,7 @@ using Ruth.Modules.Finance.Slices.Recurring;
 using Ruth.Modules.Finance.Slices.Statements;
 using Ruth.Modules.Finance.Slices.Transactions;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Finance;
 
@@ -44,6 +46,10 @@ public static class FinanceModuleExtensions
             FinanceDbContext.SchemaName
         );
 
+        services.TryAddScoped<FinanceTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, FinanceTenantSeedContributor>()
+        );
         _ = services.AddHostedService<FinanceBootstrapHostedService>();
         FinanceW4S1SliceRegistration.RegisterW4S1Services(services);
         FinanceW4S2SliceRegistration.RegisterW4S2Services(services, configuration);

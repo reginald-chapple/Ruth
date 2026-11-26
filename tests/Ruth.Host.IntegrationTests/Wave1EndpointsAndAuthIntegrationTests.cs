@@ -61,7 +61,7 @@ public sealed class Wave1EndpointsAndAuthIntegrationTests(HostContainersFixture 
         // 2. REST API Key creation + Authorization-Token header + revocation
         await VerifyApiKeyLifecycleAsync(client, accessToken);
 
-        // 3. Cookie login sets .Ruth.Auth cookie + works on /api/auth/me + logout clears it
+        // 3. Cookie login sets neutral host-only sid cookie + works on /api/auth/me + logout clears it
         await VerifyCookieAuthLifecycleAsync(client);
     }
 
@@ -255,7 +255,7 @@ public sealed class Wave1EndpointsAndAuthIntegrationTests(HostContainersFixture 
         Assert.Equal(HttpStatusCode.OK, loginResp.StatusCode);
         Assert.True(loginResp.Headers.TryGetValues("Set-Cookie", out var setCookies));
         var authCookie = setCookies
-            .First(static c => c.StartsWith(".Ruth.Auth=", StringComparison.Ordinal))
+            .First(static c => c.StartsWith("sid=", StringComparison.Ordinal))
             .Split(';')[0];
 
         using var cookieMeReq = new HttpRequestMessage(

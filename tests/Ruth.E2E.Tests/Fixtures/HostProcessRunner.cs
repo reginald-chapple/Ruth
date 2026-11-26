@@ -25,6 +25,8 @@ public static class HostProcessRunner
         "Logging__",
         "Outbox__",
         "Scheduler__",
+        "Tenancy__",
+        "Persistence__",
     ];
 
     public static async Task<ProcessRunResult> RunHostAsync(
@@ -197,6 +199,8 @@ public static class HostProcessRunner
         }
 
         startInfo.Environment["ASPNETCORE_URLS"] = baseUrl;
+        startInfo.Environment["Tenancy__DedicatedWorkspaceTenantId"] =
+            RuthHostFactory.DefaultWorkspaceTenantId;
 
         foreach (var (key, value) in environmentVariables)
         {

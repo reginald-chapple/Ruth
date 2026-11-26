@@ -1,14 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Reporting.Infrastructure.Analytics;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Reporting.Infrastructure;
 
 internal sealed partial class ReportingBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<ReportingBootstrapHostedService> logger
 ) : IHostedService
@@ -21,10 +21,13 @@ internal sealed partial class ReportingBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ReportingDbContext>();
-        await db.Database.MigrateAsync(cancellationToken);
-        await StarSchemaSqlViews.EnsureBiViewsAsync(db, cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<ReportingDbContext>(cancellationToken);
+        var provisioner = serviceProvider.GetService<PostgresRlsRoleProvisioner>();
+        await StarSchemaSqlViews.EnsureBiViewsAsync(
+            provisioner,
+            fallbackDb: null,
+            cancellationToken
+        );
         LogMigrationsCompleted(logger);
     }
 

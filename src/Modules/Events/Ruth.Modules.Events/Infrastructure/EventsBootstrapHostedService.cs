@@ -1,15 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Ruth.Modules.Events.Contracts.Calendars;
-using Ruth.Modules.Events.Domain.Calendars;
+using Ruth.Persistence.EntityFramework;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Events.Infrastructure;
 
 internal sealed partial class EventsBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<EventsBootstrapHostedService> logger
 ) : IHostedService
@@ -22,60 +21,21 @@ internal sealed partial class EventsBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<EventsDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
-        await SeedDefaultCalendarsAsync(dbContext, cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<EventsDbContext>(cancellationToken);
+
+        if (AmbientTenantContext.Instance.HasTenant)
+        {
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var seeder = scope.ServiceProvider.GetRequiredService<EventsTenantSeedContributor>();
+            await seeder.SeedTenantAsync(AmbientTenantContext.CurrentTenantId, cancellationToken);
+        }
+
         LogMigrationsCompleted(logger);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
-    }
-
-    private static async Task SeedDefaultCalendarsAsync(
-        EventsDbContext dbContext,
-        CancellationToken cancellationToken
-    )
-    {
-        if (await dbContext.EventCalendars.AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
-        EventCalendarSpec[] defaults =
-        [
-            new(
-                Name: "Public Events Calendar",
-                Slug: "public-events",
-                Description: "Public-facing community, member, and program events.",
-                ColorHex: "#0F6CBD",
-                IsPublic: true,
-                IsIndexEnabled: true,
-                IsActive: true
-            ),
-            new(
-                Name: "Internal Operations Calendar",
-                Slug: "internal-operations",
-                Description: "Staff, volunteer, and facility coordination calendar.",
-                ColorHex: "#498205",
-                IsPublic: false,
-                IsIndexEnabled: false,
-                IsActive: true
-            ),
-        ];
-
-        foreach (var spec in defaults)
-        {
-            var created = EventCalendar.Create(spec);
-            if (created.IsSuccess)
-            {
-                _ = dbContext.EventCalendars.Add(created.Value);
-            }
-        }
-
-        _ = await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     [LoggerMessage(

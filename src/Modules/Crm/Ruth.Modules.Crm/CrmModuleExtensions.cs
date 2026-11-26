@@ -16,13 +16,14 @@ using Ruth.Modules.Crm.Slices.Relationships;
 using Ruth.Modules.Crm.Slices.Signals;
 using Ruth.Modules.Crm.Slices.Verification;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Crm;
 
 /// <summary>Service registration and Minimal API endpoint mapping extensions for the CRM module.</summary>
 public static class CrmModuleExtensions
 {
-    /// <summary>Registers the CRM module DbContext, Apache AGE graph service, badge evaluators, duplicate scanner job, and slice handlers.</summary>
+    /// <summary>Registers the CRM module DbContext, relational graph service, badge evaluators, duplicate scanner job, and slice handlers.</summary>
     public static IServiceCollection AddCrmModule(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -71,7 +72,7 @@ public static class CrmModuleExtensions
 
     private static void RegisterInfrastructure(IServiceCollection services)
     {
-        services.TryAddSingleton<ICrmGraphService, ApacheAgeCrmGraphService>();
+        services.TryAddScoped<ICrmGraphService, RelationalCrmGraphService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IBackgroundCheckProvider, InMemoryBackgroundCheckProvider>()
         );
@@ -81,6 +82,10 @@ public static class CrmModuleExtensions
         >();
 
         RegisterBuiltInBadgeEvaluators(services);
+        services.TryAddScoped<CrmTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, CrmTenantSeedContributor>()
+        );
         _ = services.AddScheduledJob<PersonDuplicateScannerJob>();
         _ = services.AddHostedService<CrmBootstrapHostedService>();
     }

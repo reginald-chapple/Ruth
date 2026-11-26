@@ -28,7 +28,6 @@
     <ProjectReference Include="..\..\src\Modules\CheckIn\Ruth.Modules.CheckIn.Contracts\Ruth.Modules.CheckIn.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\CheckIn\Ruth.Modules.CheckIn\Ruth.Modules.CheckIn.csproj" />
     <ProjectReference Include="..\..\src\Modules\Communication\Ruth.Modules.Communication.Contracts\Ruth.Modules.Communication.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Providers\Ruth.Providers.WalletPasses\Ruth.Providers.WalletPasses.csproj" />
     <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core\Ruth.Modules.Core.csproj" />
     <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />

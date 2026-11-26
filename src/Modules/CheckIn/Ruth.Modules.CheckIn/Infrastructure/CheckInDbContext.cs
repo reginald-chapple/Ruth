@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.CheckIn.Domain.Configurations;
 using Ruth.Modules.CheckIn.Domain.Labels;
 using Ruth.Modules.CheckIn.Domain.Sessions;
-using Ruth.Modules.CheckIn.Domain.WalletPasses;
 using Ruth.Modules.CheckIn.Infrastructure.Configurations;
 using Ruth.Persistence.EntityFramework;
 
@@ -40,16 +39,6 @@ public sealed class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
 
     /// <summary>Gets the check-in badge and receipt label definitions table.</summary>
     public DbSet<CheckInLabel> CheckInLabels => Set<CheckInLabel>();
-
-    /// <summary>Gets the smart wallet pass templates table.</summary>
-    public DbSet<WalletPassTemplate> WalletPassTemplates => Set<WalletPassTemplate>();
-
-    /// <summary>Gets the issued smart wallet passes table.</summary>
-    public DbSet<IssuedWalletPass> IssuedWalletPasses => Set<IssuedWalletPass>();
-
-    /// <summary>Gets the Apple PassKit device push registrations table.</summary>
-    public DbSet<WalletPassDeviceRegistration> WalletPassDeviceRegistrations =>
-        Set<WalletPassDeviceRegistration>();
 
     /// <inheritdoc />
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)

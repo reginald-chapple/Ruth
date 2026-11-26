@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Ruth.Modules.Identity.Contracts.Authentication;
 using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
 
@@ -58,6 +59,13 @@ public static class ClaimsPrincipalExtensions
             new(ClaimTypes.Email, tokens.Email),
             new(RuthClaimTypes.DisplayName, tokens.DisplayName),
         };
+
+        if (!AmbientTenantContext.CurrentTenantId.IsEmpty)
+        {
+            claims.Add(
+                new Claim(RuthClaimTypes.TenantId, AmbientTenantContext.CurrentTenantId.ToString())
+            );
+        }
 
         foreach (var role in tokens.Roles)
         {

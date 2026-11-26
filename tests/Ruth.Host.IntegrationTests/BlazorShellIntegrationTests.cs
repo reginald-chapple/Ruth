@@ -41,12 +41,13 @@ public sealed class BlazorShellIntegrationTests
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains("<!DOCTYPE html>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<html lang=\"en\">", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<title>Ruth RMS</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<title>Test Organization</title>", html, StringComparison.Ordinal);
         Assert.Contains("<header", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<nav", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<main", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<footer", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<h1>Ruth RMS</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Test Organization</h1>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ruth RMS", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("fluent-layout", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("fluent-nav", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Blazor.theme.switchTheme", html, StringComparison.Ordinal);

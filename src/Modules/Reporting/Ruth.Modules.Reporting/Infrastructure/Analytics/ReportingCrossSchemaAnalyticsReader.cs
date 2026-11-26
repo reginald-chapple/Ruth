@@ -1,8 +1,10 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using Ruth.Modules.Reporting.Contracts.Analytics;
 using Ruth.Modules.Reporting.Infrastructure.DataViews;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Reporting.Infrastructure.Analytics;
 
@@ -535,18 +537,23 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         var shouldClose = conn.State != System.Data.ConnectionState.Open;
         if (shouldClose)
         {
-            await conn.OpenAsync(ct);
+            await db.Database.OpenConnectionAsync(ct);
         }
 
         try
         {
+            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+                conn,
+                db.Database.CurrentTransaction?.GetDbTransaction(),
+                ct
+            );
             await action(conn);
         }
         finally
         {
             if (shouldClose)
             {
-                await conn.CloseAsync();
+                await db.Database.CloseConnectionAsync();
             }
         }
     }

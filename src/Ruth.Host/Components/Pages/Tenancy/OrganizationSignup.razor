@@ -1,0 +1,71 @@
+@page "/signup"
+@layout OnboardingLayout
+
+<PageTitle>Nonprofit Workspace Provisioning</PageTitle>
+
+<div class="ruth-onboarding-container">
+    @if (!IsAllowedHost)
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Warning" Title="Not Available" AllowDismiss="false">
+            Workspace signup is not served on this host.
+        </FluentMessageBar>
+    }
+    else if (ProvisionedWorkspace is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h1>Sandbox Workspace Ready</h1>
+                <p>
+                    Your isolated nonprofit Sandbox workspace has been provisioned. Complete IRS tax-exempt
+                    verification and payout onboarding inside your workspace before going live on your custom domain.
+                </p>
+                <p><strong>Sandbox Host:</strong> <code>@ProvisionedWorkspace.SandboxHostname</code></p>
+                <a href="@SandboxLoginUrl">Continue to Workspace Sign-In</a>
+            </FluentStack>
+        </FluentCard>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <header>
+                <h1>IRS Tax-Exempt Organization Signup</h1>
+                <p>
+                    Exclusively for IRS-recognized 501(c)(3) charities, foundations, humanitarian, educational,
+                    and community aid organizations.
+                </p>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <div role="alert">
+                    <FluentMessageBar Intent="MessageBarIntent.Error" Title="Unable to provision workspace" AllowDismiss="false">
+                        @ErrorMessage
+                    </FluentMessageBar>
+                </div>
+            }
+
+            <FluentCard Padding="@Padding.All4">
+                <EditForm Model="@Model" OnValidSubmit="@SubmitAsync">
+                    <DataAnnotationsValidator />
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                        <FluentTextInput Id="signup-legal-name" @bind-Value="Model.LegalName" Label="IRS Legal Organization Name" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-display-name" @bind-Value="Model.DisplayName" Label="Public Display Name" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-slug" @bind-Value="Model.Slug" Label="Sandbox Subdomain Slug" Placeholder="helping-hands" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-ein" @bind-Value="Model.Ein" Label="IRS Employer Identification Number (EIN)" Placeholder="52-1234567" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-subsection" @bind-Value="Model.IrsSubsectionCode" Label="IRS Subsection" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-state" @bind-Value="Model.StateCode" Label="State of Incorporation (2-letter)" MaxLength="2" Required="true" Width="100%" />
+                        <FluentSelect TOption="TimeZoneOption" TValue="string" Id="signup-timezone" Items="@TimeZones" OptionText="@(static tz => tz.DisplayName)" OptionValue="@(static tz => tz.Id)" @bind-Value="Model.TimeZoneId" Label="Time Zone" Width="100%" />
+                        <FluentTextInput Id="signup-branch" @bind-Value="Model.PrimaryBranchName" Label="Primary Operating Site / Center" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-admin-name" @bind-Value="Model.AdminDisplayName" Label="Administrator Full Name" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-admin-user" @bind-Value="Model.AdminUserName" Label="Administrator Username" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-admin-email" @bind-Value="Model.AdminEmail" TextInputType="TextInputType.Email" Label="Administrator Email" Required="true" Width="100%" />
+                        <FluentTextInput Id="signup-admin-password" @bind-Value="Model.AdminPassword" TextInputType="TextInputType.Password" Label="Administrator Password (12+ chars)" Required="true" Width="100%" />
+                        <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" Disabled="@IsSubmitting" Loading="@IsSubmitting">
+                            Provision Sandbox Workspace
+                        </FluentButton>
+                    </FluentStack>
+                </EditForm>
+            </FluentCard>
+        </FluentStack>
+    }
+</div>

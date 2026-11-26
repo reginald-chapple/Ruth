@@ -11,8 +11,8 @@ using Ruth.Modules.Groups;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.CommunicationTransports;
 using Ruth.Providers.PaymentGateways;
-using Ruth.Providers.WalletPasses;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Commerce.Tests.Fixtures;
 
@@ -23,6 +23,7 @@ internal static class CommerceTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var configuration = BuildConfiguration(connectionString);
         var services = new ServiceCollection();
         RegisterModules(services, configuration);
@@ -48,7 +49,6 @@ internal static class CommerceTestHostFactory
             ["Bootstrap:AutoMigrateAndSeed"] = "true",
             ["PaymentGateways:Nmi:WebhookSigningSecret"] = "nmi-test-webhook-secret",
             ["PaymentGateways:Stripe:WebhookSigningSecret"] = "stripe-test-webhook-secret",
-            ["WalletPasses:Security:AuthTokenPepper"] = "commerce-wallet-test-pepper-2026",
         };
         return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
     }
@@ -64,7 +64,6 @@ internal static class CommerceTestHostFactory
         _ = services.AddCrmModule(configuration);
         _ = services.AddGroupsModule(configuration);
         _ = services.AddCheckInModule(configuration);
-        _ = services.AddWalletPassProviders(configuration);
         _ = services.AddCommunicationModule(configuration);
         _ = services.AddCommunicationTransportProviders(configuration);
         _ = services.AddPaymentGatewayProviders(configuration);

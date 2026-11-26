@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Ruth.SharedKernel.Tenancy;
 using StackExchange.Redis;
 
 namespace Ruth.Modules.Core.Infrastructure.Caching;
@@ -28,9 +29,16 @@ internal sealed partial class CoreReadCache(
         ArgumentException.ThrowIfNullOrWhiteSpace(bucket);
         ArgumentNullException.ThrowIfNull(loader);
 
-        var remoteVersion = await TryReadVersionAsync(bucket);
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return await loader(cancellationToken);
+        }
+
+        var localKey = BuildLocalKey(tenantId, bucket);
+        var remoteVersion = await TryReadVersionAsync(tenantId, bucket);
         if (
-            _buckets.TryGetValue(bucket, out var existing)
+            _buckets.TryGetValue(localKey, out var existing)
             && existing.Payload is T typed
             && (
                 remoteVersion is null
@@ -43,7 +51,7 @@ internal sealed partial class CoreReadCache(
 
         var loaded = await loader(cancellationToken);
         var version = remoteVersion ?? Guid.CreateVersion7().ToString("N");
-        _buckets[bucket] = new CachedBucket(version, loaded);
+        _buckets[localKey] = new CachedBucket(version, loaded);
         return loaded;
     }
 
@@ -53,21 +61,42 @@ internal sealed partial class CoreReadCache(
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = _buckets.TryRemove(bucket, out _);
-        await TryBumpVersionAsync(bucket);
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            _buckets.Clear();
+            return;
+        }
+
+        _ = _buckets.TryRemove(BuildLocalKey(tenantId, bucket), out _);
+        await TryBumpVersionAsync(tenantId, bucket);
     }
 
     public async Task InvalidateAllAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _buckets.Clear();
-        await TryBumpVersionAsync(EntityTypesBucket);
-        await TryBumpVersionAsync(DefinedTypesBucket);
-        await TryBumpVersionAsync(CategoriesBucket);
-        await TryBumpVersionAsync(AttributesBucket);
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            _buckets.Clear();
+            return;
+        }
+
+        string[] buckets =
+        [
+            EntityTypesBucket,
+            DefinedTypesBucket,
+            CategoriesBucket,
+            AttributesBucket,
+        ];
+        foreach (var bucket in buckets)
+        {
+            _ = _buckets.TryRemove(BuildLocalKey(tenantId, bucket), out _);
+            await TryBumpVersionAsync(tenantId, bucket);
+        }
     }
 
-    private async Task<string?> TryReadVersionAsync(string bucket)
+    private async Task<string?> TryReadVersionAsync(TenantId tenantId, string bucket)
     {
         if (redis is null || !redis.IsConnected)
         {
@@ -76,7 +105,7 @@ internal sealed partial class CoreReadCache(
 
         try
         {
-            var value = await redis.GetDatabase().StringGetAsync(BuildRedisKey(bucket));
+            var value = await redis.GetDatabase().StringGetAsync(BuildRedisKey(tenantId, bucket));
             return value.HasValue ? value.ToString() : null;
         }
         catch (RedisException ex)
@@ -86,7 +115,7 @@ internal sealed partial class CoreReadCache(
         }
     }
 
-    private async Task TryBumpVersionAsync(string bucket)
+    private async Task TryBumpVersionAsync(TenantId tenantId, string bucket)
     {
         if (redis is null || !redis.IsConnected)
         {
@@ -97,7 +126,10 @@ internal sealed partial class CoreReadCache(
         {
             _ = await redis
                 .GetDatabase()
-                .StringSetAsync(BuildRedisKey(bucket), Guid.CreateVersion7().ToString("N"));
+                .StringSetAsync(
+                    BuildRedisKey(tenantId, bucket),
+                    Guid.CreateVersion7().ToString("N")
+                );
         }
         catch (RedisException ex)
         {
@@ -105,9 +137,14 @@ internal sealed partial class CoreReadCache(
         }
     }
 
-    private static string BuildRedisKey(string bucket)
+    private static string BuildLocalKey(TenantId tenantId, string bucket)
     {
-        return $"ruth:core:cache:{bucket}:version";
+        return $"{tenantId}:{bucket}";
+    }
+
+    private static string BuildRedisKey(TenantId tenantId, string bucket)
+    {
+        return $"t:{tenantId}:core:cache:{bucket}:version";
     }
 
     [LoggerMessage(

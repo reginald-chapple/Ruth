@@ -7,6 +7,7 @@ using Ruth.Modules.Commerce.Domain.Orders;
 using Ruth.Modules.Commerce.Domain.Pricing;
 using Ruth.Modules.Commerce.Domain.PunchPasses;
 using Ruth.Modules.Commerce.Infrastructure;
+using Ruth.Modules.Commerce.Slices.PunchPasses;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
 using Ruth.SharedKernel.Time;
@@ -17,7 +18,7 @@ internal sealed class SubmitCommerceOrderCommandHandler(
     CommerceDbContext dbContext,
     CommerceCartEvaluationCollaborator evaluator,
     CommerceOrderFinanceCollaborator financeCollaborator,
-    WalletPassCommerceSyncCollaborator walletPassSync,
+    PunchPassCreditCalculator creditCalculator,
     IClock clock
 ) : ICommandHandler<SubmitCommerceOrderCommand, CommerceOrderResponse>
 {
@@ -260,7 +261,7 @@ internal sealed class SubmitCommerceOrderCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var totalCredits = await walletPassSync.ComputeActivePunchCreditsAsync(
+        var totalCredits = await creditCalculator.ComputeActivePunchCreditsAsync(
             buyerId,
             nowUtc,
             cancellationToken
@@ -282,6 +283,5 @@ internal sealed class SubmitCommerceOrderCommandHandler(
         }
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-        await walletPassSync.SyncPunchPassBalanceAsync(buyerId, totalCredits, cancellationToken);
     }
 }

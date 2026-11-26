@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Cms.Infrastructure;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 using StackExchange.Redis;
 
 namespace Ruth.Modules.Cms.Tests.Fixtures;
@@ -14,6 +15,18 @@ internal static class CmsTestHostFactory
     public static async Task<ServiceProvider> CreateAsync(
         string connectionString,
         IConnectionMultiplexer? redis = null
+    )
+    {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
+
+        var provider = BuildServiceProvider(connectionString, redis);
+        await InitializeDatabaseAsync(provider);
+        return provider;
+    }
+
+    private static ServiceProvider BuildServiceProvider(
+        string connectionString,
+        IConnectionMultiplexer? redis
     )
     {
         var configuration = new ConfigurationBuilder()
@@ -39,13 +52,14 @@ internal static class CmsTestHostFactory
         }
 
         _ = services.AddCmsModule(configuration);
+        return services.BuildServiceProvider();
+    }
 
-        var provider = services.BuildServiceProvider();
+    private static async Task InitializeDatabaseAsync(ServiceProvider provider)
+    {
+        await provider.MigrateModuleSchemaAsync<CmsDbContext>();
         await using var scope = provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<CmsDbContext>();
-        await db.Database.MigrateAsync();
         await CmsBootstrapHostedService.EnsureBuiltInBlockTypesAsync(db, CancellationToken.None);
-
-        return provider;
     }
 }

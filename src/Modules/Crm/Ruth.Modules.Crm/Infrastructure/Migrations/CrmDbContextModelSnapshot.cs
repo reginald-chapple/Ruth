@@ -68,9 +68,15 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PersonId", "AssessmentTypeId");
 
@@ -135,6 +141,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<bool>("RequiresRequest")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -145,7 +155,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedKey")
+                    b.HasIndex("TenantId", "NormalizedKey")
                         .IsUnique();
 
                     b.ToTable("assessment_types", "crm");
@@ -220,9 +230,15 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ProviderKey", "RequestId");
 
@@ -274,7 +290,13 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("IsActive", "Order");
 
@@ -322,6 +344,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TotalCapacity")
                         .HasColumnType("integer");
 
@@ -331,7 +357,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasIndex("Person2Id");
 
-                    b.HasIndex("Person1Id", "Person2Id")
+                    b.HasIndex("TenantId", "Person1Id", "Person2Id")
                         .IsUnique();
 
                     b.ToTable("person_duplicates", "crm");
@@ -366,14 +392,18 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("TargetPersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExternalRecordGuid");
 
-                    b.HasIndex("SourcePersonId")
-                        .IsUnique();
-
                     b.HasIndex("TargetPersonId");
+
+                    b.HasIndex("TenantId", "SourcePersonId")
+                        .IsUnique();
 
                     b.ToTable("person_redirects", "crm");
                 });
@@ -415,6 +445,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Attributes");
@@ -424,6 +458,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.HasIndex("BranchId");
 
                     b.HasIndex("IsArchived");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("households", "crm");
                 });
@@ -460,11 +496,17 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("ModifiedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("LocationId");
 
-                    b.HasIndex("HouseholdId", "LocationId")
+                    b.HasIndex("TenantId", "HouseholdId", "LocationId")
                         .IsUnique();
 
                     b.ToTable("household_locations", "crm");
@@ -501,12 +543,18 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("HouseholdId", "PersonId")
-                        .IsUnique();
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("PersonId", "HouseholdOrder");
+
+                    b.HasIndex("TenantId", "HouseholdId", "PersonId")
+                        .IsUnique();
 
                     b.ToTable("household_members", "crm");
                 });
@@ -551,12 +599,18 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TotalCount")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedFirstName");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("meta_first_name_gender_lookups", "crm");
                 });
@@ -595,17 +649,27 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedFirstName");
 
                     b.HasIndex("NormalizedNickName");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("meta_nick_name_lookups", "crm");
                 });
 
             modelBuilder.Entity("Ruth.Modules.Crm.Domain.People.MetaphoneEntry", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Name")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -625,11 +689,11 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("character varying(4)");
 
-                    b.HasKey("Name");
+                    b.HasKey("TenantId", "Name");
 
-                    b.HasIndex("AlternateKey");
+                    b.HasIndex("TenantId", "AlternateKey");
 
-                    b.HasIndex("PrimaryKey");
+                    b.HasIndex("TenantId", "PrimaryKey");
 
                     b.ToTable("metaphones", "crm");
                 });
@@ -806,6 +870,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -862,6 +930,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasIndex("RecordStatus");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("LastName", "FirstName");
 
                     b.ToTable("people", "crm");
@@ -891,11 +961,17 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedLastName");
 
-                    b.HasIndex("PersonId", "NormalizedLastName")
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId", "PersonId", "NormalizedLastName")
                         .IsUnique();
 
                     b.ToTable("person_previous_names", "crm");
@@ -936,11 +1012,17 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedSearchValue");
 
-                    b.HasIndex("PersonId", "KeyType", "NormalizedSearchValue")
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId", "PersonId", "KeyType", "NormalizedSearchValue")
                         .IsUnique();
 
                     b.ToTable("person_search_keys", "crm");
@@ -1013,6 +1095,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("E164Number");
@@ -1022,6 +1108,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.HasIndex("NumberReversed");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("phone_numbers", "crm");
                 });
@@ -1055,13 +1143,17 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("InverseRelationshipId");
 
                     b.HasIndex("RelatedPersonId");
 
-                    b.HasIndex("OwnerPersonId", "RelatedPersonId", "RelationshipType")
+                    b.HasIndex("TenantId", "OwnerPersonId", "RelatedPersonId", "RelationshipType")
                         .IsUnique();
 
                     b.ToTable("known_relationships", "crm");
@@ -1122,6 +1214,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("TargetPersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Trend")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1130,6 +1226,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TargetPersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SourcePersonId", "TargetPersonId", "RelationshipType", "RelatedEntityId");
 
@@ -1163,11 +1261,17 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("SignalTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
 
                     b.HasIndex("SignalTypeId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("person_signals", "crm");
                 });
@@ -1214,12 +1318,16 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
-                        .IsUnique();
-
                     b.HasIndex("Order");
+
+                    b.HasIndex("TenantId", "NormalizedName")
+                        .IsUnique();
 
                     b.ToTable("signal_types", "crm");
                 });
@@ -1254,6 +1362,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("VerificationCodeId")
                         .HasColumnType("uuid");
 
@@ -1261,6 +1373,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VerificationCodeId");
 
@@ -1282,9 +1396,13 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("LastIssuedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
                     b.ToTable("identity_verification_codes", "crm");
@@ -1306,6 +1424,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                     b.Property<Guid>("TargetPersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset>("ViewedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1317,6 +1439,8 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("TargetPersonId", "ViewedOnUtc");
 
                     b.ToTable("person_viewed", "crm");
@@ -1324,6 +1448,10 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1337,7 +1465,7 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "crm");
                 });
@@ -1394,9 +1522,13 @@ namespace Ruth.Modules.Crm.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "crm");

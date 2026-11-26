@@ -1,6 +1,7 @@
 using Ruth.SharedKernel.Metadata;
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Core.Domain;
 
@@ -69,7 +70,10 @@ public sealed class EntityTypeDescriptor
     public Guid ConcurrencyStamp { get; private set; } = Guid.CreateVersion7();
 
     /// <summary>Creates a descriptor from a compile-time <see cref="EntityTypeRegistration" />.</summary>
-    public static Result<EntityTypeDescriptor> FromRegistration(EntityTypeRegistration registration)
+    public static Result<EntityTypeDescriptor> FromRegistration(
+        EntityTypeRegistration registration,
+        TenantId tenantId = default
+    )
     {
         ArgumentNullException.ThrowIfNull(registration);
 
@@ -81,7 +85,9 @@ public sealed class EntityTypeDescriptor
             ? (Result<EntityTypeDescriptor>)CoreErrors.EntityTypeInvalid
             : (Result<EntityTypeDescriptor>)
                 new EntityTypeDescriptor(
-                    EntityTypeDescriptorId.From(registration.SystemGuid),
+                    EntityTypeDescriptorId.From(
+                        tenantId.DeriveDeterministicGuid(registration.SystemGuid)
+                    ),
                     registration.SystemGuid,
                     registration.Key.Trim(),
                     registration.Name.Trim(),

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Ruth.Modules.Identity.Contracts.Onboarding;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Host.Middleware;
 
@@ -11,6 +12,9 @@ internal sealed class OnboardingGateMiddleware(
     private static readonly string[] _exemptPrefixes =
     [
         "/api/onboarding",
+        "/api/v1/platform",
+        "/signup",
+        "/ops",
         "/health",
         "/_framework",
         "/_content",
@@ -46,13 +50,16 @@ internal sealed class OnboardingGateMiddleware(
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(onboardingStateReader);
 
-        if (IsAlwaysExemptPath(context.Request.Path))
+        if (IsAlwaysExemptPath(context.Request.Path) || !AmbientTenantContext.Instance.HasTenant)
         {
             await _next(context);
             return;
         }
 
         var status = await onboardingStateReader.GetStatusAsync(context.RequestAborted);
+        context
+            .RequestServices.GetService<TenantWorkspaceBrandingState>()
+            ?.SetOrganizationNameIfEmpty(status.OrganizationName);
         var isOnboardingRoute = context.Request.Path.StartsWithSegments(
             "/onboarding",
             StringComparison.OrdinalIgnoreCase

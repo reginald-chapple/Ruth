@@ -36,7 +36,7 @@ public sealed partial class SpotlightSearchModal : ComponentBase, IAsyncDisposab
     private IJSRuntime JsRuntime { get; set; } = default!;
 
     [Inject]
-    private IQueryDispatcher QueryDispatcher { get; set; } = default!;
+    private IServiceProvider Services { get; set; } = default!;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -113,7 +113,13 @@ public sealed partial class SpotlightSearchModal : ComponentBase, IAsyncDisposab
             ? null
             : [_selectedModule];
 
-        var res = await QueryDispatcher.QueryAsync<
+        var queryDispatcher = Services.GetService<IQueryDispatcher>();
+        if (queryDispatcher is null)
+        {
+            return;
+        }
+
+        var res = await queryDispatcher.QueryAsync<
             ExecuteUniversalSearchQuery,
             SearchResultsResponse
         >(

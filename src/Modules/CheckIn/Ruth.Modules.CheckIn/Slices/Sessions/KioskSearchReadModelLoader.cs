@@ -107,22 +107,14 @@ internal sealed class KioskSearchReadModelLoader(
         return map;
     }
 
-    public async Task<Result<IReadOnlyList<KioskHouseholdLookupResponse>>> LookupHouseholdsAsync(
+    public Task<Result<IReadOnlyList<KioskHouseholdLookupResponse>>> LookupHouseholdsAsync(
         string searchTerm,
         (bool AllowPhone, bool AllowName, bool AllowBarcode) flags,
         int maxFamilies,
-        DateTimeOffset nowUtc,
         CancellationToken cancellationToken
     )
     {
-        var walletPersonId = await TryResolveActiveWalletPassPersonIdAsync(
-            searchTerm,
-            flags.AllowBarcode,
-            nowUtc,
-            cancellationToken
-        );
-
-        return await queryDispatcher.QueryAsync<
+        return queryDispatcher.QueryAsync<
             LookupKioskHouseholdsQuery,
             IReadOnlyList<KioskHouseholdLookupResponse>
         >(
@@ -132,35 +124,10 @@ internal sealed class KioskSearchReadModelLoader(
                 flags.AllowName,
                 flags.AllowBarcode,
                 Math.Clamp(maxFamilies, 1, 25),
-                walletPersonId
+                ExplicitPersonId: null
             ),
             cancellationToken
         );
-    }
-
-    public async Task<Guid?> TryResolveActiveWalletPassPersonIdAsync(
-        string? rawSearchTerm,
-        bool allowBarcode,
-        DateTimeOffset nowUtc,
-        CancellationToken cancellationToken
-    )
-    {
-        if (
-            !allowBarcode
-            || string.IsNullOrWhiteSpace(rawSearchTerm)
-            || !rawSearchTerm.Trim().StartsWith("WLT-", StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            return null;
-        }
-
-        var token = rawSearchTerm.Trim().ToUpperInvariant();
-        var pass = await dbContext
-            .IssuedWalletPasses.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.ScanToken == token, cancellationToken);
-        return pass is not null && pass.EnsureActiveForScan(nowUtc).IsSuccess
-            ? pass.PersonId
-            : null;
     }
 
     public async Task<(

@@ -7,7 +7,7 @@ namespace Ruth.E2E.Tests.Tier2;
 [Collection(E2ETestCollection.Name)]
 public sealed class OutboxAndInboxTier2Tests(E2EContainersFixture containers)
 {
-    private static readonly string[] _inboxPkColumns = ["message_id", "consumer_name"];
+    private static readonly string[] _inboxPkColumns = ["tenant_id", "message_id", "consumer_name"];
 
     private static readonly Dictionary<string, string?> _fastOutbox = new(StringComparer.Ordinal)
     {

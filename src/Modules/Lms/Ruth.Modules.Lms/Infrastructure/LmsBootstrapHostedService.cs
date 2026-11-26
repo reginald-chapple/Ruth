@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Lms.Infrastructure;
 
 internal sealed partial class LmsBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<LmsBootstrapHostedService> logger
 ) : IHostedService
@@ -20,9 +19,7 @@ internal sealed partial class LmsBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<LmsDbContext>();
-        await db.Database.MigrateAsync(cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<LmsDbContext>(cancellationToken);
         LogMigrationsCompleted(logger);
     }
 

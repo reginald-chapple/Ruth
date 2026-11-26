@@ -38,8 +38,8 @@ internal static class CommerceTestSeedHelper
         );
         Assert.True(loc.IsSuccess);
 
-        var (groupTypeId, groupId, memberId, partnerId, walletPassId) =
-            await CommerceConstituentSeedHelper.SeedPeopleHouseholdGroupAndWalletAsync(commands);
+        var (groupTypeId, groupId, memberId, partnerId) =
+            await CommerceConstituentSeedHelper.SeedPeopleHouseholdAndGroupAsync(commands);
         var fileId = await SeedDigitalBinaryFileAsync(commands);
 
         return new CommerceSeedBundle(
@@ -51,8 +51,7 @@ internal static class CommerceTestSeedHelper
             groupId,
             fileId,
             memberId,
-            partnerId,
-            walletPassId
+            partnerId
         );
     }
 

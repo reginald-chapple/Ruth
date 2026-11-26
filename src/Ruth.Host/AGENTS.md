@@ -1,7 +1,7 @@
 # AGENTS.md — `Ruth.Host`
 
 ## Purpose & Boundaries
-- ASP.NET Core 10 composition root, middleware pipeline, health/OpenAPI endpoints, first-run `/onboarding` guard, and Fluent UI Blazor v5 staff/CMS host shell.
+- ASP.NET Core 10 composition root, white-label multi-tenant host resolution middleware (`TenantResolutionMiddleware`), stealth header/cookie guards (`__Host-` host-only cookies, zero platform fingerprinting), health/OpenAPI endpoints, self-serve IRS tax-exempt nonprofit signup & operator approval console, and Fluent UI Blazor v5 staff/CMS host shell.
 - Registers Bounded Context modules and modular provider assemblies via DI; contains **no** domain business logic of its own.
 
 ## Entry Points & Applicable Skills

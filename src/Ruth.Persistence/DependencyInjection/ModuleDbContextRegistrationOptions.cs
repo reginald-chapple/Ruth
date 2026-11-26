@@ -6,10 +6,17 @@ namespace Ruth.Persistence.DependencyInjection;
 
 /// <summary>
 /// Per-module configuration callbacks for AddModuleDbContext, supporting PostgreSQL 18 extensions
-/// (postgis, pgvector, Apache age) and custom EF Core options.
+/// (postgis, pgvector), Row-Level Security role scoping, and custom EF Core options.
 /// </summary>
 public sealed class ModuleDbContextRegistrationOptions
 {
+    /// <summary>
+    /// Gets or sets whether this module schema is tenant-scoped and connects via the non-superuser
+    /// ruth_app RLS runtime role (defaults to <see langword="true" />). Set to <see langword="false" />
+    /// strictly for platform control-plane schemas (platform).
+    /// </summary>
+    public bool IsTenantScopedSchema { get; set; } = true;
+
     /// <summary>Gets or sets an optional callback to configure a module-dedicated <see cref="NpgsqlDataSourceBuilder" />.</summary>
     public Action<NpgsqlDataSourceBuilder>? ConfigureDataSource { get; set; }
 

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Search.Infrastructure.Querying;
 
@@ -8,31 +10,51 @@ namespace Ruth.Modules.Search.Infrastructure.Querying;
 /// </summary>
 internal static class SearchPostgresIndexInitializer
 {
-    public static async Task EnsureFullTextIndexesAsync(SearchDbContext db, CancellationToken ct)
-    {
-        const string enableTrgmSql = "CREATE EXTENSION IF NOT EXISTS pg_trgm;";
-        const string addSearchVectorSql =
-            "ALTER TABLE search.search_documents "
+    private static readonly string[] _ddlStatements =
+    [
+        "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
+        "ALTER TABLE search.search_documents "
             + "ADD COLUMN IF NOT EXISTS search_vector tsvector GENERATED ALWAYS AS ("
             + "setweight(to_tsvector('english', COALESCE(\"Title\", '')), 'A') || "
             + "setweight(to_tsvector('english', COALESCE(\"Subtitle\", '') || ' ' || COALESCE(\"TagsText\", '')), 'B') || "
             + "setweight(to_tsvector('english', COALESCE(\"Summary\", '')), 'C') || "
             + "setweight(to_tsvector('english', COALESCE(\"BodyText\", '')), 'D')"
-            + ") STORED;";
-        const string ftsIndexSql =
-            "CREATE INDEX IF NOT EXISTS ix_search_documents_search_vector_gin "
-            + "ON search.search_documents USING GIN (search_vector);";
-        const string titleTrgmSql =
-            "CREATE INDEX IF NOT EXISTS ix_search_documents_title_trgm_gin "
-            + "ON search.search_documents USING GIN (\"Title\" gin_trgm_ops);";
-        const string subtitleTrgmSql =
-            "CREATE INDEX IF NOT EXISTS ix_search_documents_subtitle_trgm_gin "
-            + "ON search.search_documents USING GIN (\"Subtitle\" gin_trgm_ops);";
+            + ") STORED;",
+        "CREATE INDEX IF NOT EXISTS ix_search_documents_search_vector_gin "
+            + "ON search.search_documents USING GIN (search_vector);",
+        "CREATE INDEX IF NOT EXISTS ix_search_documents_title_trgm_gin "
+            + "ON search.search_documents USING GIN (\"Title\" gin_trgm_ops);",
+        "CREATE INDEX IF NOT EXISTS ix_search_documents_subtitle_trgm_gin "
+            + "ON search.search_documents USING GIN (\"Subtitle\" gin_trgm_ops);",
+    ];
 
-        _ = await db.Database.ExecuteSqlRawAsync(enableTrgmSql, ct);
-        _ = await db.Database.ExecuteSqlRawAsync(addSearchVectorSql, ct);
-        _ = await db.Database.ExecuteSqlRawAsync(ftsIndexSql, ct);
-        _ = await db.Database.ExecuteSqlRawAsync(titleTrgmSql, ct);
-        _ = await db.Database.ExecuteSqlRawAsync(subtitleTrgmSql, ct);
+    public static async Task EnsureFullTextIndexesAsync(
+        PostgresRlsRoleProvisioner? provisioner,
+        SearchDbContext? fallbackDb,
+        CancellationToken ct
+    )
+    {
+        if (provisioner is not null)
+        {
+            await using var conn = new NpgsqlConnection(provisioner.AdminConnectionString);
+            await conn.OpenAsync(ct);
+            foreach (var sql in _ddlStatements)
+            {
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                _ = await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            await provisioner.EnsureAppRoleAndSchemaGrantsAsync("search", ct);
+            return;
+        }
+
+        if (fallbackDb is not null)
+        {
+            foreach (var sql in _ddlStatements)
+            {
+                _ = await fallbackDb.Database.ExecuteSqlRawAsync(sql, ct);
+            }
+        }
     }
 }

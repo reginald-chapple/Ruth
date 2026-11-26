@@ -28,8 +28,6 @@ public sealed class ServiceOrResourceBooking
     public RentableResourceId? RentableResourceId { get; private set; }
     public string TargetName { get; private set; } = string.Empty;
     public BookingDeliveryMode DeliveryMode { get; private set; }
-    public bool RequiresVirtualRoom { get; private set; }
-    public string? VirtualRoomReferenceKey { get; private set; }
     public Guid? ProviderPersonId { get; private set; }
     public Guid? LocationId { get; private set; }
     public Guid? BranchId { get; private set; }
@@ -150,8 +148,6 @@ public sealed class ServiceOrResourceBooking
     )
     {
         var code = GenerateConfirmationCode(nowUtc);
-        var virtualNeeded =
-            deliveryMode is BookingDeliveryMode.VirtualRoom or BookingDeliveryMode.Hybrid;
 
         return new ServiceOrResourceBooking(ServiceBookingId.Create())
         {
@@ -162,10 +158,6 @@ public sealed class ServiceOrResourceBooking
             RentableResourceId = resourceId,
             TargetName = targetName,
             DeliveryMode = deliveryMode,
-            RequiresVirtualRoom = virtualNeeded,
-            VirtualRoomReferenceKey = virtualNeeded
-                ? $"commerce-booking-{code.ToLowerInvariant()}"
-                : null,
             ProviderPersonId = slot.ProviderPersonId,
             LocationId = slot.LocationId,
             BranchId = branchId,

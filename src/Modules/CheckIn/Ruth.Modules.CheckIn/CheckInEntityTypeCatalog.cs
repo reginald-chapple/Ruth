@@ -2,7 +2,6 @@ using Ruth.Modules.CheckIn.Domain;
 using Ruth.Modules.CheckIn.Domain.Configurations;
 using Ruth.Modules.CheckIn.Domain.Labels;
 using Ruth.Modules.CheckIn.Domain.Sessions;
-using Ruth.Modules.CheckIn.Domain.WalletPasses;
 using Ruth.SharedKernel.Metadata;
 
 namespace Ruth.Modules.CheckIn;
@@ -57,22 +56,6 @@ internal static class CheckInEntityTypeCatalog
             nameof(CheckInLabel),
             "Check-In Badge & Receipt Label",
             isSecured: true,
-            supportsAttributes: false
-        ),
-        Create(
-            CheckInSystemGuids.WalletPassTemplate,
-            WalletPassTemplate.EntityTypeKeyName,
-            nameof(WalletPassTemplate),
-            "Smart Wallet Pass Template",
-            isSecured: true,
-            supportsAttributes: false
-        ),
-        Create(
-            CheckInSystemGuids.IssuedWalletPass,
-            IssuedWalletPass.EntityTypeKeyName,
-            nameof(IssuedWalletPass),
-            "Issued Smart Wallet Pass",
-            isSecured: false,
             supportsAttributes: false
         ),
     ];

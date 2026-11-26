@@ -1,19 +1,15 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Ruth.Modules.Core.Domain;
-using Ruth.Modules.Core.Infrastructure.Caching;
-using Ruth.SharedKernel.Metadata;
+using Ruth.Persistence.EntityFramework;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Core.Infrastructure;
 
 internal sealed partial class CoreBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
-    IEnumerable<EntityTypeRegistration> registrations,
-    ICoreReadCache readCache,
     ILogger<CoreBootstrapHostedService> logger
 ) : IHostedService
 {
@@ -25,11 +21,15 @@ internal sealed partial class CoreBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
-        await SyncEntityTypesAsync(dbContext, registrations, cancellationToken);
-        await readCache.InvalidateAllAsync(cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<CoreDbContext>(cancellationToken);
+
+        if (AmbientTenantContext.Instance.HasTenant)
+        {
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var seeder = scope.ServiceProvider.GetRequiredService<CoreTenantSeedContributor>();
+            await seeder.SeedTenantAsync(AmbientTenantContext.CurrentTenantId, cancellationToken);
+        }
+
         LogMigrationsCompleted(logger);
     }
 
@@ -38,48 +38,31 @@ internal sealed partial class CoreBootstrapHostedService(
         return Task.CompletedTask;
     }
 
-    internal static async Task SyncEntityTypesAsync(
+    internal static Task SyncEntityTypesAsync(
         CoreDbContext dbContext,
-        IEnumerable<EntityTypeRegistration> registrations,
+        IEnumerable<SharedKernel.Metadata.EntityTypeRegistration> registrations,
         CancellationToken cancellationToken
     )
     {
-        var existingByKey = await dbContext.EntityTypeDescriptors.ToDictionaryAsync(
-            static e => e.Key,
-            StringComparer.OrdinalIgnoreCase,
+        return CoreTenantSeedContributor.SyncEntityTypesAsync(
+            dbContext,
+            registrations,
+            dbContext.CurrentTenantId,
             cancellationToken
         );
-
-        foreach (var registration in registrations)
-        {
-            if (existingByKey.TryGetValue(registration.Key, out var existing))
-            {
-                existing.SyncFrom(registration);
-                continue;
-            }
-
-            var created = EntityTypeDescriptor.FromRegistration(registration);
-            if (created.IsSuccess)
-            {
-                _ = dbContext.EntityTypeDescriptors.Add(created.Value);
-                existingByKey[registration.Key] = created.Value;
-            }
-        }
-
-        _ = await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     [LoggerMessage(
         EventId = 4101,
         Level = LogLevel.Information,
-        Message = "Applying Core schema EF Core migrations and synchronizing entity type registry."
+        Message = "Applying Core schema EF Core migrations."
     )]
     private static partial void LogApplyingMigrations(ILogger logger);
 
     [LoggerMessage(
         EventId = 4102,
         Level = LogLevel.Information,
-        Message = "Core schema migrations and entity type synchronization completed."
+        Message = "Core schema migrations completed."
     )]
     private static partial void LogMigrationsCompleted(ILogger logger);
 }

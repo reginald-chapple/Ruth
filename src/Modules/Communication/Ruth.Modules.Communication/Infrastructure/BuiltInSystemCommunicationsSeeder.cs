@@ -39,7 +39,7 @@ internal static class BuiltInSystemCommunicationsSeeder
             utcNow,
             "Organization Footer",
             "org_footer",
-            "<p style=\"margin:16px 0 0;font-size:12px;color:#6b7280;\">Sent by {{ OrganizationName | default:'Ruth Community' }}.</p>",
+            "<p style=\"margin:16px 0 0;font-size:12px;color:#6b7280;\">Sent by {{ OrganizationName | default:'Community Organization' }}.</p>",
             CommunicationSystemGuids.OrgFooterSnippet
         );
         AddSnippetIfMissing(
@@ -48,7 +48,7 @@ internal static class BuiltInSystemCommunicationsSeeder
             utcNow,
             "Support Contact Notice",
             "support_contact",
-            "<span>Need assistance? Contact {{ SupportEmail | default:'support@ruth.local' }}.</span>",
+            "<span>Need assistance? Contact {{ SupportEmail | default:'support@example.org' }}.</span>",
             CommunicationSystemGuids.SupportContactSnippet
         );
     }
@@ -126,7 +126,7 @@ internal static class BuiltInSystemCommunicationsSeeder
                 "Organization Onboarding Completed",
                 "identity.organization-onboarded",
                 SystemCommunicationCategory.IdentityAndSecurity,
-                "Welcome to {{ OrganizationName | default:'Ruth' }}",
+                "Welcome to {{ OrganizationName | default:'Your Organization' }}",
                 "<p>Your organization <strong>{{ OrganizationName }}</strong> is ready in timezone {{ TimeZoneId }}.</p>{{ snippet:org_footer }}",
                 RazorLayoutKey: layout,
                 SmsMessageTemplate: "{{ OrganizationName }} onboarding completed.",
@@ -139,7 +139,7 @@ internal static class BuiltInSystemCommunicationsSeeder
                 "Password Reset Request",
                 "identity.password-reset",
                 SystemCommunicationCategory.IdentityAndSecurity,
-                "Reset your {{ OrganizationName | default:'Ruth' }} password",
+                "Reset your {{ OrganizationName | default:'Your Organization' }} password",
                 "<p>Hello {{ RecipientName | default:'Member' }},</p><p>Use reset code <strong>{{ ResetToken }}</strong> before {{ ExpiresOnUtc }}.</p><p>{{ snippet:support_contact }}</p>{{ snippet:org_footer }}",
                 RazorLayoutKey: layout,
                 SmsMessageTemplate: "Security reset code for {{ UserName }}: {{ ResetToken }}",
@@ -152,7 +152,7 @@ internal static class BuiltInSystemCommunicationsSeeder
                 "Account Email Confirmation",
                 "identity.account-confirmation",
                 SystemCommunicationCategory.IdentityAndSecurity,
-                "Confirm your {{ OrganizationName | default:'Ruth' }} account",
+                "Confirm your {{ OrganizationName | default:'Your Organization' }} account",
                 "<p>Hello {{ RecipientName | default:'Member' }},</p><p>Confirm your account with token <strong>{{ ConfirmationToken }}</strong> before {{ ExpiresOnUtc }}.</p>{{ snippet:org_footer }}",
                 RazorLayoutKey: layout,
                 SmsMessageTemplate: "Confirm account {{ UserName }} with code {{ ConfirmationToken }}",
@@ -186,7 +186,7 @@ internal static class BuiltInSystemCommunicationsSeeder
                 "Payment, Dues, or Gift Receipt",
                 "finance.payment-or-gift-receipt",
                 SystemCommunicationCategory.FinanceAndBilling,
-                "Receipt {{ ReceiptNumber | default:'Confirmation' }} — {{ OrganizationName | default:'Ruth' }}",
+                "Receipt {{ ReceiptNumber | default:'Confirmation' }} — {{ OrganizationName | default:'Your Organization' }}",
                 "<p>Hello {{ RecipientName | default:'Supporter' }},</p><p>We received your transaction of <strong>{{ Amount }}</strong> toward <strong>{{ AccountName | default:'General Fund' }}</strong> ({{ TaxDeductibleNotice | default:'Standard receipt' }}).</p>{{ snippet:org_footer }}",
                 RazorLayoutKey: layout,
                 SmsMessageTemplate: "Receipt {{ ReceiptNumber }}: {{ Amount }} received for {{ AccountName | default:'General' }}.",
@@ -208,20 +208,6 @@ internal static class BuiltInSystemCommunicationsSeeder
                 PushOpenUrlTemplate: "{{ ActionUrl }}",
                 IsSystem: true,
                 SystemGuid: CommunicationSystemGuids.SysCommWorkflowTaskAssigned
-            ),
-            new(
-                "Smart Wallet Pass Claim Link",
-                "checkin.wallet-pass-claim",
-                SystemCommunicationCategory.GroupsAndScheduling,
-                "Your {{ PassName | default:'Smart Wallet Pass' }} for {{ OrganizationName | default:'Ruth' }}",
-                "<p>Hello {{ RecipientName | default:'Member' }},</p><p>Your digital pass (<strong>{{ PassName }}</strong>, Tier: {{ MembershipTier | default:'Active' }}) is ready for Apple Wallet or Google Wallet: <a href=\"{{ ClaimUrl }}\">Add to Mobile Wallet</a>.</p>{{ snippet:org_footer }}",
-                RazorLayoutKey: layout,
-                SmsMessageTemplate: "{{ OrganizationName | default:'Ruth' }}: Add your {{ PassName | default:'Wallet Pass' }} here: {{ ClaimUrl }}",
-                PushTitleTemplate: "Wallet Pass Ready",
-                PushMessageTemplate: "Add {{ PassName | default:'your pass' }} to Apple or Google Wallet.",
-                PushOpenUrlTemplate: "{{ ClaimUrl }}",
-                IsSystem: true,
-                SystemGuid: CommunicationSystemGuids.SysCommWalletPassClaim
             ),
         ];
     }

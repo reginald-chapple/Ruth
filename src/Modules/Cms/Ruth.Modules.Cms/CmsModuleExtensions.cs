@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Cms.Infrastructure;
 using Ruth.Modules.Cms.Slices;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Cms;
 
@@ -27,6 +29,10 @@ public static class CmsModuleExtensions
             );
 
         _ = services.AddModuleDbContext<CmsDbContext>(connectionString, CmsDbContext.SchemaName);
+        services.TryAddScoped<CmsTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, CmsTenantSeedContributor>()
+        );
         _ = services.AddHostedService<CmsBootstrapHostedService>();
 
         CmsSlicesRegistration.Register(services);

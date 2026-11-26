@@ -1,9 +1,10 @@
 using Ruth.SharedKernel.Primitives;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Crm.Domain.People;
 
 /// <summary>Cached Double Metaphone phonetic index entry keyed by normalized uppercase name token.</summary>
-public sealed class MetaphoneEntry : IAuditableEntity
+public sealed class MetaphoneEntry : IAuditableEntity, ITenantScoped
 {
     private MetaphoneEntry() { }
 
@@ -14,7 +15,10 @@ public sealed class MetaphoneEntry : IAuditableEntity
         AlternateKey = alternateKey;
     }
 
-    /// <summary>Gets the uppercase name token (primary key).</summary>
+    /// <inheritdoc />
+    public TenantId TenantId { get; private set; }
+
+    /// <summary>Gets the uppercase name token (part 2 of composite PK).</summary>
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>Gets the primary 4-character Double Metaphone key.</summary>
@@ -46,6 +50,24 @@ public sealed class MetaphoneEntry : IAuditableEntity
         return string.IsNullOrWhiteSpace(encoded.PrimaryKey)
             ? null
             : new MetaphoneEntry(upper, encoded.PrimaryKey, encoded.AlternateKey);
+    }
+
+    /// <inheritdoc />
+    public void AssignTenant(TenantId tenantId)
+    {
+        if (tenantId.IsEmpty)
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty.", nameof(tenantId));
+        }
+
+        if (!TenantId.IsEmpty && TenantId != tenantId)
+        {
+            throw new CrossTenantAccessException(
+                $"Cannot reassign MetaphoneEntry ({Name}) from tenant '{TenantId}' to '{tenantId}'."
+            );
+        }
+
+        TenantId = tenantId;
     }
 
     /// <inheritdoc />

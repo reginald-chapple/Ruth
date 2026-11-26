@@ -15,7 +15,6 @@ internal sealed class ConfirmBookingCommandHandler(
     BookingScheduleAndConflictLoader loader,
     MemberEligibilityResolver eligibilityResolver,
     BookingSettlementCollaborator settlementCollaborator,
-    WalletPassCommerceSyncCollaborator walletPassSync,
     IClock clock
 ) : ICommandHandler<ConfirmBookingCommand, ServiceBookingResponse>
 {
@@ -239,8 +238,6 @@ internal sealed class ConfirmBookingCommandHandler(
                 booking.RentableResourceId?.Value,
                 booking.TargetName,
                 booking.DeliveryMode,
-                booking.RequiresVirtualRoom,
-                booking.VirtualRoomReferenceKey,
                 booking.CustomerPersonId,
                 booking.CustomerName,
                 booking.CustomerEmail,
@@ -257,14 +254,5 @@ internal sealed class ConfirmBookingCommandHandler(
             )
         );
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-
-        if (booking.CustomerPersonId is { } custId)
-        {
-            await walletPassSync.SyncUpcomingBookingForPersonAsync(
-                custId,
-                nowUtc,
-                cancellationToken
-            );
-        }
     }
 }

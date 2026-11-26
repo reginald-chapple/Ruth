@@ -11,6 +11,7 @@ using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.CommunicationTransports;
 using Ruth.Providers.PaymentGateways;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Events.Tests.Fixtures;
 
@@ -21,6 +22,27 @@ internal static class EventsTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
+
+        var configuration = BuildConfiguration(connectionString);
+        var services = new ServiceCollection();
+        RegisterModules(services, configuration);
+        configure?.Invoke(services);
+
+        var provider = services.BuildServiceProvider();
+        foreach (var hosted in provider.GetServices<IHostedService>())
+        {
+            if (hosted is not BackgroundService)
+            {
+                await hosted.StartAsync(CancellationToken.None);
+            }
+        }
+
+        return provider;
+    }
+
+    private static IConfigurationRoot BuildConfiguration(string connectionString)
+    {
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["ConnectionStrings:RuthDatabase"] = connectionString,
@@ -28,17 +50,17 @@ internal static class EventsTestHostFactory
             ["PaymentGateways:Nmi:WebhookSigningSecret"] = "nmi-test-webhook-secret",
             ["PaymentGateways:Stripe:WebhookSigningSecret"] = "stripe-test-webhook-secret",
         };
+        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+    }
 
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
-
-        var services = new ServiceCollection();
+    private static void RegisterModules(IServiceCollection services, IConfiguration configuration)
+    {
         _ = services.AddLogging();
-        _ = services.AddSingleton<IConfiguration>(configuration);
+        _ = services.AddSingleton(configuration);
         _ = services.AddSharedKernel();
         _ = services.AddRuthPersistence(configuration);
         _ = services.AddCoreModule(configuration);
-        var storage = new EventsInMemoryStorageProvider();
-        _ = services.AddSingleton<IStorageProvider>(storage);
+        _ = services.AddSingleton<IStorageProvider>(new EventsInMemoryStorageProvider());
         _ = services.AddCrmModule(configuration);
         _ = services.AddGroupsModule(configuration);
         _ = services.AddCommunicationModule(configuration);
@@ -46,19 +68,5 @@ internal static class EventsTestHostFactory
         _ = services.AddPaymentGatewayProviders(configuration);
         _ = services.AddFinanceModule(configuration);
         _ = services.AddEventsModule(configuration);
-        configure?.Invoke(services);
-
-        var provider = services.BuildServiceProvider();
-        foreach (var hosted in provider.GetServices<IHostedService>())
-        {
-            if (hosted is BackgroundService)
-            {
-                continue;
-            }
-
-            await hosted.StartAsync(CancellationToken.None);
-        }
-
-        return provider;
     }
 }

@@ -6,20 +6,36 @@ using Microsoft.Extensions.DependencyInjection;
 using Ruth.Persistence.Outbox;
 using Ruth.Persistence.Outbox.Configurations;
 using Ruth.SharedKernel.Events;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Persistence.EntityFramework;
 
 /// <summary>
 /// Base EF Core <see cref="DbContext" /> for bounded-context modules with schema isolation,
-/// UTC timestamp conventions, strongly-typed ID conversion, and transactional Outbox/Inbox tables.
+/// multi-tenant Global Query Filters + PostgreSQL 18 RLS integration, UTC timestamp conventions,
+/// strongly-typed ID conversion, and transactional Outbox/Inbox tables.
 /// </summary>
 /// <param name="options">The EF Core options configured for the module context.</param>
 public abstract class ModuleDbContext(DbContextOptions options) : DbContext(options)
 {
+    private static readonly MethodInfo _applyTenantFilterMethod = typeof(ModuleDbContext).GetMethod(
+        nameof(ApplyTenantQueryFilter),
+        BindingFlags.Instance | BindingFlags.NonPublic
+    )!;
+
     /// <summary>Gets the PostgreSQL schema owned exclusively by this bounded-context module.</summary>
     protected abstract string Schema { get; }
 
+    /// <summary>Gets whether this module schema contains tenant-scoped data protected by RLS and Global Query Filters.</summary>
+    protected virtual bool IsTenantScopedSchema => true;
+
     internal string ModuleSchema => Schema;
+
+    internal bool RequiresTenantIsolation => IsTenantScopedSchema;
+
+    /// <summary>Gets the active <see cref="TenantId" /> evaluated dynamically per EF Core query.</summary>
+    public TenantId CurrentTenantId =>
+        IsTenantScopedSchema ? AmbientTenantContext.CurrentTenantId : TenantId.Empty;
 
     /// <summary>Gets the assembly scanned for <see cref="IEntityTypeConfiguration{TEntity}" /> and strongly-typed IDs.</summary>
     protected virtual Assembly ConfigurationsAssembly => GetType().Assembly;
@@ -58,6 +74,11 @@ public abstract class ModuleDbContext(DbContextOptions options) : DbContext(opti
             integrationEvent.OccurredOnUtc
         );
 
+        if (IsTenantScopedSchema && !CurrentTenantId.IsEmpty)
+        {
+            message.AssignTenant(CurrentTenantId);
+        }
+
         _ = OutboxMessages.Add(message);
         return message;
     }
@@ -69,8 +90,8 @@ public abstract class ModuleDbContext(DbContextOptions options) : DbContext(opti
 
         var validatedSchema = SchemaValidator.Validate(Schema);
         _ = modelBuilder.HasDefaultSchema(validatedSchema);
-        _ = modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new InboxMessageConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration(IsTenantScopedSchema));
+        _ = modelBuilder.ApplyConfiguration(new InboxMessageConfiguration(IsTenantScopedSchema));
 
         if (ConfigurationsAssembly != typeof(ModuleDbContext).Assembly)
         {
@@ -79,6 +100,11 @@ public abstract class ModuleDbContext(DbContextOptions options) : DbContext(opti
 
         OnModuleModelCreating(modelBuilder);
         RuthModelBuilderConventions.ConfigureConcurrencyTokens(modelBuilder);
+        RuthModelBuilderConventions.ConfigureTenantIsolation(
+            modelBuilder,
+            this,
+            IsTenantScopedSchema
+        );
     }
 
     /// <summary>Configures module-specific entity mappings after base Outbox/Inbox configuration.</summary>
@@ -102,5 +128,18 @@ public abstract class ModuleDbContext(DbContextOptions options) : DbContext(opti
         where TEntity : class
     {
         RuthModelBuilderConventions.ConfigurePostgresRowVersion(builder);
+    }
+
+    internal void ApplyTenantQueryFilterForClrType(ModelBuilder modelBuilder, Type entityClrType)
+    {
+        _ = _applyTenantFilterMethod.MakeGenericMethod(entityClrType).Invoke(this, [modelBuilder]);
+    }
+
+    private void ApplyTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, ITenantScoped
+    {
+        _ = modelBuilder
+            .Entity<TEntity>()
+            .HasQueryFilter(entity => entity.TenantId == CurrentTenantId);
     }
 }

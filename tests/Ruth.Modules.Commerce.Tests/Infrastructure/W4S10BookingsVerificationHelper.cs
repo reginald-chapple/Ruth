@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Ruth.Modules.CheckIn.Contracts.WalletPasses;
 using Ruth.Modules.Commerce.Contracts.Bookings;
 using Ruth.Modules.Commerce.Contracts.Catalog;
 using Ruth.Modules.Commerce.Contracts.PunchPasses;
@@ -79,25 +78,12 @@ internal static class W4S10BookingsVerificationHelper
 
         Assert.Equal(BookingPricingKind.MemberFree, confirmed.PricingKind);
         Assert.Equal(0m, confirmed.TotalAmount);
-        Assert.True(confirmed.RequiresVirtualRoom);
-        Assert.NotNull(confirmed.VirtualRoomReferenceKey);
+        Assert.Equal(BookingDeliveryMode.Remote, confirmed.DeliveryMode);
 
         var hasOutboxEvent = await dbContext.OutboxMessages.AnyAsync(m =>
             m.EventType.Contains("ServiceBookingConfirmedIntegrationEvent")
         );
         Assert.True(hasOutboxEvent);
-
-        var walletPasses = (
-            await queries.QueryAsync<
-                GetIssuedWalletPassesQuery,
-                IReadOnlyList<IssuedWalletPassResponse>
-            >(new GetIssuedWalletPassesQuery(PersonId: seed.MemberPersonId, ActiveOnly: true))
-        ).Value;
-        Assert.Contains(
-            confirmed.ConfirmationCode,
-            walletPasses[0].DynamicFields.NextShiftOrBookingSummary,
-            StringComparison.Ordinal
-        );
 
         return confirmed;
     }

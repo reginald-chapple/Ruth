@@ -1,16 +1,15 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Ruth.SharedKernel.Time;
+using Ruth.Persistence.EntityFramework;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Infrastructure;
 
 internal sealed partial class CommunicationBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
-    IClock clock,
     ILogger<CommunicationBootstrapHostedService> logger
 ) : IHostedService
 {
@@ -22,14 +21,16 @@ internal sealed partial class CommunicationBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CommunicationDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
-        await BuiltInSystemCommunicationsSeeder.SeedAsync(
-            dbContext,
-            clock.UtcNow,
-            cancellationToken
-        );
+        await serviceProvider.MigrateModuleSchemaAsync<CommunicationDbContext>(cancellationToken);
+
+        if (AmbientTenantContext.Instance.HasTenant)
+        {
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var seeder =
+                scope.ServiceProvider.GetRequiredService<CommunicationTenantSeedContributor>();
+            await seeder.SeedTenantAsync(AmbientTenantContext.CurrentTenantId, cancellationToken);
+        }
+
         LogMigrationsCompleted(logger);
     }
 
@@ -41,14 +42,14 @@ internal sealed partial class CommunicationBootstrapHostedService(
     [LoggerMessage(
         EventId = 5301,
         Level = LogLevel.Information,
-        Message = "Applying Communication schema EF Core migrations and built-in notifications."
+        Message = "Applying Communication schema EF Core migrations."
     )]
     private static partial void LogApplyingMigrations(ILogger logger);
 
     [LoggerMessage(
         EventId = 5302,
         Level = LogLevel.Information,
-        Message = "Communication schema migrations and seeding completed."
+        Message = "Communication schema migrations completed."
     )]
     private static partial void LogMigrationsCompleted(ILogger logger);
 }

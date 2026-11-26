@@ -36,7 +36,7 @@ public sealed class W4S9CommerceIntegrationTests(CommercePostgresContainerFixtur
             packVariantId
         );
 
-        await W4S9CommerceVerificationHelper.VerifyDigitalLinkWalletPassSyncAndRefundAsync(
+        await W4S9CommerceVerificationHelper.VerifyDigitalLinkPunchPassAndRefundAsync(
             commands,
             queries,
             seed,

@@ -1,5 +1,5 @@
-using Ruth.Modules.CheckIn.Contracts.WalletPasses;
 using Ruth.Modules.Crm.Contracts.Households;
+using Ruth.Modules.Crm.Contracts.People;
 using Ruth.Modules.Groups.Contracts.Members;
 using Ruth.SharedKernel.Messaging;
 
@@ -27,7 +27,7 @@ internal sealed class MemberEligibilityResolver(IQueryDispatcher queryDispatcher
             return new ResolvedMemberProfile(tiers, groupIds, groupTypeIds);
         }
 
-        await PopulateWalletPassTiersAsync(personId.Value, tiers, cancellationToken);
+        await PopulatePersonAttributeTiersAsync(personId.Value, tiers, cancellationToken);
         await PopulateGroupMembershipsAsync(
             personId.Value,
             groupIds,
@@ -59,27 +59,29 @@ internal sealed class MemberEligibilityResolver(IQueryDispatcher queryDispatcher
             );
     }
 
-    private async Task PopulateWalletPassTiersAsync(
+    private async Task PopulatePersonAttributeTiersAsync(
         Guid personId,
         HashSet<string> tiers,
         CancellationToken cancellationToken
     )
     {
-        var passesRes = await queryDispatcher.QueryAsync<
-            GetIssuedWalletPassesQuery,
-            IReadOnlyList<IssuedWalletPassResponse>
-        >(new GetIssuedWalletPassesQuery(PersonId: personId, ActiveOnly: true), cancellationToken);
-
-        if (passesRes.IsFailure)
+        var personRes = await queryDispatcher.QueryAsync<GetPersonByIdQuery, PersonDetailResponse>(
+            new GetPersonByIdQuery(personId, FollowRedirects: true),
+            cancellationToken
+        );
+        if (personRes.IsFailure)
         {
             return;
         }
 
-        foreach (var pass in passesRes.Value)
+        foreach (var key in new[] { "MembershipTier", "Tier" })
         {
-            if (!string.IsNullOrWhiteSpace(pass.DynamicFields.MembershipTier))
+            if (
+                personRes.Value.Attributes.TryGetValue(key, out var raw)
+                && !string.IsNullOrWhiteSpace(raw)
+            )
             {
-                _ = tiers.Add(pass.DynamicFields.MembershipTier.Trim());
+                _ = tiers.Add(raw.Trim());
             }
         }
     }

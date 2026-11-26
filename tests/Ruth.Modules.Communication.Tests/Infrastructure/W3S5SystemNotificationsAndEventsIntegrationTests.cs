@@ -47,9 +47,9 @@ public sealed class W3S5SystemNotificationsAndEventsIntegrationTests(
                 IReadOnlyList<SystemCommunicationResponse>
             >(new GetSystemCommunicationsQuery(ActiveOnly: true))
         ).Value;
-        Assert.Equal(7, sysComms.Count);
+        Assert.Equal(6, sysComms.Count);
         Assert.Contains(sysComms, static c =>
-            string.Equals(c.Key, "checkin.wallet-pass-claim", StringComparison.Ordinal)
+            string.Equals(c.Key, "finance.payment-or-gift-receipt", StringComparison.Ordinal)
         );
 
         var retiredPersonId = Guid.CreateVersion7();

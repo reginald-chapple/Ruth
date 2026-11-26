@@ -6,7 +6,6 @@ namespace Ruth.Modules.Lms.Contracts.Classes;
 /// <param name="LearningTermId">Optional term identifier.</param>
 /// <param name="LearningGradingSystemId">Optional grading system identifier.</param>
 /// <param name="BranchId">Optional Branch identifier.</param>
-/// <param name="VirtualRoomId">Optional embedded LiveKit VirtualRoom identifier.</param>
 /// <param name="Name">Class name.</param>
 /// <param name="IsPublic">Whether publicly enrollable.</param>
 /// <param name="IsActive">Whether active.</param>
@@ -23,7 +22,6 @@ public sealed record LearningClassResponse(
     Guid? LearningTermId,
     Guid? LearningGradingSystemId,
     Guid? BranchId,
-    Guid? VirtualRoomId,
     string Name,
     bool IsPublic,
     bool IsActive,

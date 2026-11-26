@@ -10,8 +10,6 @@ public sealed record ServiceBookingResponse(
     Guid? RentableResourceId,
     string TargetName,
     BookingDeliveryMode DeliveryMode,
-    bool RequiresVirtualRoom,
-    string? VirtualRoomReferenceKey,
     Guid? ProviderPersonId,
     Guid? LocationId,
     Guid? BranchId,

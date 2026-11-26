@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Ruth.SharedKernel.Events;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.SharedKernel.DependencyInjection;
@@ -10,7 +11,7 @@ namespace Ruth.SharedKernel.DependencyInjection;
 /// <summary>Explicit, zero-magic DI registration helpers for <see cref="SharedKernelAssembly" />.</summary>
 public static class SharedKernelServiceCollectionExtensions
 {
-    /// <summary>Registers core clock, CQRS dispatchers, and event dispatchers.</summary>
+    /// <summary>Registers core clock, ambient tenant context, CQRS dispatchers, and event dispatchers.</summary>
     public static IServiceCollection AddSharedKernel(
         this IServiceCollection services,
         TimeProvider? timeProvider = null,
@@ -25,6 +26,7 @@ public static class SharedKernelServiceCollectionExtensions
             serviceProvider.GetRequiredService<TimeProvider>(),
             localTimeZone
         ));
+        services.TryAddSingleton<ITenantContext>(AmbientTenantContext.Instance);
         services.TryAddScoped<ICommandDispatcher, CommandDispatcher>();
         services.TryAddScoped<IQueryDispatcher, QueryDispatcher>();
         services.TryAddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
@@ -34,7 +36,7 @@ public static class SharedKernelServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Explicitly registers a command handler wrapped in the validation and logging decorator pipeline.
+    /// Explicitly registers a command handler wrapped in the tenant-guard, validation, and logging decorator pipeline.
     /// </summary>
     public static IServiceCollection AddCommandHandler<TCommand, THandler>(
         this IServiceCollection services,
@@ -54,12 +56,17 @@ public static class SharedKernelServiceCollectionExtensions
                     var inner = serviceProvider.GetRequiredService<THandler>();
                     var validators = serviceProvider.GetServices<IRequestValidator<TCommand>>();
                     var validating = new ValidatingCommandHandler<TCommand>(inner, validators);
+                    var guarded = new TenantGuardCommandHandler<TCommand>(
+                        validating,
+                        serviceProvider.GetRequiredService<ITenantContext>(),
+                        serviceProvider.GetService<IPrincipalTenantValidator>()
+                    );
                     var logger = serviceProvider.GetRequiredService<
                         ILogger<LoggingCommandHandler<TCommand>>
                     >();
                     var clock = serviceProvider.GetRequiredService<IClock>();
 
-                    return new LoggingCommandHandler<TCommand>(validating, logger, clock);
+                    return new LoggingCommandHandler<TCommand>(guarded, logger, clock);
                 },
                 lifetime
             )
@@ -69,7 +76,7 @@ public static class SharedKernelServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Explicitly registers a command handler returning <typeparamref name="TResponse" /> wrapped in the validation and logging decorator pipeline.
+    /// Explicitly registers a command handler returning <typeparamref name="TResponse" /> wrapped in the tenant-guard, validation, and logging decorator pipeline.
     /// </summary>
     public static IServiceCollection AddCommandHandler<TCommand, TResponse, THandler>(
         this IServiceCollection services,
@@ -92,16 +99,17 @@ public static class SharedKernelServiceCollectionExtensions
                         inner,
                         validators
                     );
+                    var guarded = new TenantGuardCommandHandler<TCommand, TResponse>(
+                        validating,
+                        serviceProvider.GetRequiredService<ITenantContext>(),
+                        serviceProvider.GetService<IPrincipalTenantValidator>()
+                    );
                     var logger = serviceProvider.GetRequiredService<
                         ILogger<LoggingCommandHandler<TCommand, TResponse>>
                     >();
                     var clock = serviceProvider.GetRequiredService<IClock>();
 
-                    return new LoggingCommandHandler<TCommand, TResponse>(
-                        validating,
-                        logger,
-                        clock
-                    );
+                    return new LoggingCommandHandler<TCommand, TResponse>(guarded, logger, clock);
                 },
                 lifetime
             )
@@ -111,7 +119,7 @@ public static class SharedKernelServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Explicitly registers a query handler wrapped in the validation and logging decorator pipeline.
+    /// Explicitly registers a query handler wrapped in the tenant-guard, validation, and logging decorator pipeline.
     /// </summary>
     public static IServiceCollection AddQueryHandler<TQuery, TResponse, THandler>(
         this IServiceCollection services,
@@ -134,12 +142,17 @@ public static class SharedKernelServiceCollectionExtensions
                         inner,
                         validators
                     );
+                    var guarded = new TenantGuardQueryHandler<TQuery, TResponse>(
+                        validating,
+                        serviceProvider.GetRequiredService<ITenantContext>(),
+                        serviceProvider.GetService<IPrincipalTenantValidator>()
+                    );
                     var logger = serviceProvider.GetRequiredService<
                         ILogger<LoggingQueryHandler<TQuery, TResponse>>
                     >();
                     var clock = serviceProvider.GetRequiredService<IClock>();
 
-                    return new LoggingQueryHandler<TQuery, TResponse>(validating, logger, clock);
+                    return new LoggingQueryHandler<TQuery, TResponse>(guarded, logger, clock);
                 },
                 lifetime
             )

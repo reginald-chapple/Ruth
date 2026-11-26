@@ -238,7 +238,7 @@ Authorization: Bearer {{token}}
 ### List Public Bookable Services
 GET {{host}}/api/commerce/bookings/public/services
 
-### Create Bookable Service (1-on-1 Virtual Coaching)
+### Create Bookable Service (1-on-1 Remote Coaching)
 POST {{host}}/api/commerce/bookings/services
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -246,7 +246,7 @@ Content-Type: application/json
 {
   "name": "1-on-1 Career & Financial Coaching",
   "slug": "career-coaching-1on1",
-  "deliveryMode": "VirtualRoom",
+  "deliveryMode": "Remote",
   "durationMinutes": 45,
   "slotIncrementMinutes": 30,
   "setupBufferMinutes": 5,

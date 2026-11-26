@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Identity.Domain;
+using Ruth.SharedKernel.Tenancy;
 using StackExchange.Redis;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
@@ -12,19 +14,22 @@ internal sealed partial class AclSnapshotCache(
     IConnectionMultiplexer? redis = null
 ) : IAclSnapshotCache, IDisposable
 {
-    private const string RedisVersionKey = "ruth:identity:acl:version";
-
     private readonly SemaphoreSlim _reloadGate = new(1, 1);
-    private volatile CachedSnapshotState? _current;
+    private readonly ConcurrentDictionary<TenantId, CachedSnapshotState> _byTenant = [];
 
     public async ValueTask<AclRuleSnapshot> GetSnapshotAsync(
         CancellationToken cancellationToken = default
     )
     {
-        var remoteVersion = await TryReadRedisVersionAsync();
-        var cached = _current;
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return AclRuleSnapshot.Create([], []);
+        }
+
+        var remoteVersion = await TryReadRedisVersionAsync(tenantId);
         if (
-            cached is not null
+            _byTenant.TryGetValue(tenantId, out var cached)
             && (
                 remoteVersion is null
                 || string.Equals(cached.Version, remoteVersion, StringComparison.Ordinal)
@@ -37,9 +42,8 @@ internal sealed partial class AclSnapshotCache(
         await _reloadGate.WaitAsync(cancellationToken);
         try
         {
-            cached = _current;
             if (
-                cached is not null
+                _byTenant.TryGetValue(tenantId, out cached)
                 && (
                     remoteVersion is null
                     || string.Equals(cached.Version, remoteVersion, StringComparison.Ordinal)
@@ -51,7 +55,7 @@ internal sealed partial class AclSnapshotCache(
 
             var snapshot = await LoadFromDatabaseAsync(cancellationToken);
             var version = remoteVersion ?? Guid.CreateVersion7().ToString("N");
-            _current = new CachedSnapshotState(version, snapshot);
+            _byTenant[tenantId] = new CachedSnapshotState(version, snapshot);
             return snapshot;
         }
         finally
@@ -62,8 +66,15 @@ internal sealed partial class AclSnapshotCache(
 
     public async Task InvalidateAsync(CancellationToken cancellationToken = default)
     {
-        _current = null;
-        await TryBumpRedisVersionAsync();
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            _byTenant.Clear();
+            return;
+        }
+
+        _ = _byTenant.TryRemove(tenantId, out _);
+        await TryBumpRedisVersionAsync(tenantId);
         LogAclCacheInvalidated(logger);
     }
 
@@ -87,7 +98,7 @@ internal sealed partial class AclSnapshotCache(
         return AclRuleSnapshot.Create(rules, activeRoleIds);
     }
 
-    private async Task<string?> TryReadRedisVersionAsync()
+    private async Task<string?> TryReadRedisVersionAsync(TenantId tenantId)
     {
         if (redis is null || !redis.IsConnected)
         {
@@ -96,7 +107,7 @@ internal sealed partial class AclSnapshotCache(
 
         try
         {
-            var value = await redis.GetDatabase().StringGetAsync(RedisVersionKey);
+            var value = await redis.GetDatabase().StringGetAsync(BuildRedisKey(tenantId));
             return value.HasValue ? value.ToString() : null;
         }
         catch (RedisException ex)
@@ -106,7 +117,7 @@ internal sealed partial class AclSnapshotCache(
         }
     }
 
-    private async Task TryBumpRedisVersionAsync()
+    private async Task TryBumpRedisVersionAsync(TenantId tenantId)
     {
         if (redis is null || !redis.IsConnected)
         {
@@ -116,12 +127,17 @@ internal sealed partial class AclSnapshotCache(
         try
         {
             var newVersion = Guid.CreateVersion7().ToString("N");
-            _ = await redis.GetDatabase().StringSetAsync(RedisVersionKey, newVersion);
+            _ = await redis.GetDatabase().StringSetAsync(BuildRedisKey(tenantId), newVersion);
         }
         catch (RedisException ex)
         {
             LogRedisFallback(logger, ex);
         }
+    }
+
+    private static string BuildRedisKey(TenantId tenantId)
+    {
+        return $"t:{tenantId}:identity:acl:version";
     }
 
     [LoggerMessage(

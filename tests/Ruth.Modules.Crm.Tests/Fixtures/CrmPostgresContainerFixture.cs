@@ -8,7 +8,7 @@ namespace Ruth.Modules.Crm.Tests.Fixtures;
 
 public sealed class CrmPostgresContainerFixture : IAsyncLifetime
 {
-    private const string PostgresAgeImageTag = "ruth-postgres18-e2e:latest";
+    private const string PostgresAgeImageTag = "ruth-postgres18-postgis:latest";
 
     private PostgreSqlContainer? _container;
 

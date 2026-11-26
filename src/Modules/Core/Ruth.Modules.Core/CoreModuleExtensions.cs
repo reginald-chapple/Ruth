@@ -24,6 +24,7 @@ using Ruth.Modules.Core.Slices.Schedules;
 using Ruth.Modules.Core.Slices.Tags;
 using Ruth.Modules.Crm.Contracts.Events;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Core;
 
@@ -107,6 +108,10 @@ public static class CoreModuleExtensions
             CorePersonMergedConsumer,
             CoreDbContext
         >();
+        services.TryAddScoped<CoreTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, CoreTenantSeedContributor>()
+        );
         _ = services.AddHostedService<CoreBootstrapHostedService>();
     }
 

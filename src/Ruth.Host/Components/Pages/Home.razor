@@ -1,20 +1,26 @@
 @page "/"
+@using Ruth.Host.Middleware
 @inject IOnboardingStateReader OnboardingStateReader
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
 
-<PageTitle>Ruth RMS</PageTitle>
+<PageTitle>@BrandTitle</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <h1>Ruth RMS</h1>
+    <h1>@BrandTitle</h1>
     <FluentCard Padding="@Padding.All4">
-        <p>Welcome to Ruth RMS. System shell initialized.</p>
+        <p>Welcome to @BrandTitle. Workspace ready.</p>
     </FluentCard>
 </FluentStack>
 
 @code {
+    private string BrandTitle =>
+        Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle ?? "Organization Workspace";
+
     protected override async Task OnInitializedAsync()
     {
         var status = await OnboardingStateReader.GetStatusAsync();
+        Services.GetService<TenantWorkspaceBrandingState>()?.SetOrganizationNameIfEmpty(status.OrganizationName);
         if (status.IsOnboardingRequired)
         {
             Navigation.NavigateTo("/onboarding", replace: true);

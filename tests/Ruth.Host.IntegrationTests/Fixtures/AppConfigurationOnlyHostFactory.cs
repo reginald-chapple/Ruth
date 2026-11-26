@@ -13,9 +13,19 @@ internal sealed class AppConfigurationOnlyHostFactory(
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        var merged = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Tenancy:DedicatedWorkspaceTenantId"] =
+                HostWebApplicationFactory.DefaultWorkspaceTenantGuid.ToString("D"),
+        };
+        foreach (var (key, value) in settings)
+        {
+            merged[key] = value;
+        }
+
         _ = builder.UseEnvironment(environment);
         _ = builder.ConfigureAppConfiguration(
-            (_, configBuilder) => configBuilder.AddInMemoryCollection(settings)
+            (_, configBuilder) => configBuilder.AddInMemoryCollection(merged)
         );
 
         if (configureServices is not null)

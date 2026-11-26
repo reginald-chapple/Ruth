@@ -9,6 +9,7 @@ using Ruth.Modules.Groups;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.CommunicationTransports;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Engagement.Tests.Fixtures;
 
@@ -19,6 +20,8 @@ internal static class EngagementTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
                 new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
@@ -30,17 +33,7 @@ internal static class EngagementTestHostFactory
             .Build();
 
         var services = new ServiceCollection();
-        _ = services.AddLogging();
-        _ = services.AddSingleton<IConfiguration>(configuration);
-        _ = services.AddSharedKernel();
-        _ = services.AddRuthPersistence(configuration);
-        _ = services.AddCoreModule(configuration);
-        _ = services.AddSingleton<IStorageProvider>(new EngagementInMemoryStorageProvider());
-        _ = services.AddCrmModule(configuration);
-        _ = services.AddGroupsModule(configuration);
-        _ = services.AddCommunicationModule(configuration);
-        _ = services.AddCommunicationTransportProviders(configuration);
-        _ = services.AddEngagementModule(configuration);
+        RegisterModules(services, configuration);
         configure?.Invoke(services);
 
         var provider = services.BuildServiceProvider();
@@ -53,5 +46,20 @@ internal static class EngagementTestHostFactory
         }
 
         return provider;
+    }
+
+    private static void RegisterModules(IServiceCollection services, IConfiguration configuration)
+    {
+        _ = services.AddLogging();
+        _ = services.AddSingleton(configuration);
+        _ = services.AddSharedKernel();
+        _ = services.AddRuthPersistence(configuration);
+        _ = services.AddCoreModule(configuration);
+        _ = services.AddSingleton<IStorageProvider>(new EngagementInMemoryStorageProvider());
+        _ = services.AddCrmModule(configuration);
+        _ = services.AddGroupsModule(configuration);
+        _ = services.AddCommunicationModule(configuration);
+        _ = services.AddCommunicationTransportProviders(configuration);
+        _ = services.AddEngagementModule(configuration);
     }
 }

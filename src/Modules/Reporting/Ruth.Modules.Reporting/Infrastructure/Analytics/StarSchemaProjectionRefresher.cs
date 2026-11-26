@@ -1,10 +1,12 @@
 using System.Data.Common;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Ruth.Modules.Reporting.Contracts.Analytics;
 using Ruth.Modules.Reporting.Contracts.Metrics;
 using Ruth.Modules.Reporting.Domain.Analytics;
 using Ruth.Modules.Reporting.Infrastructure.DataViews;
+using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Reporting.Infrastructure.Analytics;
@@ -12,7 +14,8 @@ namespace Ruth.Modules.Reporting.Infrastructure.Analytics;
 internal sealed class StarSchemaProjectionRefresher(
     ReportingDbContext db,
     ReportingDataViewExecutionEngine sourceReader,
-    IClock clock
+    IClock clock,
+    PostgresRlsRoleProvisioner? provisioner = null
 )
 {
     public async Task<StarSchemaRefreshResponse> RefreshAsync(CancellationToken ct)
@@ -24,7 +27,7 @@ internal sealed class StarSchemaProjectionRefresher(
         var metricFactCount = await RefreshFactMetricDailyAsync(nowUtc, ct);
         var revenueFactCount = await RefreshFactRevenueMonthlyAsync(nowUtc, ct);
         var attendanceFactCount = await RefreshFactAttendanceWeeklyAsync(nowUtc, ct);
-        await StarSchemaSqlViews.EnsureBiViewsAsync(db, ct);
+        await StarSchemaSqlViews.EnsureBiViewsAsync(provisioner, db, ct);
 
         return new StarSchemaRefreshResponse(
             nowUtc,
@@ -310,11 +313,16 @@ internal sealed class StarSchemaProjectionRefresher(
         var shouldClose = conn.State != System.Data.ConnectionState.Open;
         if (shouldClose)
         {
-            await conn.OpenAsync(ct);
+            await db.Database.OpenConnectionAsync(ct);
         }
 
         try
         {
+            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+                conn,
+                db.Database.CurrentTransaction?.GetDbTransaction(),
+                ct
+            );
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -327,7 +335,7 @@ internal sealed class StarSchemaProjectionRefresher(
         {
             if (shouldClose)
             {
-                await conn.CloseAsync();
+                await db.Database.CloseConnectionAsync();
             }
         }
     }

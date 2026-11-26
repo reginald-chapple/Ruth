@@ -47,7 +47,6 @@ internal sealed class KioskSearchCandidatesQueryHandler(
             query.SearchTerm,
             flagsResult.Value,
             query.MaxFamilies,
-            clock.UtcNow,
             cancellationToken
         );
         if (lookupResult.IsFailure)

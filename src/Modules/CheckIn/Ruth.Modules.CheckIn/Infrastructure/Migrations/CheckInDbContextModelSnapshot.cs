@@ -70,12 +70,16 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<bool>("PrintBadge")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CheckInConfigurationId", "NormalizedName")
-                        .IsUnique();
-
                     b.HasIndex("CheckInConfigurationId", "Order");
+
+                    b.HasIndex("TenantId", "CheckInConfigurationId", "NormalizedName")
+                        .IsUnique();
 
                     b.ToTable("check_in_areas", "checkin");
                 });
@@ -116,11 +120,17 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<int?>("SoftCapacity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CheckInAreaId");
 
                     b.HasIndex("LocationId");
 
-                    b.HasIndex("CheckInAreaId", "LocationId")
+                    b.HasIndex("TenantId", "CheckInAreaId", "LocationId")
                         .IsUnique();
 
                     b.ToTable("check_in_area_locations", "checkin");
@@ -192,11 +202,15 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<int>("SecurityCodeNumericLength")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
                     b.ToTable("check_in_configurations", "checkin");
@@ -268,14 +282,18 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<int>("PrintOrder")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ConfigurationId");
 
-                    b.HasIndex("Key")
-                        .IsUnique();
-
                     b.HasIndex("LabelKind", "IsActive");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique();
 
                     b.ToTable("check_in_labels", "checkin");
                 });
@@ -346,11 +364,17 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<DateOnly>("ServiceDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("HouseholdId");
 
                     b.HasIndex("MobileExpressToken");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("CheckInConfigurationId", "ServiceDate");
 
@@ -441,6 +465,10 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("VerifiedPickupCode")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
@@ -448,6 +476,8 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SessionId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ServiceDate", "SecurityPickupCode");
 
@@ -484,262 +514,24 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ServiceDate", "BranchScopeKey", "Code")
+                    b.HasIndex("TenantId", "ServiceDate", "BranchScopeKey", "Code")
                         .IsUnique();
 
                     b.ToTable("daily_security_pickup_codes", "checkin");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.IssuedWalletPass", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AuthTokenHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("AuthTokenSalt")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("CardStyle")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("ClaimTokenHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DynamicFields")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("dynamic_fields");
-
-                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("IssuedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("LastUpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PassTypeIdentifier")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<Guid>("PersonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Revision")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RevocationReason")
-                        .HasMaxLength(240)
-                        .HasColumnType("character varying(240)");
-
-                    b.Property<string>("ScanToken")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("SerialNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)");
-
-                    b.Property<Guid>("TemplateId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("UpdatedSequence")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClaimTokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("PersonId");
-
-                    b.HasIndex("ScanToken")
-                        .IsUnique();
-
-                    b.HasIndex("SerialNumber")
-                        .IsUnique();
-
-                    b.HasIndex("TemplateId");
-
-                    b.HasIndex("PassTypeIdentifier", "SerialNumber")
-                        .IsUnique();
-
-                    b.ToTable("issued_wallet_passes", "checkin");
-                });
-
-            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.WalletPassDeviceRegistration", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeviceLibraryIdentifier")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<Guid>("IssuedPassId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("LastNotifiedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PassTypeIdentifier")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<string>("PushToken")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<DateTimeOffset>("RegisteredAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SerialNumber")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IssuedPassId");
-
-                    b.HasIndex("DeviceLibraryIdentifier", "PassTypeIdentifier");
-
-                    b.HasIndex("DeviceLibraryIdentifier", "PassTypeIdentifier", "SerialNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_wallet_pass_device_registrations_DeviceLibraryIdentifier_P~1");
-
-                    b.ToTable("wallet_pass_device_registrations", "checkin");
-                });
-
-            modelBuilder.Entity("Ruth.Modules.CheckIn.Domain.WalletPasses.WalletPassTemplate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BackgroundColorHex")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("character varying(7)");
-
-                    b.Property<string>("CardStyle")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<Guid>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("DefaultValidityDays")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("ForegroundColorHex")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("character varying(7)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("LabelColorHex")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("character varying(7)");
-
-                    b.Property<string>("LogoText")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("OrganizationName")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("PassTypeIdentifier")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<Guid>("SystemGuid")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
-                    b.ToTable("wallet_pass_templates", "checkin");
-                });
-
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -753,7 +545,7 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "checkin");
                 });
@@ -810,9 +602,13 @@ namespace Ruth.Modules.CheckIn.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "checkin");

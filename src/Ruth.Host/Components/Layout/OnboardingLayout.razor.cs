@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Ruth.Host.Middleware;
 
 namespace Ruth.Host.Components.Layout;
 
-/// <summary>Focused Fluent UI Blazor v5 layout used exclusively for first-run onboarding.</summary>
+/// <summary>Minimal navigation-free Fluent UI Blazor v5 layout for setup and control-plane workflows.</summary>
 public sealed partial class OnboardingLayout : LayoutComponentBase
 {
     private static readonly string _themeToggleStyle =
@@ -15,6 +16,12 @@ public sealed partial class OnboardingLayout : LayoutComponentBase
 
     [Inject]
     private IJSRuntime JsRuntime { get; set; } = default!;
+
+    [Inject]
+    private IServiceProvider Services { get; set; } = default!;
+
+    internal string BrandTitle =>
+        Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle ?? "Workspace Setup";
 
     /// <inheritdoc />
     protected override void OnParametersSet()

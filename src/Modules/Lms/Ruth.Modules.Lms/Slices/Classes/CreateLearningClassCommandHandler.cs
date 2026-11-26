@@ -46,7 +46,6 @@ internal sealed class CreateLearningClassCommandHandler(LmsDbContext db)
             termId,
             gradingId,
             command.BranchId,
-            command.VirtualRoomId,
             command.IsPublic,
             command.TakesAttendance,
             command.AllowOverbooking,

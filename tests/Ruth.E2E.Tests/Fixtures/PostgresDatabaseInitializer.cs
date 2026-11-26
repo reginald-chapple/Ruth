@@ -10,7 +10,6 @@ internal static class PostgresDatabaseInitializer
         "postgis",
         "btree_gist",
         "vector",
-        "age",
     ];
 
     public static async Task EnsureExtensionsAsync(string connectionString, CancellationToken ct)
@@ -160,7 +159,6 @@ internal static class PostgresDatabaseInitializer
             "postgis" => "CREATE EXTENSION IF NOT EXISTS postgis;",
             "btree_gist" => "CREATE EXTENSION IF NOT EXISTS btree_gist;",
             "vector" => "CREATE EXTENSION IF NOT EXISTS vector;",
-            "age" => "CREATE EXTENSION IF NOT EXISTS age; LOAD 'age';",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(extensionName),
                 extensionName,

@@ -13,6 +13,7 @@ using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.CommunicationTransports;
 using Ruth.Providers.PaymentGateways;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Workflow.Tests.Fixtures;
 
@@ -23,6 +24,7 @@ internal static class WorkflowTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var configuration = BuildConfiguration(connectionString);
         var services = new ServiceCollection();
         RegisterModules(services, configuration);

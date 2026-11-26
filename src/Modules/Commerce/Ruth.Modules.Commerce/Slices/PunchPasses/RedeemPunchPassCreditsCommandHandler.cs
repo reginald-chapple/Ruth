@@ -14,7 +14,7 @@ namespace Ruth.Modules.Commerce.Slices.PunchPasses;
 internal sealed class RedeemPunchPassCreditsCommandHandler(
     CommerceDbContext dbContext,
     MemberEligibilityResolver eligibilityResolver,
-    WalletPassCommerceSyncCollaborator walletPassSync,
+    PunchPassCreditCalculator creditCalculator,
     IClock clock
 ) : ICommandHandler<RedeemPunchPassCreditsCommand, IssuedPunchPassResponse>
 {
@@ -86,7 +86,7 @@ internal sealed class RedeemPunchPassCreditsCommandHandler(
     )
     {
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-        var totalCredits = await walletPassSync.ComputeActivePunchCreditsAsync(
+        var totalCredits = await creditCalculator.ComputeActivePunchCreditsAsync(
             pass.OwnerPersonId,
             nowUtc,
             cancellationToken
@@ -104,10 +104,5 @@ internal sealed class RedeemPunchPassCreditsCommandHandler(
             )
         );
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-        await walletPassSync.SyncPunchPassBalanceAsync(
-            pass.OwnerPersonId,
-            totalCredits,
-            cancellationToken
-        );
     }
 }

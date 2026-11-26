@@ -12,6 +12,7 @@ using Ruth.Modules.Finance.Domain.Transactions;
 using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.Gateways;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Slices.Transactions;
@@ -19,6 +20,7 @@ namespace Ruth.Modules.Finance.Slices.Transactions;
 internal sealed class TransactionPostingCollaborator(
     FinanceDbContext dbContext,
     IPaymentGatewayRegistry gatewayRegistry,
+    ITenantContext tenantContext,
     IClock clock
 )
 {
@@ -253,6 +255,11 @@ internal sealed class TransactionPostingCollaborator(
             .FirstOrDefaultAsync(g => g.Id == gatewayId, cancellationToken);
         return gateway is null ? FinanceErrors.GatewayNotFound
             : !gateway.IsActive ? FinanceErrors.GatewayInactive
+            : !gateway.IsTestMode && !tenantContext.IsLive
+                ? DomainError.Validation(
+                    "Finance.LiveChargeRequiresApprovedTenant",
+                    "Live payment gateway charges require IRS tax-exempt verification and Live workspace approval."
+                )
             : !gatewayRegistry.TryGet(gateway.ProviderKey, out var provider)
                 ? FinanceErrors.GatewayProviderUnavailable
             : (gatewayId, gateway.IsTestMode, provider);

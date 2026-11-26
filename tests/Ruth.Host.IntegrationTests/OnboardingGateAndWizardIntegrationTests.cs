@@ -64,7 +64,7 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
         using var wizardResp = await client.GetAsync(new Uri("/onboarding", UriKind.Relative));
         var html = await wizardResp.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, wizardResp.StatusCode);
-        Assert.Contains("Welcome to Ruth RMS", html, StringComparison.Ordinal);
+        Assert.Contains("Welcome — Initial Workspace Setup", html, StringComparison.Ordinal);
         Assert.Contains("fluent-text-input", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("fluent-option", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("org-timezone", html, StringComparison.OrdinalIgnoreCase);
@@ -160,7 +160,7 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
             using var homeResp = await client.GetAsync(new Uri("/", UriKind.Relative));
             var homeHtml = await homeResp.Content.ReadAsStringAsync();
             Assert.Equal(HttpStatusCode.OK, homeResp.StatusCode);
-            Assert.Contains("<h1>Ruth RMS</h1>", homeHtml, StringComparison.Ordinal);
+            Assert.Contains("<h1>Grace Fellowship</h1>", homeHtml, StringComparison.Ordinal);
             Assert.Contains("fluent-nav", homeHtml, StringComparison.OrdinalIgnoreCase);
 
             using var duplicateResp = await client.PostAsJsonAsync(
@@ -311,7 +311,8 @@ public sealed class OnboardingGateAndWizardIntegrationTests(HostContainersFixtur
         Assert.Equal("MAIN", org.PrimaryBranchShortCode);
         Assert.True(org.IsOnboardingCompleted);
         Assert.True(org.SelfRegistrationLocked);
-        Assert.Equal(SecurityRole.AdministratorsRoleId, role.Id);
+        Assert.Equal(SecurityRole.AdministratorsRoleName, role.Name);
+        Assert.True(role.IsSystem);
         Assert.Equal("admin", user.UserName);
         Assert.NotEqual(plaintextPassword, user.PasswordHash, StringComparer.Ordinal);
         _ = Assert.Single(user.Roles);

@@ -209,7 +209,6 @@ public sealed class W2S2HouseholdsAndApacheAgeIntegrationTests(CrmPostgresContai
         >(new GetPersonRelationshipGraphQuery(parentA, MaxHops: 2));
         Assert.True(graphResult.IsSuccess);
         var graph = graphResult.Value;
-        Assert.True(graph.PoweredByApacheAge);
         Assert.Contains(graph.Nodes, n => n.EntityId == parentA && n.HopDistance == 0);
         Assert.Contains(graph.Nodes, n =>
             n.EntityId == householdId

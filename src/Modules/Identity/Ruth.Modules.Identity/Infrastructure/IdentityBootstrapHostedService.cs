@@ -1,19 +1,18 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Identity.Infrastructure;
 
 internal sealed partial class IdentityBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<IdentityBootstrapHostedService> logger
 ) : IHostedService
 {
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory
-        ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly IServiceProvider _serviceProvider = serviceProvider
+        ?? throw new ArgumentNullException(nameof(serviceProvider));
     private readonly IConfiguration _configuration = configuration
         ?? throw new ArgumentNullException(nameof(configuration));
     private readonly ILogger<IdentityBootstrapHostedService> _logger = logger
@@ -27,9 +26,7 @@ internal sealed partial class IdentityBootstrapHostedService(
         }
 
         LogApplyingMigrations(_logger);
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
+        await _serviceProvider.MigrateModuleSchemaAsync<IdentityDbContext>(cancellationToken);
         LogMigrationsApplied(_logger);
     }
 

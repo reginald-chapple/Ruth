@@ -29,8 +29,8 @@ using Ruth.Modules.Reporting;
 using Ruth.Modules.Reporting.Contracts;
 using Ruth.Modules.Search;
 using Ruth.Modules.Search.Contracts;
-using Ruth.Modules.VirtualRooms;
-using Ruth.Modules.VirtualRooms.Contracts;
+using Ruth.Modules.Tenancy;
+using Ruth.Modules.Tenancy.Contracts;
 using Ruth.Modules.Workflow;
 using Ruth.Modules.Workflow.Contracts;
 using Ruth.Persistence;
@@ -76,9 +76,6 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.Workflow.Domain",
         "Ruth.Modules.Workflow.Infrastructure",
         "Ruth.Modules.Workflow.Slices",
-        "Ruth.Modules.VirtualRooms.Domain",
-        "Ruth.Modules.VirtualRooms.Infrastructure",
-        "Ruth.Modules.VirtualRooms.Slices",
         "Ruth.Modules.Cms.Domain",
         "Ruth.Modules.Cms.Infrastructure",
         "Ruth.Modules.Cms.Slices",
@@ -91,6 +88,9 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.Search.Domain",
         "Ruth.Modules.Search.Infrastructure",
         "Ruth.Modules.Search.Slices",
+        "Ruth.Modules.Tenancy.Domain",
+        "Ruth.Modules.Tenancy.Infrastructure",
+        "Ruth.Modules.Tenancy.Slices",
     ];
 
     private static Assembly[] GetModuleAssemblies()
@@ -108,11 +108,11 @@ public sealed class ModularMonolithArchitectureTests
             CommerceModuleAssembly.Instance,
             EngagementModuleAssembly.Instance,
             WorkflowModuleAssembly.Instance,
-            VirtualRoomsModuleAssembly.Instance,
             CmsModuleAssembly.Instance,
             ReportingModuleAssembly.Instance,
             LmsModuleAssembly.Instance,
             SearchModuleAssembly.Instance,
+            TenancyModuleAssembly.Instance,
         ];
 
         return
@@ -144,11 +144,11 @@ public sealed class ModularMonolithArchitectureTests
             CommerceContractsAssembly.Instance,
             EngagementContractsAssembly.Instance,
             WorkflowContractsAssembly.Instance,
-            VirtualRoomsContractsAssembly.Instance,
             CmsContractsAssembly.Instance,
             ReportingContractsAssembly.Instance,
             LmsContractsAssembly.Instance,
             SearchContractsAssembly.Instance,
+            TenancyContractsAssembly.Instance,
         ];
 
         return

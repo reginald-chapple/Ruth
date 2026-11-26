@@ -66,7 +66,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<int>("TargetCountSnapshot")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PersonId", "AchievementTypeId");
 
@@ -151,9 +157,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid?>("TargetStreakTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
                     b.ToTable("achievement_types", "engage");
@@ -194,7 +204,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("DigestProcessedAtUtc", "OccurredAtUtc");
 
@@ -243,9 +259,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("FollowerPersonId", "EntityTypeKey", "EntityId", "PurposeKey")
+                    b.HasIndex("TenantId", "FollowerPersonId", "EntityTypeKey", "EntityId", "PurposeKey")
                         .IsUnique();
 
                     b.ToTable("following_subscriptions", "engage");
@@ -281,9 +301,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<DateOnly>("StartedDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PersonId", "JourneyProgramId")
+                    b.HasIndex("TenantId", "PersonId", "JourneyProgramId")
                         .IsUnique();
 
                     b.ToTable("journey_completions", "engage");
@@ -339,13 +363,17 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("journey_programs", "engage");
@@ -375,7 +403,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("JourneyProgramId", "Order");
 
@@ -428,9 +462,15 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("prerequisite_milestone_type_ids");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("JourneyProgramId", "Code")
+                    b.HasIndex("JourneyProgramId");
+
+                    b.HasIndex("TenantId", "JourneyProgramId", "Code")
                         .IsUnique();
 
                     b.ToTable("milestone_types", "engage");
@@ -482,7 +522,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("MilestoneTypeId", "IsCompleted");
 
@@ -561,13 +607,17 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.HasIndex("PipelineTypeId", "IsActive", "IsPublic");
@@ -637,6 +687,10 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("RequesterPersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
@@ -644,6 +698,8 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
                     b.HasIndex("RequesterPersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PipelineTypeId", "RequestState");
 
@@ -678,7 +734,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("OccurredAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("EngagementRequestId", "OccurredAtUtc");
 
@@ -704,7 +766,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("PipelineTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PipelineTypeId", "Order");
 
@@ -748,7 +816,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("PipelineTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PipelineTypeId", "Order");
 
@@ -807,13 +881,17 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("pipeline_types", "engage");
@@ -861,12 +939,18 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("RecipientPersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("RecipientPersonId", "IsRead", "CreatedOnUtc");
 
@@ -933,9 +1017,15 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssigneePersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("IsComplete", "ReminderDate");
 
@@ -990,7 +1080,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("reminder_types", "engage");
                 });
@@ -1051,11 +1147,15 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("StreakTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("StreakTypeId", "PersonId")
+                    b.HasIndex("TenantId", "StreakTypeId", "PersonId")
                         .IsUnique();
 
                     b.ToTable("streaks", "engage");
@@ -1075,7 +1175,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("StreakTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("StreakTypeId", "ExclusionDate");
 
@@ -1136,6 +1242,10 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid?>("TargetEntityId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("WeekEndDay")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1143,7 +1253,7 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
                     b.ToTable("streak_types", "engage");
@@ -1202,9 +1312,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("support_categories", "engage");
@@ -1296,6 +1410,10 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("SupportCategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("VisibilityLevel")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1308,6 +1426,8 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
                     b.HasIndex("SupportCategoryId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ModerationState", "VisibilityLevel", "ExpiresAtUtc");
 
@@ -1341,7 +1461,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                     b.Property<Guid>("SupportRequestId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SupportRequestId", "CreatedAtUtc");
 
@@ -1426,16 +1552,20 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("OwnerPersonId", "ConstituentPersonId")
-                        .IsUnique();
-
                     b.HasIndex("OwnerPersonId", "IsActive", "HealthScore");
+
+                    b.HasIndex("TenantId", "OwnerPersonId", "ConstituentPersonId")
+                        .IsUnique();
 
                     b.ToTable("constituent_contacts", "engage");
                 });
@@ -1496,9 +1626,15 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ConstituentContactId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("OwnerPersonId", "Status", "ScheduledDate");
 
@@ -1507,6 +1643,10 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1520,7 +1660,7 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "engage");
                 });
@@ -1577,9 +1717,13 @@ namespace Ruth.Modules.Engagement.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "engage");

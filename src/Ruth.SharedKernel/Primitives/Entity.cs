@@ -1,12 +1,13 @@
 using System.Runtime.CompilerServices;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.SharedKernel.Primitives;
 
 /// <summary>
-/// Base type for DDD entities with identity-based equality.
+/// Base type for DDD entities with identity-based equality and tenant ownership.
 /// </summary>
 /// <typeparam name="TId">The strongly-typed entity identifier.</typeparam>
-public abstract class Entity<TId> : IEquatable<Entity<TId>>
+public abstract class Entity<TId> : IEquatable<Entity<TId>>, ITenantScoped
     where TId : notnull, IEquatable<TId>
 {
     /// <summary>Initializes an entity for persistence materialization.</summary>
@@ -36,8 +37,29 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>>
     /// <summary>Gets the strongly-typed identifier for this entity.</summary>
     public TId Id { get; protected init; }
 
+    /// <inheritdoc />
+    public TenantId TenantId { get; private set; }
+
     /// <summary>Gets a value indicating whether this entity has not yet been assigned an identifier.</summary>
     public bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default);
+
+    /// <inheritdoc />
+    public void AssignTenant(TenantId tenantId)
+    {
+        if (tenantId.IsEmpty)
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty.", nameof(tenantId));
+        }
+
+        if (!TenantId.IsEmpty && TenantId != tenantId)
+        {
+            throw new CrossTenantAccessException(
+                $"Cannot reassign entity '{GetType().Name}' ({Id}) from tenant '{TenantId}' to '{tenantId}'."
+            );
+        }
+
+        TenantId = tenantId;
+    }
 
     /// <inheritdoc />
     public bool Equals(Entity<TId>? other)

@@ -57,12 +57,18 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowActivityTypeId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkflowActivityTypeId", "Key")
+                    b.HasIndex("WorkflowActivityTypeId");
+
+                    b.HasIndex("TenantId", "WorkflowActivityTypeId", "Key")
                         .IsUnique();
 
                     b.ToTable("workflow_action_types", "workflow");
@@ -102,12 +108,18 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowTypeId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkflowTypeId", "Key")
+                    b.HasIndex("WorkflowTypeId");
+
+                    b.HasIndex("TenantId", "WorkflowTypeId", "Key")
                         .IsUnique();
 
                     b.ToTable("workflow_activity_types", "workflow");
@@ -175,6 +187,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("WorkTerm")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -191,7 +207,7 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("workflow_types", "workflow");
@@ -260,9 +276,13 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("form_builder_templates", "workflow");
@@ -306,12 +326,16 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowActionTypeId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkflowActionTypeId")
+                    b.HasIndex("TenantId", "WorkflowActionTypeId")
                         .IsUnique();
 
                     b.ToTable("workflow_action_forms", "workflow");
@@ -369,6 +393,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("select_options");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("VisibilityRule")
                         .HasColumnType("jsonb")
                         .HasColumnName("visibility_rule");
@@ -378,7 +406,9 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkflowActionFormId", "AttributeKey")
+                    b.HasIndex("WorkflowActionFormId");
+
+                    b.HasIndex("TenantId", "WorkflowActionFormId", "AttributeKey")
                         .IsUnique();
 
                     b.ToTable("workflow_action_form_fields", "workflow");
@@ -404,6 +434,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<bool>("ShowHeadingSeparator")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -418,7 +452,9 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkflowActionFormId", "SectionKey")
+                    b.HasIndex("WorkflowActionFormId");
+
+                    b.HasIndex("TenantId", "WorkflowActionFormId", "SectionKey")
                         .IsUnique();
 
                     b.ToTable("workflow_action_form_sections", "workflow");
@@ -457,6 +493,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowActionTypeId")
                         .HasColumnType("uuid");
 
@@ -464,6 +504,8 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WorkflowActivityId");
 
@@ -508,6 +550,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowActivityTypeId")
                         .HasColumnType("uuid");
 
@@ -515,6 +561,8 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WorkflowId");
 
@@ -589,6 +637,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("WorkflowNumber")
                         .IsRequired()
                         .HasMaxLength(48)
@@ -602,6 +654,8 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.HasIndex("Attributes");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WorkflowNumber");
 
@@ -633,10 +687,16 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("WorkflowId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WorkflowId", "LoggedAtUtc");
 
@@ -691,6 +751,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TriggerKind")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -705,6 +769,8 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("IsActive", "TriggerKind", "EventTypeKey");
 
                     b.ToTable("workflow_triggers", "workflow");
@@ -712,6 +778,10 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -725,7 +795,7 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "workflow");
                 });
@@ -782,9 +852,13 @@ namespace Ruth.Modules.Workflow.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "workflow");

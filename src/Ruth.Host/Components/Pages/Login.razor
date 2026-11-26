@@ -1,14 +1,16 @@
 @page "/login"
+@using Ruth.Host.Middleware
 @inject IQueryDispatcher QueryDispatcher
 @inject ICommandDispatcher CommandDispatcher
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
+@inject IServiceProvider Services
 
-<PageTitle>Sign In — Ruth RMS</PageTitle>
+<PageTitle>Sign In — @BrandTitle</PageTitle>
 
 <div class="ruth-onboarding-container">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-        <h1>Sign In to Ruth RMS</h1>
+        <h1>Sign In to @BrandTitle</h1>
 
         @if (!string.IsNullOrWhiteSpace(_errorMessage))
         {
@@ -75,6 +77,9 @@
     private bool _isSubmitting;
     private string? _errorMessage;
     private List<ExternalAuthProviderResponse> _oidcProviders = [];
+
+    private string BrandTitle =>
+        Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle ?? "Organization Workspace";
 
     protected override async Task OnInitializedAsync()
     {

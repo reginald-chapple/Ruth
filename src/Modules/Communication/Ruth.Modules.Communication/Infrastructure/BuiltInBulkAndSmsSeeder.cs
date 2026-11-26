@@ -45,7 +45,7 @@ internal static class BuiltInBulkAndSmsSeeder
                 "community-member-digest",
                 CommunicationChannel.Email,
                 TopicKey: "community-digest",
-                SubjectTemplate: "{{ OrganizationName | default:'Ruth' }} — Weekly Community Digest",
+                SubjectTemplate: "{{ OrganizationName | default:'Your Organization' }} — Weekly Community Digest",
                 Description: "Structured multi-section announcement and upcoming program digest.",
                 PreheaderText: "Highlights, programs, and member updates for this week.",
                 RazorLayoutKey: BuiltInRazorTemplatesCatalog.StandardEmailKey,
@@ -106,7 +106,7 @@ internal static class BuiltInBulkAndSmsSeeder
                     SmsKeywordMatchMode.ExactKeyword,
                     "HELP",
                     SmsActionKind.AutoReply,
-                    ReplyTemplate: "{{ OrganizationName | default:'Ruth' }} Support: Reply STOP to opt out or START to resume messages."
+                    ReplyTemplate: "{{ OrganizationName | default:'Community' }} Support: Reply STOP to opt out or START to resume messages."
                 ),
                 new SmsActionInputDto(
                     "Hours & Location Reply",
@@ -114,7 +114,7 @@ internal static class BuiltInBulkAndSmsSeeder
                     SmsKeywordMatchMode.ExactKeyword,
                     "HOURS",
                     SmsActionKind.AutoReply,
-                    ReplyTemplate: "{{ OrganizationName | default:'Ruth' }} operating hours are Monday–Friday 8:00 AM – 6:00 PM."
+                    ReplyTemplate: "{{ OrganizationName | default:'Community' }} operating hours are Monday–Friday 8:00 AM – 6:00 PM."
                 ),
             ],
             description: "Built-in compliance and member support keyword responder.",
@@ -179,7 +179,7 @@ internal static class BuiltInBulkAndSmsSeeder
                 "Immediate Welcome Email",
                 CommunicationChannel.Email,
                 DelayMinutes: 0,
-                SubjectTemplate: "Welcome to {{ OrganizationName | default:'Ruth' }}, {{ RecipientName | default:'Member' }}!",
+                SubjectTemplate: "Welcome to {{ OrganizationName | default:'Your Organization' }}, {{ RecipientName | default:'Member' }}!",
                 BodyTemplate: "<p>We are thrilled to have you join our community. Explore your member resources anytime.</p>"
             ),
             new CommunicationFlowStepDto(
@@ -188,7 +188,7 @@ internal static class BuiltInBulkAndSmsSeeder
                 "Day 3 Orientation Follow-Up",
                 CommunicationChannel.Email,
                 DelayMinutes: 4_320,
-                SubjectTemplate: "Next Steps with {{ OrganizationName | default:'Ruth' }}",
+                SubjectTemplate: "Next Steps with {{ OrganizationName | default:'Your Organization' }}",
                 BodyTemplate: "<p>Ready to connect with a group, workshop, or upcoming session?</p>",
                 SendOnlyIfPreviousUnopened: false
             ),
@@ -198,7 +198,7 @@ internal static class BuiltInBulkAndSmsSeeder
                 "Day 7 Unopened Reminder",
                 CommunicationChannel.Email,
                 DelayMinutes: 5_760,
-                SubjectTemplate: "Checking in from {{ OrganizationName | default:'Ruth' }}",
+                SubjectTemplate: "Checking in from {{ OrganizationName | default:'Your Organization' }}",
                 BodyTemplate: "<p>Let us know if we can help you find the right cohort or program.</p>",
                 SendOnlyIfPreviousUnopened: true
             ),

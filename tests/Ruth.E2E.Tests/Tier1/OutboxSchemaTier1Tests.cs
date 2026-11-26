@@ -89,7 +89,10 @@ public sealed class OutboxSchemaTier1Tests(E2EContainersFixture containers)
         Assert.NotNull(inboxTable);
 
         var pkColumns = await scope.Probe.GetPrimaryKeyColumnsAsync("identity", inboxTable);
-        Assert.Equal(2, pkColumns.Count);
+        Assert.Equal(3, pkColumns.Count);
+        Assert.Contains(pkColumns, col =>
+            col.Contains("tenant", StringComparison.OrdinalIgnoreCase)
+        );
         Assert.Contains(pkColumns, col =>
             col.Contains("message", StringComparison.OrdinalIgnoreCase)
         );

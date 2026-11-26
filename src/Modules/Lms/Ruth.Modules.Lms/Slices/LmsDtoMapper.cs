@@ -151,7 +151,6 @@ internal static class LmsDtoMapper
             c.LearningTermId?.Value,
             c.LearningGradingSystemId?.Value,
             c.BranchId,
-            c.VirtualRoomId,
             c.Name,
             c.IsPublic,
             c.IsActive,

@@ -13,7 +13,6 @@ namespace Ruth.Modules.Commerce.Slices.Orders;
 internal sealed class RefundCommerceOrderCommandHandler(
     CommerceDbContext dbContext,
     CommerceOrderFinanceCollaborator financeCollaborator,
-    WalletPassCommerceSyncCollaborator walletPassSync,
     IClock clock
 ) : ICommandHandler<RefundCommerceOrderCommand, CommerceOrderResponse>
 {
@@ -64,16 +63,6 @@ internal sealed class RefundCommerceOrderCommandHandler(
         }
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-        if (order.Status == CommerceOrderStatus.Refunded && order.BuyerPersonId is { } buyerId)
-        {
-            var remaining = await walletPassSync.ComputeActivePunchCreditsAsync(
-                buyerId,
-                nowUtc,
-                cancellationToken
-            );
-            await walletPassSync.SyncPunchPassBalanceAsync(buyerId, remaining, cancellationToken);
-        }
-
         return CommerceOrderMapper.MapOrder(order);
     }
 

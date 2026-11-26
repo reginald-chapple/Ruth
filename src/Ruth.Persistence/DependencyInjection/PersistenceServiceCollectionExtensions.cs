@@ -94,7 +94,11 @@ public static class PersistenceServiceCollectionExtensions
             validatedSchema,
             regOptions
         );
-        PersistenceRegistrationHelper.RegisterOutboxProcessor<TContext>(services, validatedSchema);
+        PersistenceRegistrationHelper.RegisterOutboxProcessor<TContext>(
+            services,
+            validatedSchema,
+            regOptions.IsTenantScopedSchema
+        );
 
         return services;
     }

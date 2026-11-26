@@ -90,7 +90,7 @@
         var sb = new StringBuilder();
         _ = sb.AppendLine("BEGIN:VCALENDAR");
         _ = sb.AppendLine("VERSION:2.0");
-        _ = sb.AppendLine("PRODID:-//Ruth RMS//Schedule Builder//EN");
+        _ = sb.AppendLine("PRODID:-//Organization Calendar//Schedule Builder//EN");
         _ = sb.AppendLine("BEGIN:VEVENT");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DTSTART{tzSuffix}:{start:yyyyMMdd'T'HHmmss}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DTEND{tzSuffix}:{end:yyyyMMdd'T'HHmmss}");

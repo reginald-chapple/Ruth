@@ -73,7 +73,7 @@ public sealed class PersistenceOutboxAndSchedulerPairwiseTests(E2EContainersFixt
             Assert.NotNull(inboxTable);
 
             var pkCols = await probe.GetPrimaryKeyColumnsAsync("identity", inboxTable);
-            Assert.Equal(2, pkCols.Count);
+            Assert.Equal(3, pkCols.Count);
         });
     }
 
@@ -92,7 +92,7 @@ public sealed class PersistenceOutboxAndSchedulerPairwiseTests(E2EContainersFixt
             Assert.Contains("uuid-ossp", extensions, StringComparer.Ordinal);
             Assert.Contains("postgis", extensions, StringComparer.Ordinal);
             Assert.Contains("vector", extensions, StringComparer.Ordinal);
-            Assert.Contains("age", extensions, StringComparer.Ordinal);
+            Assert.DoesNotContain("age", extensions, StringComparer.Ordinal);
 
             var identityTables = await probe.GetTablesInSchemaAsync("identity");
             var schedulerTables = await probe.GetTablesInSchemaAsync("scheduler");

@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Commerce.Infrastructure;
 
 internal sealed partial class CommerceBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<CommerceBootstrapHostedService> logger
 ) : IHostedService
@@ -20,9 +19,7 @@ internal sealed partial class CommerceBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CommerceDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<CommerceDbContext>(cancellationToken);
         LogMigrationsCompleted(logger);
     }
 

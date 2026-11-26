@@ -6,6 +6,7 @@ using Ruth.Modules.Crm;
 using Ruth.Modules.Groups;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.CheckIn.Tests.Fixtures;
 
@@ -16,6 +17,7 @@ internal static class CheckInTestHostFactory
         Action<IServiceCollection>? configure = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["ConnectionStrings:RuthDatabase"] = connectionString,

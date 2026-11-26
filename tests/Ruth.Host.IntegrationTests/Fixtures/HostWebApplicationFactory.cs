@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Identity.Contracts.Onboarding;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Host.IntegrationTests.Fixtures;
 
@@ -16,6 +17,20 @@ public sealed class HostWebApplicationFactory : WebApplicationFactory<Program>
 {
     public const string TestProductionJwtSigningKey =
         "ruth-test-only-production-jwt-signing-key-32chars-min";
+
+    public static readonly Guid DefaultWorkspaceTenantGuid = new(
+        0x01967000,
+        0x0000,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01
+    );
 
     private readonly string _environment;
     private readonly Dictionary<string, string?> _settings;
@@ -55,6 +70,7 @@ public sealed class HostWebApplicationFactory : WebApplicationFactory<Program>
             ["Storage:RustFs:SecretKey"] = "rustfsadmin",
             ["Storage:RustFs:HealthCheckTimeoutSeconds"] = "2",
             ["HealthChecks:TimeoutSeconds"] = "2",
+            ["Tenancy:DedicatedWorkspaceTenantId"] = DefaultWorkspaceTenantGuid.ToString("D"),
         };
 
         if (
@@ -130,6 +146,22 @@ public sealed class HostWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        if (
+            _settings.TryGetValue("Tenancy:DedicatedWorkspaceTenantId", out var tidRaw)
+            && Guid.TryParse(tidRaw, out var tidGuid)
+            && tidGuid != Guid.Empty
+        )
+        {
+            AmbientTenantContext.SetTestHarnessDefault(
+                TenantId.From(tidGuid),
+                TenantLifecycleStage.Live
+            );
+        }
+        else
+        {
+            AmbientTenantContext.SetTestHarnessDefault(tenantId: null);
+        }
+
         _ = builder.UseEnvironment(_environment);
 
         foreach (var (key, value) in _settings)

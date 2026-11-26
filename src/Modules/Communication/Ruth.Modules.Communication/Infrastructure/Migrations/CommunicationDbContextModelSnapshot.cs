@@ -116,6 +116,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid?>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -134,6 +138,8 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedOnUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("Status", "ScheduledSendAtUtc");
 
@@ -212,6 +218,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TransportKey")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -227,10 +237,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasIndex("ProviderMessageId");
 
-                    b.HasIndex("CommunicationId", "NormalizedDestination")
-                        .IsUnique();
-
                     b.HasIndex("CommunicationId", "Status");
+
+                    b.HasIndex("TenantId", "CommunicationId", "NormalizedDestination")
+                        .IsUnique();
 
                     b.ToTable("communication_recipients", "comms");
                 });
@@ -270,6 +280,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("_optedOutTopics")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -279,7 +293,7 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("Channel", "NormalizedDestination")
+                    b.HasIndex("TenantId", "Channel", "NormalizedDestination")
                         .IsUnique();
 
                     b.ToTable("communication_subscription_preferences", "comms");
@@ -367,6 +381,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid>("SystemGuid")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TopicKey")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -379,13 +397,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("Channel", "IsActive");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("communication_templates", "comms");
                 });
@@ -453,6 +471,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid>("SystemGuid")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TopicKey")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -470,13 +492,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("Category", "IsActive");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("communication_flows", "comms");
                 });
@@ -531,13 +553,17 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<int>("StepOrderAtConversion")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FlowId");
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("FlowInstanceRecipientId", "GoalKind")
+                    b.HasIndex("TenantId", "FlowInstanceRecipientId", "GoalKind")
                         .IsUnique();
 
                     b.ToTable("communication_flow_conversions", "comms");
@@ -577,7 +603,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FlowId", "Status");
 
@@ -657,6 +689,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("_mergeFields")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -667,6 +703,8 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.HasIndex("FlowInstanceId");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FlowId", "Status");
 
@@ -720,9 +758,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PushRegistrationToken")
+                    b.HasIndex("TenantId", "PushRegistrationToken")
                         .IsUnique();
 
                     b.HasIndex("PersonId", "IsActive", "NotificationsEnabled");
@@ -781,14 +823,18 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid>("SystemGuid")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedToPersonId");
 
-                    b.HasIndex("Number")
+                    b.HasIndex("TenantId", "Number")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("system_phone_numbers", "comms");
@@ -868,6 +914,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid>("SystemGuid")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -875,13 +925,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("Category", "IsActive");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("system_communications", "comms");
                 });
@@ -924,6 +974,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TransportKey")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -938,6 +992,8 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.HasIndex("RecipientPersonId");
 
                     b.HasIndex("SentOnUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SystemCommunicationKey", "SentOnUtc");
 
@@ -1009,6 +1065,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("_categoryIds")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -1021,10 +1081,10 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("template_snippets", "comms");
@@ -1093,9 +1153,15 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid>("SystemPhoneNumberId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ParticipantPersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("IsRead", "Direction", "OccurredAtUtc");
 
@@ -1148,7 +1214,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SmsPipelineId", "Order");
 
@@ -1194,18 +1266,26 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.Property<Guid?>("SystemPhoneNumberId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("IsActive", "PriorityOrder");
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("sms_pipelines", "comms");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1219,7 +1299,7 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "comms");
                 });
@@ -1276,9 +1356,13 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "comms");

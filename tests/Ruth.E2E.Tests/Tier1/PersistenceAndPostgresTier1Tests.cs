@@ -31,15 +31,6 @@ public sealed class PersistenceAndPostgresTier1Tests(E2EContainersFixture contai
     }
 
     [Fact]
-    public async Task Feature03_Postgres18_InstallsApacheAgeExtension()
-    {
-        await using var scope = await Tier1TestSupport.CreateIsolatedHostAsync(containers);
-        var extensions = await scope.Probe.GetInstalledExtensionsAsync();
-
-        Assert.Contains("age", extensions, StringComparer.Ordinal);
-    }
-
-    [Fact]
     public async Task Feature03_ModuleSchemas_IdentityAndScheduler_ExistAfterBoot()
     {
         await using var scope = await Tier1TestSupport.CreateIsolatedHostAsync(containers);

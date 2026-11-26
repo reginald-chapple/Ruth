@@ -12,7 +12,6 @@
     <ProjectReference Include="..\..\src\Modules\Lms\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Reporting\Ruth.Modules.Reporting.Contracts\Ruth.Modules.Reporting.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Search\Ruth.Modules.Search.Contracts\Ruth.Modules.Search.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Modules\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Host\Ruth.Host.csproj" />
   </ItemGroup>
 

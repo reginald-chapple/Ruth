@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Events.Infrastructure;
 using Ruth.Modules.Events.Infrastructure.Realtime;
 using Ruth.Modules.Events.Slices;
@@ -9,6 +10,7 @@ using Ruth.Modules.Events.Slices.Calendars;
 using Ruth.Modules.Events.Slices.InteractiveSessions;
 using Ruth.Modules.Events.Slices.Registrations;
 using Ruth.Persistence.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Events;
 
@@ -33,6 +35,10 @@ public static class EventsModuleExtensions
         _ = services.AddModuleDbContext<EventsDbContext>(
             connectionString,
             EventsDbContext.SchemaName
+        );
+        services.TryAddScoped<EventsTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, EventsTenantSeedContributor>()
         );
         _ = services.AddHostedService<EventsBootstrapHostedService>();
         EventsW4S7SliceRegistration.RegisterW4S7Services(services);

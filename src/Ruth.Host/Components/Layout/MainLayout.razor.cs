@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Ruth.Host.Middleware;
 
 namespace Ruth.Host.Components.Layout;
 
@@ -20,8 +21,14 @@ public sealed partial class MainLayout : LayoutComponentBase
     [Inject]
     private IJSRuntime JsRuntime { get; set; } = default!;
 
+    [Inject]
+    private IServiceProvider Services { get; set; } = default!;
+
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    internal string BrandTitle =>
+        Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle ?? "Organization Workspace";
 
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()

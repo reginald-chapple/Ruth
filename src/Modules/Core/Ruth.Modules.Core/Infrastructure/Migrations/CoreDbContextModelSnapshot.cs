@@ -132,9 +132,13 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.HasIndex("EntityTypeId", "EntityTypeQualifierColumn", "EntityTypeQualifierValue", "NormalizedKey");
@@ -197,9 +201,13 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("attribute_matrix_templates", "core");
@@ -303,6 +311,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("team_group_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeZoneId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -315,10 +327,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("branches", "core");
@@ -346,7 +358,13 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("schedule_type_value_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("BranchId", "Order");
 
@@ -373,6 +391,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_public");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("TopicTypeValueId")
                         .HasColumnType("uuid")
                         .HasColumnName("topic_type_value_id");
@@ -380,6 +402,8 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("branch_topics", "core");
                 });
@@ -454,11 +478,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ParentCategoryId");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.HasIndex("EntityTypeId", "ParentCategoryId", "Order");
@@ -510,9 +538,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("purpose_value_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExpireOnUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("entity_sets", "core");
                 });
@@ -539,9 +573,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("order");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("EntitySetId", "EntityId")
+                    b.HasIndex("EntitySetId");
+
+                    b.HasIndex("TenantId", "EntitySetId", "EntityId")
                         .IsUnique();
 
                     b.ToTable("entity_set_items", "core");
@@ -622,6 +662,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("source_of_change");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("ValueName")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)")
@@ -634,6 +678,8 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnName("verb");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("EntityTypeId", "EntityId", "OccurredOnUtc");
 
@@ -710,6 +756,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parent_note_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("text")
@@ -718,6 +768,8 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ParentNoteId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("EntityId", "NoteTypeId");
 
@@ -738,9 +790,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("note_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NoteId", "BinaryFileId")
+                    b.HasIndex("NoteId");
+
+                    b.HasIndex("TenantId", "NoteId", "BinaryFileId")
                         .IsUnique();
 
                     b.ToTable("note_attachments", "core");
@@ -829,6 +887,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("UserSelectable")
                         .HasColumnType("boolean")
                         .HasColumnName("user_selectable");
@@ -837,7 +899,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasIndex("EntityTypeId");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("note_types", "core");
@@ -881,6 +943,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("note_type_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("WatchReplies")
                         .HasColumnType("boolean")
                         .HasColumnName("watch_replies");
@@ -890,6 +956,8 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnName("watcher_user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WatcherUserId");
 
@@ -936,6 +1004,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_key");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasColumnType("text")
@@ -943,10 +1015,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerKey", "Key")
-                        .IsUnique();
-
                     b.HasIndex("OwnerKey", "EntityTypeId", "EntityId");
+
+                    b.HasIndex("TenantId", "OwnerKey", "Key")
+                        .IsUnique();
 
                     b.ToTable("person_preferences", "core");
                 });
@@ -1026,9 +1098,13 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.HasIndex("NormalizedName", "OwnerUserId", "EntityTypeId");
@@ -1066,11 +1142,17 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tag_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TagId");
 
                     b.HasIndex("EntityTypeId", "EntityId");
 
-                    b.HasIndex("TagId", "EntityTypeId", "EntityId")
+                    b.HasIndex("TenantId", "TagId", "EntityTypeId", "EntityId")
                         .IsUnique();
 
                     b.ToTable("tagged_items", "core");
@@ -1145,12 +1227,16 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("defined_types", "core");
@@ -1209,6 +1295,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(250)
@@ -1221,10 +1311,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
 
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("DefinedTypeId", "Order");
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("defined_values", "core");
                 });
@@ -1325,15 +1415,19 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
-                    b.HasIndex("DeviceTypeValueId", "NormalizedIpAddress")
+                    b.HasIndex("TenantId", "DeviceTypeValueId", "NormalizedIpAddress")
                         .IsUnique()
                         .HasFilter("normalized_ip_address IS NOT NULL");
 
@@ -1354,9 +1448,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("location_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("DeviceId", "LocationId")
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("TenantId", "DeviceId", "LocationId")
                         .IsUnique();
 
                     b.ToTable("device_locations", "core");
@@ -1421,12 +1521,16 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("entity_type_descriptors", "core");
@@ -1516,6 +1620,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("UploadedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("uploaded_by_user_id");
@@ -1528,10 +1636,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasIndex("BinaryFileTypeId");
 
-                    b.HasIndex("SystemGuid")
-                        .IsUnique();
-
                     b.HasIndex("IsTemporary", "ModifiedOnUtc");
+
+                    b.HasIndex("TenantId", "SystemGuid")
+                        .IsUnique();
 
                     b.ToTable("binary_files", "core");
                 });
@@ -1625,12 +1733,16 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("binary_file_types", "core");
@@ -1682,12 +1794,16 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("purpose_key");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("BinaryFileId")
-                        .IsUnique();
-
                     b.HasIndex("DocumentTypeId", "EntityId");
+
+                    b.HasIndex("TenantId", "BinaryFileId")
+                        .IsUnique();
 
                     b.ToTable("documents", "core");
                 });
@@ -1765,6 +1881,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("UserSelectable")
                         .HasColumnType("boolean")
                         .HasColumnName("user_selectable");
@@ -1773,7 +1893,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasIndex("EntityTypeId");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("document_types", "core");
@@ -1872,11 +1992,17 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("status");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AppliesToEntityId");
 
                     b.HasIndex("SignatureDocumentTemplateId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("signature_documents", "core");
                 });
@@ -1942,13 +2068,17 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("template_markup");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int?>("ValidityDurationInDays")
                         .HasColumnType("integer")
                         .HasColumnName("validity_duration_in_days");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("signature_document_templates", "core");
@@ -2112,6 +2242,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GeoFence");
@@ -2124,7 +2258,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasIndex("ParentLocationId");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("locations", "core");
@@ -2208,6 +2342,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("system_guid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("WeeklyDayOfWeek")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -2221,7 +2359,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("SystemGuid")
+                    b.HasIndex("TenantId", "SystemGuid")
                         .IsUnique();
 
                     b.ToTable("schedules", "core");
@@ -2261,6 +2399,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("start_on_utc");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2268,6 +2410,8 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnName("title");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("CategoryId", "StartOnUtc", "EndOnUtc");
 
@@ -2292,9 +2436,15 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("start_date_key");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("ScheduleId", "StartOnUtc");
 
                     b.HasIndex("StartDateKey");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("StartOnUtc", "EndOnUtc");
 
@@ -2303,6 +2453,10 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -2316,7 +2470,7 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "core");
                 });
@@ -2373,9 +2527,13 @@ namespace Ruth.Modules.Core.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "core");

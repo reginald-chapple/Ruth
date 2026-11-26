@@ -1,9 +1,14 @@
+using Ruth.SharedKernel.Tenancy;
+
 namespace Ruth.Persistence.Outbox;
 
 /// <summary>Transactional Outbox record persisted atomically alongside module domain changes.</summary>
-public sealed class OutboxMessage
+public sealed class OutboxMessage : ITenantScoped
 {
     private OutboxMessage() { }
+
+    /// <inheritdoc />
+    public TenantId TenantId { get; private set; }
 
     /// <summary>Gets the UUIDv7 identifier of the integration event / outbox message.</summary>
     public Guid Id { get; private set; }
@@ -37,6 +42,24 @@ public sealed class OutboxMessage
 
     /// <summary>Gets the truncated diagnostic error message from the last failed attempt.</summary>
     public string? Error { get; private set; }
+
+    /// <inheritdoc />
+    public void AssignTenant(TenantId tenantId)
+    {
+        if (tenantId.IsEmpty)
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty.", nameof(tenantId));
+        }
+
+        if (!TenantId.IsEmpty && TenantId != tenantId)
+        {
+            throw new CrossTenantAccessException(
+                $"Cannot reassign OutboxMessage ({Id}) from tenant '{TenantId}' to '{tenantId}'."
+            );
+        }
+
+        TenantId = tenantId;
+    }
 
     /// <summary>Creates a new pending <see cref="OutboxMessage" />.</summary>
     public static OutboxMessage Create(

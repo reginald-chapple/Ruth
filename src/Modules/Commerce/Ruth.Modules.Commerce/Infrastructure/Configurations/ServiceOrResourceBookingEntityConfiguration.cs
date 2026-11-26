@@ -28,7 +28,6 @@ internal sealed class ServiceOrResourceBookingEntityConfiguration
             .HasConversion<string>()
             .HasMaxLength(24)
             .IsRequired();
-        _ = builder.Property(static x => x.VirtualRoomReferenceKey).HasMaxLength(96);
         _ = builder.Property(static x => x.CustomerName).HasMaxLength(180).IsRequired();
         _ = builder.Property(static x => x.CustomerEmail).HasMaxLength(254).IsRequired();
         _ = builder.Property(static x => x.CustomerPhone).HasMaxLength(40);

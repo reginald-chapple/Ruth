@@ -2,20 +2,20 @@ using Ruth.Modules.Crm.Contracts.Relationships;
 
 namespace Ruth.Modules.Crm.Infrastructure.Graph;
 
-/// <summary>Synchronizes CRM people, households, known relationships, and peer-network edges into PostgreSQL Apache AGE (crm_graph).</summary>
+/// <summary>Resolves multi-hop CRM relationship graphs over relational people, households, known relationships, and peer-network edges.</summary>
 public interface ICrmGraphService
 {
-    /// <summary>Ensures the Apache AGE extension and crm_graph exist.</summary>
+    /// <summary>Ensures graph backing structures are initialized.</summary>
     Task EnsureGraphInitializedAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Upserts a Person vertex into crm_graph.</summary>
+    /// <summary>Notifies graph backing service of a Person vertex upsert.</summary>
     Task UpsertPersonVertexAsync(
         Guid personId,
         string fullName,
         CancellationToken cancellationToken = default
     );
 
-    /// <summary>Upserts a Household vertex into crm_graph.</summary>
+    /// <summary>Notifies graph backing service of a Household vertex upsert.</summary>
     Task UpsertHouseholdVertexAsync(
         Guid householdId,
         string householdName,
@@ -71,7 +71,7 @@ public interface ICrmGraphService
     /// <summary>Removes a retired Person vertex and its incident edges after a merge.</summary>
     Task RemovePersonVertexAsync(Guid personId, CancellationToken cancellationToken = default);
 
-    /// <summary>Executes a multi-hop Cypher traversal centered on <paramref name="personId" />.</summary>
+    /// <summary>Executes a multi-hop relational graph traversal centered on <paramref name="personId" />.</summary>
     Task<PersonRelationshipGraphResponse> TraverseAsync(
         Guid personId,
         int maxHops,

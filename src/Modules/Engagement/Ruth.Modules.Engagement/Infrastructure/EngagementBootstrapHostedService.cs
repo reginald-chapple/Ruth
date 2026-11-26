@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Engagement.Infrastructure;
 
 internal sealed partial class EngagementBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<EngagementBootstrapHostedService> logger
 ) : IHostedService
@@ -20,9 +19,7 @@ internal sealed partial class EngagementBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<EngagementDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<EngagementDbContext>(cancellationToken);
         LogMigrationsCompleted(logger);
     }
 

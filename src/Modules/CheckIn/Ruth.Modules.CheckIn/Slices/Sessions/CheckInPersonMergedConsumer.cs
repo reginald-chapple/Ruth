@@ -34,11 +34,7 @@ internal sealed class CheckInPersonMergedConsumer(CheckInDbContext dbContext)
             )
             .ToListAsync(cancellationToken);
 
-        var affectedPasses = await dbContext
-            .IssuedWalletPasses.Where(p => p.PersonId == retiredId)
-            .ToListAsync(cancellationToken);
-
-        if (affectedSessions.Count == 0 && affectedPasses.Count == 0)
+        if (affectedSessions.Count == 0)
         {
             return;
         }
@@ -46,11 +42,6 @@ internal sealed class CheckInPersonMergedConsumer(CheckInDbContext dbContext)
         foreach (var session in affectedSessions)
         {
             session.RepointPerson(retiredId, survivingId);
-        }
-
-        foreach (var pass in affectedPasses)
-        {
-            pass.RepointPerson(retiredId, survivingId);
         }
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);

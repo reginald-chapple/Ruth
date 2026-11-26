@@ -1,0 +1,82 @@
+@page "/ops"
+@using Ruth.Modules.Tenancy.Contracts.Operators
+@layout OnboardingLayout
+
+<PageTitle>Platform Compliance Operations</PageTitle>
+
+<div class="ruth-onboarding-container">
+    @if (!IsOperatorHost)
+    {
+        <FluentMessageBar Intent="MessageBarIntent.Warning" Title="Not Found" AllowDismiss="false">
+            The requested page could not be found.
+        </FluentMessageBar>
+    }
+    else if (OperatorSession is null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h1>Platform Compliance Console</h1>
+                @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
+                {
+                    <FluentMessageBar Intent="MessageBarIntent.Error" Title="Authentication failed" AllowDismiss="false">
+                        @FeedbackMessage
+                    </FluentMessageBar>
+                }
+                <FluentTextInput Id="ops-email" @bind-Value="OperatorEmail" TextInputType="TextInputType.Email" Label="Operator Email" Width="100%" />
+                <FluentTextInput Id="ops-password" @bind-Value="OperatorPassword" TextInputType="TextInputType.Password" Label="Operator Password" Width="100%" />
+                <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@SignInOperatorAsync">
+                    Sign In
+                </FluentButton>
+            </FluentStack>
+        </FluentCard>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <h1>Nonprofit Go-Live Verification Queue</h1>
+            <p>Signed in as <strong>@OperatorSession.DisplayName</strong> (@OperatorSession.Email)</p>
+
+            @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Info" Title="Review Update" AllowDismiss="false">
+                    @FeedbackMessage
+                </FluentMessageBar>
+            }
+
+            @if (Queue.Count == 0)
+            {
+                <FluentCard Padding="@Padding.All4">
+                    <p>No organizations are currently awaiting Go-Live approval.</p>
+                </FluentCard>
+            }
+            else
+            {
+                @foreach (var item in Queue)
+                {
+                    <FluentCard @key="item.TenantId" Padding="@Padding.All4">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            <h2>@item.LegalName (@item.Slug)</h2>
+                            <p>
+                                <strong>EIN:</strong> @item.Ein |
+                                <strong>Subsection:</strong> @item.IrsSubsectionCode |
+                                <strong>IRS Match:</strong> @item.IrsStatus (@(item.IrsOfficialName ?? "Unmatched")) |
+                                <strong>Stripe Ready:</strong> @(item.StripeChargesEnabled && item.StripePayoutsEnabled ? "Yes" : "No")
+                            </p>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                                <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ApproveLive))">
+                                    Approve Live
+                                </FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ReturnToSandbox))">
+                                    Return to Sandbox
+                                </FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.Suspend))">
+                                    Suspend
+                                </FluentButton>
+                            </FluentStack>
+                        </FluentStack>
+                    </FluentCard>
+                }
+            }
+        </FluentStack>
+    }
+</div>

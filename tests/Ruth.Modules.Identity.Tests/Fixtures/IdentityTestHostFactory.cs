@@ -2,15 +2,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ruth.Modules.Identity.Contracts.Onboarding;
+using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
 using Ruth.SharedKernel.Events;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Tests.Fixtures;
 
 internal static class IdentityTestHostFactory
 {
+    public static SecurityRoleId CurrentTenantAdministratorsRoleId =>
+        SecurityRole.GetAdministratorsRoleId(AmbientTenantContext.CurrentTenantId);
+
+    public static Guid CurrentTenantAdministratorsRoleGuid =>
+        CurrentTenantAdministratorsRoleId.Value;
+
     public static ServiceProvider BuildServiceProvider(
         string connectionString,
         bool autoMigrate,
@@ -18,6 +26,7 @@ internal static class IdentityTestHostFactory
         Action<IServiceCollection>? configureServices = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
                 new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)

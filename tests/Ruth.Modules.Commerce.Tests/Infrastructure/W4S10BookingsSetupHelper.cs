@@ -77,9 +77,9 @@ internal static class W4S10BookingsSetupHelper
             await commands.SendAsync<CreateBookableServiceCommand, BookableServiceResponse>(
                 new CreateBookableServiceCommand(
                     new BookableServiceSpec(
-                        "1-on-1 Virtual Mentorship",
+                        "1-on-1 Remote Mentorship",
                         "virtual-mentorship-1on1",
-                        BookingDeliveryMode.VirtualRoom,
+                        BookingDeliveryMode.Remote,
                         DurationMinutes: 60,
                         SlotIncrementMinutes: 60,
                         "USD",

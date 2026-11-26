@@ -6,8 +6,8 @@
 <FluentLayout>
     <FluentLayoutItem Area="LayoutArea.Header">
         <header class="ruth-header">
-            <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="Ruth RMS" />
-            <a href="/" class="ruth-brand">Ruth RMS</a>
+            <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="@BrandTitle" />
+            <a href="/" class="ruth-brand">@BrandTitle</a>
             <div class="ruth-header-spacer"></div>
             <FluentButton Appearance="ButtonAppearance.Transparent"
                           Title="Open Spotlight Search (Cmd+K / Ctrl+K)"
@@ -42,175 +42,7 @@
     </FluentLayoutItem>
 
     <FluentLayoutItem Area="LayoutArea.Navigation">
-        <FluentNav aria-label="Primary navigation">
-            <FluentNavItem Href="/"
-                           Match="NavLinkMatch.All"
-                           IconRest="@(new Icons.Regular.Size20.Home())"
-                           IconActive="@(new Icons.Filled.Size20.Home())">
-                Home
-            </FluentNavItem>
-
-            <FluentNavCategory Title="CRM"
-                               IconRest="@(new Icons.Regular.Size20.People())"
-                               IconActive="@(new Icons.Filled.Size20.People())">
-                <FluentNavItem Href="/crm/people">People Directory</FluentNavItem>
-                <FluentNavItem Href="/crm/duplicates">Duplicate Queue</FluentNavItem>
-                <FluentNavItem Href="/crm/merge">Person Merge</FluentNavItem>
-                <FluentNavItem Href="/admin/crm/settings">CRM Settings</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Groups"
-                               IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
-                               IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
-                <FluentNavItem Href="/groups">Group Tree &amp; Explorer</FluentNavItem>
-                <FluentNavItem Href="/groups/finder">Group Finder &amp; Map</FluentNavItem>
-                <FluentNavItem Href="/groups/placement">Placement Board</FluentNavItem>
-                <FluentNavItem Href="/groups/scheduler">Shift &amp; Volunteer Scheduler</FluentNavItem>
-                <FluentNavItem Href="/groups/toolbox">Volunteer Toolbox</FluentNavItem>
-                <FluentNavItem Href="/admin/groups/types">Group Types</FluentNavItem>
-                <FluentNavItem Href="/admin/groups/requirement-types">Requirement Types</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Check-In"
-                               IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
-                               IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
-                <FluentNavItem Href="/checkin/kiosk">Touch Check-In Kiosk</FluentNavItem>
-                <FluentNavItem Href="/checkin/room-manager">Live Room &amp; Facility Manager</FluentNavItem>
-                <FluentNavItem Href="/checkin/wallet-passes">Smart Wallet Passes</FluentNavItem>
-                <FluentNavItem Href="/admin/checkin/configurations">Check-In Configurations</FluentNavItem>
-                <FluentNavItem Href="/admin/checkin/labels">Badge &amp; ZPL Label Designer</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Communication"
-                               IconRest="@(new Icons.Regular.Size20.Mail())"
-                               IconActive="@(new Icons.Filled.Size20.Mail())">
-                <FluentNavItem Href="/communication/campaigns">Bulk Campaigns &amp; Email Builder</FluentNavItem>
-                <FluentNavItem Href="/communication/flows">Automated Drip Flows &amp; Analytics</FluentNavItem>
-                <FluentNavItem Href="/communication/sms-inbox">Two-Way SMS Inbox &amp; Keywords</FluentNavItem>
-                <FluentNavItem Href="/communication/preferences">Preference &amp; Unsubscribe Center</FluentNavItem>
-                <FluentNavItem Href="/admin/communication/templates">Razor Templates &amp; Snippets</FluentNavItem>
-                <FluentNavItem Href="/admin/communication/transports">Transports &amp; System Notifications</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Finance"
-                               IconRest="@(new Icons.Regular.Size20.Money())"
-                               IconActive="@(new Icons.Filled.Size20.Money())">
-                <FluentNavItem Href="/finance/accounts">Accounts, Funds &amp; Pledges</FluentNavItem>
-                <FluentNavItem Href="/finance/organizations">Organizations &amp; Sponsors</FluentNavItem>
-                <FluentNavItem Href="/finance/invoices">Invoices &amp; Dues Billing</FluentNavItem>
-                <FluentNavItem Href="/finance/batches">Batches &amp; Transactions</FluentNavItem>
-                <FluentNavItem Href="/finance/recurring">Recurring &amp; Cadence Alerts</FluentNavItem>
-                <FluentNavItem Href="/finance/statements">Tax Receipts &amp; Statements</FluentNavItem>
-                <FluentNavItem Href="/finance/assistance">Assistance &amp; Grants</FluentNavItem>
-                <FluentNavItem Href="/finance/campaigns">Campaigns &amp; Leader Toolbox</FluentNavItem>
-                <FluentNavItem Href="/admin/finance/gateways">Payment Gateways &amp; Vault</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Events"
-                               IconRest="@(new Icons.Regular.Size20.CalendarLtr())"
-                               IconActive="@(new Icons.Filled.Size20.CalendarLtr())">
-                <FluentNavItem Href="/events/calendars">Event Calendars &amp; iCal Feeds</FluentNavItem>
-                <FluentNavItem Href="/events/interactive">Live Interactive Sessions</FluentNavItem>
-                <FluentNavItem Href="/events/registrations">Registrations &amp; Waitlists</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Commerce"
-                               IconRest="@(new Icons.Regular.Size20.Money())"
-                               IconActive="@(new Icons.Filled.Size20.Money())">
-                <FluentNavItem Href="/commerce/catalog">Catalog, Pricing &amp; Punch Packs</FluentNavItem>
-                <FluentNavItem Href="/commerce/orders">Orders &amp; Issued Punch Passes</FluentNavItem>
-                <FluentNavItem Href="/commerce/storefront">Storefront &amp; Checkout</FluentNavItem>
-                <FluentNavItem Href="/commerce/bookings">Services, Rentals &amp; Calendar</FluentNavItem>
-                <FluentNavItem Href="/commerce/book">Public Booking Wizard</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Engagement"
-                               IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
-                               IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
-                <FluentNavItem Href="/engagement/pipelines">Pipelines &amp; Connector Board</FluentNavItem>
-                <FluentNavItem Href="/engagement/opportunities">Public Opportunity Finder</FluentNavItem>
-                <FluentNavItem Href="/engagement/journeys">Journeys &amp; Milestones</FluentNavItem>
-                <FluentNavItem Href="/engagement/streaks">Streaks &amp; Achievements</FluentNavItem>
-                <FluentNavItem Href="/engagement/care">Care Queue, Reminders &amp; Following</FluentNavItem>
-                <FluentNavItem Href="/engagement/support">Community Support Wall</FluentNavItem>
-                <FluentNavItem Href="/engagement/portfolio">My Portfolio &amp; Touchpoints</FluentNavItem>
-                <FluentNavItem Href="/engagement/notifications">Notification Inbox</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Workflows"
-                               IconRest="@(new Icons.Regular.Size20.Settings())"
-                               IconActive="@(new Icons.Filled.Size20.Settings())">
-                <FluentNavItem Href="/workflow/definitions">Workflow Designer &amp; Triggers</FluentNavItem>
-                <FluentNavItem Href="/workflow/form-builder">Visual Form Builder Studio</FluentNavItem>
-                <FluentNavItem Href="/workflow/tasks">My Tasks &amp; Form Entry</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Virtual Rooms"
-                               IconRest="@(new Icons.Regular.Size20.PeopleTeam())"
-                               IconActive="@(new Icons.Filled.Size20.PeopleTeam())">
-                <FluentNavItem Href="/virtual-rooms">Rooms, Dwell &amp; Recordings</FluentNavItem>
-                <FluentNavItem Href="/virtual-rooms/stage">LiveKit Stage Island</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="CMS &amp; Channels"
-                               IconRest="@(new Icons.Regular.Size20.Home())"
-                               IconActive="@(new Icons.Filled.Size20.Home())">
-                <FluentNavItem Href="/cms/sites">Sites, Pages, Zones &amp; ShortLinks</FluentNavItem>
-                <FluentNavItem Href="/cms/content">Content Channels, Media &amp; Datasets</FluentNavItem>
-                <FluentNavItem Href="/cms/personalization">Interactions, Segments &amp; Adaptive</FluentNavItem>
-                <FluentNavItem Href="/cms/apps">Mobile &amp; Digital Signage / TV</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Reporting &amp; BI"
-                               IconRest="@(new Icons.Regular.Size20.DataBarVertical())"
-                               IconActive="@(new Icons.Filled.Size20.DataBarVertical())">
-                <FluentNavItem Href="/reporting/dataviews">DataViews &amp; Query AST</FluentNavItem>
-                <FluentNavItem Href="/reporting/reports">Reports &amp; Merge Templates</FluentNavItem>
-                <FluentNavItem Href="/reporting/metrics">Operational Metrics &amp; Charts</FluentNavItem>
-                <FluentNavItem Href="/reporting/executive">Executive &amp; Impact Dashboards</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="LMS &amp; Training"
-                               IconRest="@(new Icons.Regular.Size20.HatGraduation())"
-                               IconActive="@(new Icons.Filled.Size20.HatGraduation())">
-                <FluentNavItem Href="/lms/programs">Programs, Courses &amp; Classes</FluentNavItem>
-                <FluentNavItem Href="/lms/grading">Facilitator Grading Queue</FluentNavItem>
-                <FluentNavItem Href="/lms/catalog">Course Catalog &amp; Learner Portal</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Search"
-                               IconRest="@(new Icons.Regular.Size20.Search())"
-                               IconActive="@(new Icons.Filled.Size20.Search())">
-                <FluentNavItem Href="/search/collections">Spotlight &amp; Content Collections</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Security"
-                               IconRest="@(new Icons.Regular.Size20.Shield())"
-                               IconActive="@(new Icons.Filled.Size20.Shield())">
-                <FluentNavItem Href="/login">Sign In</FluentNavItem>
-                <FluentNavItem Href="/change-password">Change Password</FluentNavItem>
-                <FluentNavItem Href="/security/login-history">Login History</FluentNavItem>
-                <FluentNavItem Href="/admin/security/roles">Security Roles</FluentNavItem>
-                <FluentNavItem Href="/admin/security/api-keys">REST API Keys</FluentNavItem>
-                <FluentNavItem Href="/admin/security/verify">Verify Security</FluentNavItem>
-                <FluentNavItem Href="/admin/security/audit-log">Security Audit Log</FluentNavItem>
-            </FluentNavCategory>
-
-            <FluentNavCategory Title="Core Setup"
-                               IconRest="@(new Icons.Regular.Size20.Settings())"
-                               IconActive="@(new Icons.Filled.Size20.Settings())">
-                <FluentNavItem Href="/admin/core/defined-types">Defined Types</FluentNavItem>
-                <FluentNavItem Href="/admin/core/categories">Categories</FluentNavItem>
-                <FluentNavItem Href="/admin/core/attributes">Attributes</FluentNavItem>
-                <FluentNavItem Href="/admin/core/attribute-matrices">Attribute Matrices</FluentNavItem>
-                <FluentNavItem Href="/admin/core/branches">Branches &amp; Sites</FluentNavItem>
-                <FluentNavItem Href="/admin/core/locations">Locations</FluentNavItem>
-                <FluentNavItem Href="/admin/core/devices">Devices</FluentNavItem>
-                <FluentNavItem Href="/admin/core/schedules">Schedules</FluentNavItem>
-                <FluentNavItem Href="/admin/core/files-signatures">Files &amp; Signatures</FluentNavItem>
-                <FluentNavItem Href="/admin/core/collaboration">Notes, Tags &amp; History</FluentNavItem>
-            </FluentNavCategory>
-        </FluentNav>
+        <PrimaryNavigationMenu />
     </FluentLayoutItem>
 
     <FluentLayoutItem Area="LayoutArea.Content">
@@ -242,8 +74,8 @@
 
     <FluentLayoutItem Area="LayoutArea.Footer">
         <footer class="ruth-footer">
-            <span>Ruth RMS</span>
-            <span>&copy; @DateTimeOffset.UtcNow.Year Ruth</span>
+            <span>@BrandTitle</span>
+            <span>&copy; @DateTimeOffset.UtcNow.Year @BrandTitle</span>
         </footer>
     </FluentLayoutItem>
 </FluentLayout>

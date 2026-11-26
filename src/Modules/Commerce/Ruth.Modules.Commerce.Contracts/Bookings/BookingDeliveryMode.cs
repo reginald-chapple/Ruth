@@ -6,9 +6,9 @@ public enum BookingDeliveryMode
     /// <summary>On-site physical session at a Core Location.</summary>
     InPerson = 0,
 
-    /// <summary>Remote session provisioned via an embedded LiveKit virtual room.</summary>
-    VirtualRoom = 1,
+    /// <summary>Remote session over phone or external meeting link.</summary>
+    Remote = 1,
 
-    /// <summary>Simultaneous physical room and virtual room participation.</summary>
+    /// <summary>Simultaneous physical room and remote participation.</summary>
     Hybrid = 2,
 }

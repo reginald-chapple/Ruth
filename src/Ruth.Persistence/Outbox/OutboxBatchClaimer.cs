@@ -1,9 +1,11 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using NpgsqlTypes;
 using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Primitives;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Persistence.Outbox;
 
@@ -20,55 +22,100 @@ internal static class OutboxBatchClaimer
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         var validatedSchema = SchemaValidator.Validate(schema);
-        var effectiveBatchSize = Math.Max(1, batchSize);
-        var normalizedNowUtc = nowUtc.ToUniversalTime();
-        var lockToken = StronglyTypedId.NextGuid(normalizedNowUtc);
+        var isTenantScoped = dbContext.RequiresTenantIsolation;
+        var tenantId = dbContext.CurrentTenantId;
+
+        if (isTenantScoped && tenantId.IsEmpty)
+        {
+            throw new TenantContextRequiredException(
+                $"Cannot claim Outbox messages on '{dbContext.GetType().Name}' without an active tenant context."
+            );
+        }
 
         var connection = dbContext.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
         if (shouldClose)
         {
-            await connection.OpenAsync(cancellationToken);
+            await dbContext.Database.OpenConnectionAsync(cancellationToken);
         }
 
         try
         {
-            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-            await using var command = CreateClaimCommand(
+            return await ExecuteClaimTransactionAsync(
+                dbContext,
                 (NpgsqlConnection)connection,
-                (NpgsqlTransaction)transaction,
                 validatedSchema,
-                effectiveBatchSize,
-                normalizedNowUtc,
+                isTenantScoped,
+                tenantId,
+                Math.Max(1, batchSize),
+                nowUtc.ToUniversalTime(),
                 lockedUntilUtc.ToUniversalTime(),
-                lockToken
+                cancellationToken
             );
-
-            var claimed = new List<OutboxClaimedMessage>();
-            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
-            {
-                while (await reader.ReadAsync(cancellationToken))
-                {
-                    claimed.Add(ReadMessage(reader));
-                }
-            }
-
-            await transaction.CommitAsync(cancellationToken);
-            return claimed;
         }
         finally
         {
             if (shouldClose)
             {
-                await connection.CloseAsync();
+                await dbContext.Database.CloseConnectionAsync();
             }
         }
+    }
+
+    private static async Task<IReadOnlyList<OutboxClaimedMessage>> ExecuteClaimTransactionAsync(
+        ModuleDbContext dbContext,
+        NpgsqlConnection connection,
+        string validatedSchema,
+        bool isTenantScoped,
+        TenantId tenantId,
+        int effectiveBatchSize,
+        DateTimeOffset normalizedNowUtc,
+        DateTimeOffset normalizedLockedUntilUtc,
+        CancellationToken cancellationToken
+    )
+    {
+        var lockToken = StronglyTypedId.NextGuid(normalizedNowUtc);
+        await using var efTransaction = await dbContext.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        var dbTransaction = (NpgsqlTransaction)efTransaction.GetDbTransaction();
+        await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+            connection,
+            dbTransaction,
+            cancellationToken
+        );
+
+        await using var command = CreateClaimCommand(
+            connection,
+            dbTransaction,
+            validatedSchema,
+            isTenantScoped,
+            tenantId,
+            effectiveBatchSize,
+            normalizedNowUtc,
+            normalizedLockedUntilUtc,
+            lockToken
+        );
+
+        var claimed = new List<OutboxClaimedMessage>();
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                claimed.Add(ReadMessage(reader));
+            }
+        }
+
+        await efTransaction.CommitAsync(cancellationToken);
+        return claimed;
     }
 
     private static NpgsqlCommand CreateClaimCommand(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         string validatedSchema,
+        bool isTenantScoped,
+        TenantId tenantId,
         int batchSize,
         DateTimeOffset nowUtc,
         DateTimeOffset lockedUntilUtc,
@@ -77,7 +124,14 @@ internal static class OutboxBatchClaimer
     {
         var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = BuildClaimSql(validatedSchema);
+        command.CommandText = BuildClaimSql(validatedSchema, isTenantScoped);
+
+        if (isTenantScoped)
+        {
+            _ = command.Parameters.Add(
+                new NpgsqlParameter("tenant_id", NpgsqlDbType.Uuid) { Value = tenantId.Value }
+            );
+        }
 
         _ = command.Parameters.Add(
             new NpgsqlParameter("now", NpgsqlDbType.TimestampTz) { Value = nowUtc }
@@ -95,14 +149,18 @@ internal static class OutboxBatchClaimer
         return command;
     }
 
-    private static string BuildClaimSql(string schema)
+    private static string BuildClaimSql(string schema, bool isTenantScoped)
     {
+        var tenantPredicate = isTenantScoped
+            ? $"    WHERE {OutboxSqlConstants.ColumnTenantId} = @tenant_id\n      AND {OutboxSqlConstants.ColumnProcessedOnUtc} IS NULL"
+            : $"    WHERE {OutboxSqlConstants.ColumnProcessedOnUtc} IS NULL";
+
         return string.Join(
             '\n',
             "WITH claimed AS (",
             $"    SELECT {OutboxSqlConstants.ColumnId}",
             $"    FROM \"{schema}\".\"{OutboxSqlConstants.OutboxTable}\"",
-            $"    WHERE {OutboxSqlConstants.ColumnProcessedOnUtc} IS NULL",
+            tenantPredicate,
             $"      AND {OutboxSqlConstants.ColumnDeadLetteredOnUtc} IS NULL",
             $"      AND ({OutboxSqlConstants.ColumnNextRetryOnUtc} IS NULL OR {OutboxSqlConstants.ColumnNextRetryOnUtc} <= @now)",
             $"      AND ({OutboxSqlConstants.ColumnLockedUntilUtc} IS NULL OR {OutboxSqlConstants.ColumnLockedUntilUtc} <= @now)",

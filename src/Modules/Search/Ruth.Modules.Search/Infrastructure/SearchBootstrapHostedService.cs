@@ -1,14 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Search.Infrastructure.Querying;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Search.Infrastructure;
 
 internal sealed partial class SearchBootstrapHostedService(
-    IServiceScopeFactory scopeFactory,
+    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ILogger<SearchBootstrapHostedService> logger
 ) : IHostedService
@@ -21,10 +21,13 @@ internal sealed partial class SearchBootstrapHostedService(
         }
 
         LogApplyingMigrations(logger);
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<SearchDbContext>();
-        await db.Database.MigrateAsync(cancellationToken);
-        await SearchPostgresIndexInitializer.EnsureFullTextIndexesAsync(db, cancellationToken);
+        await serviceProvider.MigrateModuleSchemaAsync<SearchDbContext>(cancellationToken);
+        var provisioner = serviceProvider.GetService<PostgresRlsRoleProvisioner>();
+        await SearchPostgresIndexInitializer.EnsureFullTextIndexesAsync(
+            provisioner,
+            fallbackDb: null,
+            cancellationToken
+        );
         LogMigrationsCompleted(logger);
     }
 

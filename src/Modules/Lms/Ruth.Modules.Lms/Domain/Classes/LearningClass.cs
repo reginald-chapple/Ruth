@@ -27,7 +27,6 @@ public sealed class LearningClass
     public LearningTermId? LearningTermId { get; private set; }
     public LearningGradingSystemId? LearningGradingSystemId { get; private set; }
     public Guid? BranchId { get; private set; }
-    public Guid? VirtualRoomId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsPublic { get; private set; } = true;
     public bool IsActive { get; private set; } = true;
@@ -74,7 +73,6 @@ public sealed class LearningClass
         LearningTermId? termId = null,
         LearningGradingSystemId? gradingSystemId = null,
         Guid? branchId = null,
-        Guid? virtualRoomId = null,
         bool isPublic = true,
         bool takesAttendance = false,
         bool allowOverbooking = false,
@@ -103,7 +101,6 @@ public sealed class LearningClass
                     LearningTermId = termId,
                     LearningGradingSystemId = gradingSystemId,
                     BranchId = branchId,
-                    VirtualRoomId = virtualRoomId,
                     Name = name.Trim(),
                     IsPublic = isPublic,
                     IsActive = true,

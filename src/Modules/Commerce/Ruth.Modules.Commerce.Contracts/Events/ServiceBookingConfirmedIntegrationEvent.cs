@@ -12,9 +12,7 @@ namespace Ruth.Modules.Commerce.Contracts.Events;
 /// <param name="BookableServiceId">Optional bookable service identifier.</param>
 /// <param name="RentableResourceId">Optional rentable resource identifier.</param>
 /// <param name="TargetName">Display name of the booked service or resource.</param>
-/// <param name="DeliveryMode">In-person, virtual room, or hybrid delivery mode.</param>
-/// <param name="RequiresVirtualRoom">True when VirtualRooms should provision an embedded LiveKit session.</param>
-/// <param name="VirtualRoomReferenceKey">Deterministic room correlation key for virtual room provisioning.</param>
+/// <param name="DeliveryMode">In-person, remote, or hybrid delivery mode.</param>
 /// <param name="CustomerPersonId">Optional customer CRM person identifier.</param>
 /// <param name="CustomerName">Customer full name.</param>
 /// <param name="CustomerEmail">Customer email address.</param>
@@ -38,8 +36,6 @@ public sealed record ServiceBookingConfirmedIntegrationEvent(
     Guid? RentableResourceId,
     string TargetName,
     BookingDeliveryMode DeliveryMode,
-    bool RequiresVirtualRoom,
-    string? VirtualRoomReferenceKey,
     Guid? CustomerPersonId,
     string CustomerName,
     string CustomerEmail,

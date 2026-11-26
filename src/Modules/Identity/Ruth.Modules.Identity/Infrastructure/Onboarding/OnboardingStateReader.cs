@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ruth.Modules.Identity.Contracts.Onboarding;
 using Ruth.Modules.Identity.Domain;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Infrastructure.Onboarding;
 
@@ -10,20 +12,31 @@ internal sealed class OnboardingStateReader(IServiceScopeFactory scopeFactory)
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory
         ?? throw new ArgumentNullException(nameof(scopeFactory));
-    private OnboardingStatusResponse? _completedSnapshot;
+    private readonly ConcurrentDictionary<TenantId, OnboardingStatusResponse> _completedByTenant =
+    [];
 
     public async ValueTask<OnboardingStatusResponse> GetStatusAsync(
         CancellationToken cancellationToken = default
     )
     {
-        var cached = Volatile.Read(ref _completedSnapshot);
-        if (cached is not null)
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return new OnboardingStatusResponse(
+                IsOnboardingRequired: true,
+                IsSelfRegistrationLocked: false,
+                OrganizationName: null
+            );
+        }
+
+        if (_completedByTenant.TryGetValue(tenantId, out var cached))
         {
             return cached;
         }
 
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var adminRoleId = SecurityRole.GetAdministratorsRoleId(tenantId);
 
         var organization = await dbContext
             .OrganizationProfiles.AsNoTracking()
@@ -38,10 +51,7 @@ internal sealed class OnboardingStateReader(IServiceScopeFactory scopeFactory)
 
         var adminExists = await dbContext
             .UserRoles.AsNoTracking()
-            .AnyAsync(
-                static ur => ur.SecurityRoleId == SecurityRole.AdministratorsRoleId,
-                cancellationToken
-            );
+            .AnyAsync(ur => ur.SecurityRoleId == adminRoleId, cancellationToken);
 
         if (
             organization is { IsOnboardingCompleted: true, SelfRegistrationLocked: true }
@@ -53,7 +63,7 @@ internal sealed class OnboardingStateReader(IServiceScopeFactory scopeFactory)
                 IsSelfRegistrationLocked: true,
                 OrganizationName: organization.Name
             );
-            Volatile.Write(ref _completedSnapshot, completed);
+            _completedByTenant[tenantId] = completed;
             return completed;
         }
 
@@ -66,6 +76,13 @@ internal sealed class OnboardingStateReader(IServiceScopeFactory scopeFactory)
 
     public void InvalidateCache()
     {
-        Volatile.Write(ref _completedSnapshot, null);
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            _completedByTenant.Clear();
+            return;
+        }
+
+        _ = _completedByTenant.TryRemove(tenantId, out _);
     }
 }

@@ -12,7 +12,6 @@ namespace Ruth.Modules.Commerce.Slices.Bookings;
 internal sealed class CancelBookingCommandHandler(
     CommerceDbContext dbContext,
     BookingSettlementCollaborator settlementCollaborator,
-    WalletPassCommerceSyncCollaborator walletPassSync,
     IClock clock
 ) : ICommandHandler<CancelBookingCommand, ServiceBookingResponse>
 {
@@ -61,15 +60,6 @@ internal sealed class CancelBookingCommandHandler(
         }
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
-        if (booking.CustomerPersonId is { } custId)
-        {
-            await walletPassSync.SyncUpcomingBookingForPersonAsync(
-                custId,
-                nowUtc,
-                cancellationToken
-            );
-        }
-
         return BookingsMapper.MapBooking(booking);
     }
 

@@ -2,7 +2,7 @@
 @page "/commerce/book/{Slug}"
 @rendermode InteractiveServer
 
-<PageTitle>Public Booking Wizard — Ruth RMS</PageTitle>
+<PageTitle>Public Booking Wizard</PageTitle>
 
 <div class="ruth-page-header">
     <h1>Appointments, Virtual Workshops &amp; Facility Rentals Wizard</h1>
@@ -30,10 +30,6 @@
                 | Total: @_confirmedBooking.TotalAmount.ToString("F2") @_confirmedBooking.CurrencyCode
                 | Paid: @_confirmedBooking.PaidAmount.ToString("F2")
             </p>
-            @if (_confirmedBooking.RequiresVirtualRoom && !string.IsNullOrWhiteSpace(_confirmedBooking.VirtualRoomReferenceKey))
-            {
-                <p>Virtual Room Provisioning Key: <code>@_confirmedBooking.VirtualRoomReferenceKey</code></p>
-            }
         </FluentStack>
     </FluentCard>
 }

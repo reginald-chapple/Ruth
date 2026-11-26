@@ -5,12 +5,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Events;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Persistence.Outbox;
 
 /// <summary>
-/// Claims and dispatches transactional Outbox messages for <typeparamref name="TContext" />.
+/// Claims and dispatches transactional Outbox messages for <typeparamref name="TContext" />,
+/// iterating active tenants under isolated <see cref="AmbientTenantContext" /> scopes for tenant schemas.
 /// </summary>
 /// <typeparam name="TContext">The module <see cref="ModuleDbContext" /> type.</typeparam>
 public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
@@ -22,6 +24,8 @@ public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
     private readonly OutboxOptions _options;
     private readonly ILogger<OutboxModuleProcessor<TContext>> _logger;
     private readonly OutboxStatusUpdater<TContext> _statusUpdater;
+    private readonly IActiveTenantRegistry? _activeTenantRegistry;
+    private readonly bool _isTenantScoped;
 
     /// <summary>Initializes a new <see cref="OutboxModuleProcessor{TContext}" />.</summary>
     public OutboxModuleProcessor(
@@ -30,7 +34,8 @@ public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
         IClock clock,
         IOptions<OutboxOptions> options,
         ILogger<OutboxModuleProcessor<TContext>> logger,
-        OutboxSchemaDescriptor<TContext> schemaDescriptor
+        OutboxSchemaDescriptor<TContext> schemaDescriptor,
+        IActiveTenantRegistry? activeTenantRegistry = null
     )
     {
         ArgumentNullException.ThrowIfNull(scopeFactory);
@@ -45,6 +50,8 @@ public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
         _clock = clock;
         _options = options.Value;
         _logger = logger;
+        _activeTenantRegistry = activeTenantRegistry;
+        _isTenantScoped = schemaDescriptor.IsTenantScoped;
         Schema = SchemaValidator.Validate(schemaDescriptor.Schema);
         _statusUpdater = new OutboxStatusUpdater<TContext>(
             scopeFactory,
@@ -60,6 +67,67 @@ public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
 
     /// <inheritdoc />
     public async Task<int> ProcessBatchAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_isTenantScoped)
+        {
+            return await ProcessSingleScopeBatchAsync(cancellationToken);
+        }
+
+        var tenants = await ResolveTargetTenantsAsync(cancellationToken);
+        var totalProcessed = 0;
+        foreach (var tenantId in tenants)
+        {
+            using (AmbientTenantContext.BeginScope(tenantId))
+            {
+                totalProcessed += await ProcessSingleScopeBatchAsync(cancellationToken);
+            }
+        }
+
+        return totalProcessed;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> PruneProcessedAsync(
+        DateTimeOffset cutoffUtc,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var utcCutoff = cutoffUtc.ToUniversalTime();
+        if (!_isTenantScoped)
+        {
+            return await PruneSingleScopeAsync(utcCutoff, cancellationToken);
+        }
+
+        var tenants = await ResolveTargetTenantsAsync(cancellationToken);
+        var totalDeleted = 0;
+        foreach (var tenantId in tenants)
+        {
+            using (AmbientTenantContext.BeginScope(tenantId))
+            {
+                totalDeleted += await PruneSingleScopeAsync(utcCutoff, cancellationToken);
+            }
+        }
+
+        return totalDeleted;
+    }
+
+    private async ValueTask<IReadOnlyList<TenantId>> ResolveTargetTenantsAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var ambientTenantId = AmbientTenantContext.CurrentTenantId;
+        if (_activeTenantRegistry is null)
+        {
+            return ambientTenantId.IsEmpty ? [] : [ambientTenantId];
+        }
+
+        var registered = await _activeTenantRegistry.GetActiveTenantIdsAsync(cancellationToken);
+        return ambientTenantId.IsEmpty || registered.Contains(ambientTenantId)
+            ? registered
+            : [.. registered, ambientTenantId];
+    }
+
+    private async Task<int> ProcessSingleScopeBatchAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<OutboxClaimedMessage> claimed;
         await using (var claimScope = _scopeFactory.CreateAsyncScope())
@@ -90,13 +158,11 @@ public sealed class OutboxModuleProcessor<TContext> : IOutboxModuleProcessor
         return claimed.Count;
     }
 
-    /// <inheritdoc />
-    public async Task<int> PruneProcessedAsync(
-        DateTimeOffset cutoffUtc,
-        CancellationToken cancellationToken = default
+    private async Task<int> PruneSingleScopeAsync(
+        DateTimeOffset utcCutoff,
+        CancellationToken cancellationToken
     )
     {
-        var utcCutoff = cutoffUtc.ToUniversalTime();
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
 

@@ -1,7 +1,7 @@
 @page "/commerce/bookings"
 @rendermode InteractiveServer
 
-<PageTitle>Services, Rentals &amp; Coordinator Calendar — Ruth RMS</PageTitle>
+<PageTitle>Services, Rentals &amp; Coordinator Calendar</PageTitle>
 
 <div class="ruth-page-header">
     <h1>Bookable Services, Facility Rentals &amp; Coordinator Calendar</h1>
@@ -81,10 +81,6 @@
                     <span class="ruth-room-status-pill">@b.Status</span>
                     <span>@b.StartUtc.ToString("yyyy-MM-dd HH:mm") – @b.EndUtc.ToString("HH:mm") UTC</span>
                     <span>| @b.CustomerName (@b.PricingKind: @b.TotalAmount.ToString("F2") @b.CurrencyCode)</span>
-                    @if (b.RequiresVirtualRoom && !string.IsNullOrWhiteSpace(b.VirtualRoomReferenceKey))
-                    {
-                        <span class="ruth-room-status-pill">Virtual Room: @b.VirtualRoomReferenceKey</span>
-                    }
                     @if (b.Status == ServiceBookingStatus.Confirmed)
                     {
                         <FluentButton Appearance="ButtonAppearance.Outline"

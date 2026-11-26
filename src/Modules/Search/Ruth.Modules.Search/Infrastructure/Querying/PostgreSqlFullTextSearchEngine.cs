@@ -1,11 +1,11 @@
+using System.Data.Common;
 using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using NpgsqlTypes;
+using Microsoft.EntityFrameworkCore.Storage;
 using Ruth.Modules.Search.Contracts.Querying;
 using Ruth.Modules.Search.Domain;
 using Ruth.Modules.Search.Domain.Querying;
+using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Search.Infrastructure.Querying;
@@ -66,7 +66,11 @@ internal sealed class PostgreSqlFullTextSearchEngine(
         var authorized = await FilterByAclAsync(candidates, subject, limit, ct);
         sw.Stop();
 
-        return BuildResponse(rawText, authorized, (int)sw.ElapsedMilliseconds);
+        return PostgreSqlFullTextSqlBuilder.BuildResponse(
+            rawText,
+            authorized,
+            (int)sw.ElapsedMilliseconds
+        );
     }
 
     private async Task<ContentCollectionId?> ResolveCollectionIdAsync(
@@ -98,19 +102,26 @@ internal sealed class PostgreSqlFullTextSearchEngine(
     )
     {
         var hasQuery = !string.IsNullOrWhiteSpace(rawText);
-        var sql = hasQuery ? BuildFullTextSql() : BuildBrowseSql();
+        var sql = hasQuery
+            ? PostgreSqlFullTextSqlBuilder.BuildFullTextSql()
+            : PostgreSqlFullTextSqlBuilder.BuildBrowseSql();
         var conn = db.Database.GetDbConnection();
         var shouldClose = conn.State != System.Data.ConnectionState.Open;
         if (shouldClose)
         {
-            await conn.OpenAsync(ct);
+            await db.Database.OpenConnectionAsync(ct);
         }
 
         try
         {
+            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+                conn,
+                db.Database.CurrentTransaction?.GetDbTransaction(),
+                ct
+            );
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
-            AddFilterParameters(
+            PostgreSqlFullTextSqlBuilder.AddFilterParameters(
                 cmd,
                 rawText,
                 collectionId,
@@ -125,87 +136,13 @@ internal sealed class PostgreSqlFullTextSearchEngine(
         {
             if (shouldClose)
             {
-                await conn.CloseAsync();
+                await db.Database.CloseConnectionAsync();
             }
         }
     }
 
-    private static string BuildFullTextSql()
-    {
-        return "WITH q AS (SELECT websearch_to_tsquery('english', @query) AS tsq) "
-            + "SELECT d.\"Id\", d.\"ModuleName\", d.\"EntityTypeKey\", d.\"EntityId\", d.\"Title\", d.\"Subtitle\", "
-            + "ts_headline('english', COALESCE(NULLIF(d.\"Summary\", ''), NULLIF(d.\"BodyText\", ''), d.\"Title\"), q.tsq, "
-            + "'StartSel="
-            + SearchSnippetSanitizer.StartMarker
-            + ", StopSel="
-            + SearchSnippetSanitizer.StopMarker
-            + ", MaxFragments=2, MaxWords=24, MinWords=6') AS headline, "
-            + "d.\"UrlPath\", "
-            + "(COALESCE(ts_rank_cd(d.search_vector, q.tsq, 32), 0)::double precision * 2.0 + "
-            + "GREATEST(similarity(d.\"Title\", @query), similarity(COALESCE(d.\"Subtitle\", ''), @query))::double precision) AS score, "
-            + "d.\"IsPublic\", d.\"TagsText\", d.\"FacetsJson\"::text, d.\"SecurityEntityTypeKey\", d.\"SecurityEntityId\" "
-            + "FROM search.search_documents d, q "
-            + "WHERE (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
-            + "AND (@publicOnly = FALSE OR d.\"IsPublic\" = TRUE) "
-            + "AND (@modules IS NULL OR d.\"ModuleName\" = ANY(@modules)) "
-            + "AND (@entityTypes IS NULL OR d.\"EntityTypeKey\" = ANY(@entityTypes)) "
-            + "AND (d.search_vector @@ q.tsq OR similarity(d.\"Title\", @query) >= 0.2 OR similarity(COALESCE(d.\"Subtitle\", ''), @query) >= 0.25 "
-            + "OR d.\"Title\" ILIKE @likeQuery OR COALESCE(d.\"Subtitle\", '') ILIKE @likeQuery) "
-            + "ORDER BY score DESC, d.\"IndexedDateTimeUtc\" DESC LIMIT @limit";
-    }
-
-    private static string BuildBrowseSql()
-    {
-        return "SELECT d.\"Id\", d.\"ModuleName\", d.\"EntityTypeKey\", d.\"EntityId\", d.\"Title\", d.\"Subtitle\", "
-            + "COALESCE(NULLIF(d.\"Summary\", ''), d.\"Title\") AS headline, "
-            + "d.\"UrlPath\", 1.0::double precision AS score, "
-            + "d.\"IsPublic\", d.\"TagsText\", d.\"FacetsJson\"::text, d.\"SecurityEntityTypeKey\", d.\"SecurityEntityId\" "
-            + "FROM search.search_documents d "
-            + "WHERE (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
-            + "AND (@publicOnly = FALSE OR d.\"IsPublic\" = TRUE) "
-            + "AND (@modules IS NULL OR d.\"ModuleName\" = ANY(@modules)) "
-            + "AND (@entityTypes IS NULL OR d.\"EntityTypeKey\" = ANY(@entityTypes)) "
-            + "ORDER BY d.\"IndexedDateTimeUtc\" DESC LIMIT @limit";
-    }
-
-    private static void AddFilterParameters(
-        System.Data.Common.DbCommand cmd,
-        string rawText,
-        ContentCollectionId? collectionId,
-        IReadOnlyList<string>? moduleNames,
-        IReadOnlyList<string>? entityTypeKeys,
-        bool publicOnly,
-        int overReadLimit
-    )
-    {
-        _ = cmd.Parameters.Add(new NpgsqlParameter("query", rawText));
-        _ = cmd.Parameters.Add(new NpgsqlParameter("likeQuery", $"%{rawText}%"));
-        _ = cmd.Parameters.Add(
-            new NpgsqlParameter("collectionId", (object?)collectionId?.Value ?? DBNull.Value)
-            {
-                NpgsqlDbType = NpgsqlDbType.Uuid,
-            }
-        );
-        _ = cmd.Parameters.Add(new NpgsqlParameter("publicOnly", publicOnly));
-        var modulesArr = moduleNames is { Count: > 0 } ? moduleNames.ToArray() : null;
-        _ = cmd.Parameters.Add(
-            new NpgsqlParameter("modules", (object?)modulesArr ?? DBNull.Value)
-            {
-                NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
-            }
-        );
-        var entityArr = entityTypeKeys is { Count: > 0 } ? entityTypeKeys.ToArray() : null;
-        _ = cmd.Parameters.Add(
-            new NpgsqlParameter("entityTypes", (object?)entityArr ?? DBNull.Value)
-            {
-                NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text,
-            }
-        );
-        _ = cmd.Parameters.Add(new NpgsqlParameter("limit", overReadLimit));
-    }
-
     private static async Task<List<CandidateRow>> ReadCandidatesAsync(
-        System.Data.Common.DbCommand cmd,
+        DbCommand cmd,
         CancellationToken ct
     )
     {
@@ -276,8 +213,8 @@ internal sealed class PostgreSqlFullTextSearchEngine(
                     row.UrlPath,
                     Math.Round(row.Score, 4, MidpointRounding.AwayFromZero),
                     row.IsPublic,
-                    SplitTags(row.TagsText),
-                    ParseFacets(row.FacetsJson)
+                    PostgreSqlFullTextSqlBuilder.SplitTags(row.TagsText),
+                    PostgreSqlFullTextSqlBuilder.ParseFacets(row.FacetsJson)
                 )
             );
             if (authorized.Count >= limit)
@@ -287,65 +224,5 @@ internal sealed class PostgreSqlFullTextSearchEngine(
         }
 
         return authorized;
-    }
-
-    private static SearchResultsResponse BuildResponse(
-        string queryText,
-        List<SearchHitDto> hits,
-        int elapsedMs
-    )
-    {
-        List<SearchFacetBucketDto> moduleFacets =
-        [
-            .. hits.GroupBy(static h => h.ModuleName, StringComparer.OrdinalIgnoreCase)
-                .Select(static g => new SearchFacetBucketDto(g.Key, g.Count()))
-                .OrderByDescending(static b => b.Count)
-                .ThenBy(static b => b.Value, StringComparer.OrdinalIgnoreCase),
-        ];
-        List<SearchFacetBucketDto> entityFacets =
-        [
-            .. hits.GroupBy(static h => h.EntityTypeKey, StringComparer.OrdinalIgnoreCase)
-                .Select(static g => new SearchFacetBucketDto(g.Key, g.Count()))
-                .OrderByDescending(static b => b.Count)
-                .ThenBy(static b => b.Value, StringComparer.OrdinalIgnoreCase),
-        ];
-        return new SearchResultsResponse(
-            queryText,
-            hits.Count,
-            elapsedMs,
-            hits,
-            moduleFacets,
-            entityFacets
-        );
-    }
-
-    private static string[] SplitTags(string tagsText)
-    {
-        return string.IsNullOrWhiteSpace(tagsText)
-            ? []
-            : tagsText.Split(
-                ' ',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-            );
-    }
-
-    private static Dictionary<string, string> ParseFacets(string facetsJson)
-    {
-        if (string.IsNullOrWhiteSpace(facetsJson))
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(facetsJson);
-            return parsed is null
-                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                : new Dictionary<string, string>(parsed, StringComparer.OrdinalIgnoreCase);
-        }
-        catch (JsonException)
-        {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        }
     }
 }

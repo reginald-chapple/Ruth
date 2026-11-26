@@ -1,7 +1,9 @@
+using Ruth.SharedKernel.Tenancy;
+
 namespace Ruth.Modules.Crm.Domain.People;
 
 /// <summary>Read-only first-name to nickname linguistic lookup entry used for name search expansion.</summary>
-public sealed class MetaNickNameLookup
+public sealed class MetaNickNameLookup : ITenantScoped
 {
     private MetaNickNameLookup() { }
 
@@ -23,6 +25,9 @@ public sealed class MetaNickNameLookup
         Count = Math.Max(1, count);
     }
 
+    /// <inheritdoc />
+    public TenantId TenantId { get; private set; }
+
     /// <summary>Gets the unique identifier.</summary>
     public Guid Id { get; private set; }
 
@@ -43,4 +48,22 @@ public sealed class MetaNickNameLookup
 
     /// <summary>Gets the frequency weight.</summary>
     public int Count { get; private set; }
+
+    /// <inheritdoc />
+    public void AssignTenant(TenantId tenantId)
+    {
+        if (tenantId.IsEmpty)
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty.", nameof(tenantId));
+        }
+
+        if (!TenantId.IsEmpty && TenantId != tenantId)
+        {
+            throw new CrossTenantAccessException(
+                $"Cannot reassign MetaNickNameLookup ({Id}) from tenant '{TenantId}' to '{tenantId}'."
+            );
+        }
+
+        TenantId = tenantId;
+    }
 }

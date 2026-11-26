@@ -47,13 +47,15 @@ internal sealed class CompleteOnboardingCommandHandler(
         }
 
         var utcNow = _clock.UtcNow;
+        var tenantId = _dbContext.CurrentTenantId;
         var passwordHash = _passwordHashingService.HashPassword(command.AdminPassword);
         var adminResult = UserAccount.CreateAdministrator(
             command.AdminUserName,
             command.AdminEmail,
             command.AdminDisplayName,
             passwordHash,
-            utcNow
+            utcNow,
+            tenantId
         );
         var orgResult = OrganizationProfile.CompleteInitialOnboarding(
             command.OrganizationName,
@@ -81,14 +83,16 @@ internal sealed class CompleteOnboardingCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        var tenantId = _dbContext.CurrentTenantId;
+        var adminRoleId = SecurityRole.GetAdministratorsRoleId(tenantId);
         var existingRole = await _dbContext.SecurityRoles.FirstOrDefaultAsync(
-            static role => role.Id == SecurityRole.AdministratorsRoleId,
+            role => role.Id == adminRoleId,
             cancellationToken
         );
         if (existingRole is null)
         {
-            _ = _dbContext.SecurityRoles.Add(SecurityRole.CreateSystemAdministrators());
-            SeedAdministratorDefaultAclRules();
+            _ = _dbContext.SecurityRoles.Add(SecurityRole.CreateSystemAdministrators(tenantId));
+            SeedAdministratorDefaultAclRules(adminRoleId);
         }
 
         _ = _dbContext.UserAccounts.Add(admin);
@@ -117,7 +121,7 @@ internal sealed class CompleteOnboardingCommandHandler(
         );
     }
 
-    private void SeedAdministratorDefaultAclRules()
+    private void SeedAdministratorDefaultAclRules(SecurityRoleId adminRoleId)
     {
         string[] actions =
         [
@@ -138,7 +142,7 @@ internal sealed class CompleteOnboardingCommandHandler(
                 order: 0,
                 AclRuleDecision.Allow,
                 SpecialRoleType.None,
-                SecurityRole.AdministratorsRoleId
+                adminRoleId
             );
             if (rule.IsSuccess)
             {

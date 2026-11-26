@@ -13,8 +13,5 @@ internal static class CheckInModelConfigurationRegistry
         _ = modelBuilder.ApplyConfiguration(new CheckInAttendanceEntryEntityConfiguration());
         _ = modelBuilder.ApplyConfiguration(new DailySecurityPickupCodeEntityConfiguration());
         _ = modelBuilder.ApplyConfiguration(new CheckInLabelEntityConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new WalletPassTemplateEntityConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new IssuedWalletPassEntityConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new WalletPassDeviceRegistrationEntityConfiguration());
     }
 }

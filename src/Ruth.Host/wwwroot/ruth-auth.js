@@ -24,3 +24,30 @@ export async function cookieLogout() {
     credentials: "same-origin",
   });
 }
+
+export async function operatorLogin(email, password) {
+  const response = await fetch("/api/v1/platform/operators/authenticate", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (response.ok) {
+    return { ok: true, error: null };
+  }
+
+  try {
+    const problem = await response.json();
+    return { ok: false, error: problem?.detail ?? "Invalid operator credentials." };
+  } catch {
+    return { ok: false, error: "Invalid operator credentials." };
+  }
+}
+
+export async function operatorLogout() {
+  await fetch("/api/v1/platform/operators/logout", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+}

@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Events;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Persistence.Outbox;
 
 /// <summary>
-/// Wraps an <see cref="IIntegrationEventConsumer{TEvent}" /> with per-module-schema
-/// <see cref="InboxMessage" /> (MessageId, ConsumerName) deduplication.
+/// Wraps an <see cref="IIntegrationEventConsumer{TEvent}" /> with per-module-schema, per-tenant
+/// <see cref="InboxMessage" /> deduplication.
 /// </summary>
 public sealed class IdempotentIntegrationEventConsumer<TEvent, TConsumer, TDbContext>(
     TConsumer inner,
@@ -60,6 +61,13 @@ public sealed class IdempotentIntegrationEventConsumer<TEvent, TConsumer, TDbCon
         CancellationToken cancellationToken
     )
     {
+        if (_dbContext.RequiresTenantIsolation && _dbContext.CurrentTenantId.IsEmpty)
+        {
+            throw new TenantContextRequiredException(
+                $"Consumer '{_consumerName}' cannot execute without an active tenant context."
+            );
+        }
+
         var existingTransaction = _dbContext.Database.CurrentTransaction;
         await using var ownedTransaction = existingTransaction is null
             ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
@@ -119,10 +127,27 @@ public sealed class IdempotentIntegrationEventConsumer<TEvent, TConsumer, TDbCon
     )
     {
         var schema = SchemaValidator.Validate(_dbContext.ModuleSchema);
+        var isTenantScoped = _dbContext.RequiresTenantIsolation;
         var connection = _dbContext.Database.GetDbConnection();
+        var dbTransaction = transaction.GetDbTransaction();
+
+        if (isTenantScoped)
+        {
+            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+                connection,
+                dbTransaction,
+                cancellationToken
+            );
+        }
+
         await using var command = connection.CreateCommand();
-        command.Transaction = transaction.GetDbTransaction();
-        command.CommandText = BuildClaimSql(schema);
+        command.Transaction = dbTransaction;
+        command.CommandText = BuildClaimSql(schema, isTenantScoped);
+
+        if (isTenantScoped)
+        {
+            AddParameter(command, "tenant_id", _dbContext.CurrentTenantId.Value);
+        }
 
         AddParameter(command, "message_id", messageId);
         AddParameter(command, "consumer_name", _consumerName);
@@ -207,18 +232,30 @@ public sealed class IdempotentIntegrationEventConsumer<TEvent, TConsumer, TDbCon
         _ = command.Parameters.Add(parameter);
     }
 
-    private static string BuildClaimSql(string schema)
+    private static string BuildClaimSql(string schema, bool isTenantScoped)
     {
-        return string.Join(
-            '\n',
-            $"INSERT INTO \"{schema}\".\"{OutboxSqlConstants.InboxTable}\" (",
-            $"    {OutboxSqlConstants.ColumnMessageId},",
-            $"    {OutboxSqlConstants.ColumnConsumerName},",
-            $"    {OutboxSqlConstants.ColumnProcessedOnUtc}",
-            ")",
-            "VALUES (@message_id, @consumer_name, @processed_on_utc)",
-            $"ON CONFLICT ({OutboxSqlConstants.ColumnMessageId}, {OutboxSqlConstants.ColumnConsumerName}) DO NOTHING;"
-        );
+        return !isTenantScoped
+            ? string.Join(
+                '\n',
+                $"INSERT INTO \"{schema}\".\"{OutboxSqlConstants.InboxTable}\" (",
+                $"    {OutboxSqlConstants.ColumnMessageId},",
+                $"    {OutboxSqlConstants.ColumnConsumerName},",
+                $"    {OutboxSqlConstants.ColumnProcessedOnUtc}",
+                ")",
+                "VALUES (@message_id, @consumer_name, @processed_on_utc)",
+                $"ON CONFLICT ({OutboxSqlConstants.ColumnMessageId}, {OutboxSqlConstants.ColumnConsumerName}) DO NOTHING;"
+            )
+            : string.Join(
+                '\n',
+                $"INSERT INTO \"{schema}\".\"{OutboxSqlConstants.InboxTable}\" (",
+                $"    {OutboxSqlConstants.ColumnTenantId},",
+                $"    {OutboxSqlConstants.ColumnMessageId},",
+                $"    {OutboxSqlConstants.ColumnConsumerName},",
+                $"    {OutboxSqlConstants.ColumnProcessedOnUtc}",
+                ")",
+                "VALUES (@tenant_id, @message_id, @consumer_name, @processed_on_utc)",
+                $"ON CONFLICT ({OutboxSqlConstants.ColumnTenantId}, {OutboxSqlConstants.ColumnMessageId}, {OutboxSqlConstants.ColumnConsumerName}) DO NOTHING;"
+            );
     }
 
     private static string BuildConsumerName()

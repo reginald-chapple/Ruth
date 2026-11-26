@@ -1,5 +1,6 @@
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Domain;
 
@@ -96,13 +97,14 @@ public sealed class UserAccount
     /// <summary>Gets the security roles assigned to this account.</summary>
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
-    /// <summary>Creates a confirmed initial administrator account assigned to <see cref="SecurityRole.AdministratorsRoleId" />.</summary>
+    /// <summary>Creates a confirmed initial administrator account assigned to the tenant Administrators role.</summary>
     public static Result<UserAccount> CreateAdministrator(
         string userName,
         string email,
         string displayName,
         string passwordHash,
-        DateTimeOffset createdOnUtc
+        DateTimeOffset createdOnUtc,
+        TenantId tenantId = default
     )
     {
         var result = Create(
@@ -118,7 +120,7 @@ public sealed class UserAccount
             return result;
         }
 
-        _ = result.Value.AddRole(SecurityRole.AdministratorsRoleId);
+        _ = result.Value.AddRole(SecurityRole.GetAdministratorsRoleId(tenantId));
         return result;
     }
 

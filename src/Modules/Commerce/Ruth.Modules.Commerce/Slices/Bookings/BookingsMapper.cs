@@ -134,8 +134,6 @@ internal static class BookingsMapper
             b.RentableResourceId?.Value,
             b.TargetName,
             b.DeliveryMode,
-            b.RequiresVirtualRoom,
-            b.VirtualRoomReferenceKey,
             b.ProviderPersonId,
             b.LocationId,
             b.BranchId,

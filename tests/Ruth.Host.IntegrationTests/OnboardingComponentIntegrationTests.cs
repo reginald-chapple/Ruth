@@ -46,7 +46,7 @@ public sealed class OnboardingComponentIntegrationTests
             return root.ToHtmlString();
         });
 
-        Assert.Contains("<h1>Welcome to Ruth RMS", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Welcome — Initial Workspace Setup", html, StringComparison.Ordinal);
         Assert.Contains("<h2 id=\"org-section-heading\">", html, StringComparison.Ordinal);
         Assert.Contains("<h2 id=\"admin-section-heading\">", html, StringComparison.Ordinal);
         Assert.Contains("fluent-text-input", html, StringComparison.OrdinalIgnoreCase);

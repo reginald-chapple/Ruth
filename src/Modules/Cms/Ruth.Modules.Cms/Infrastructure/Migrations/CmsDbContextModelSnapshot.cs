@@ -43,6 +43,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid>("SectionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -51,6 +55,8 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SectionId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("personal_links", "cms");
                 });
@@ -84,9 +90,15 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid?>("PersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("personal_link_sections", "cms");
                 });
@@ -162,9 +174,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("mobile_applications", "cms");
@@ -194,12 +210,18 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid?>("TargetMobilePageId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("UsesUniversalLinks")
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
                     b.HasIndex("MobileApplicationId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("mobile_deep_links", "cms");
                 });
@@ -229,9 +251,15 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("MobileApplicationId", "LayoutKey")
+                    b.HasIndex("MobileApplicationId");
+
+                    b.HasIndex("TenantId", "MobileApplicationId", "LayoutKey")
                         .IsUnique();
 
                     b.ToTable("mobile_layouts", "cms");
@@ -285,6 +313,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<bool>("ShowInNavigation")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -292,7 +324,9 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MobileApplicationId", "PageKey")
+                    b.HasIndex("MobileApplicationId");
+
+                    b.HasIndex("TenantId", "MobileApplicationId", "PageKey")
                         .IsUnique();
 
                     b.ToTable("mobile_pages", "cms");
@@ -352,12 +386,16 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("ThemeId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("signage_applications", "cms");
@@ -432,6 +470,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TimeToLiveMinutes")
                         .HasColumnType("integer");
 
@@ -441,7 +483,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("content_channels", "cms");
@@ -512,6 +554,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(240)
@@ -528,10 +574,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("ContentChannelId", "Slug")
-                        .IsUnique();
-
                     b.HasIndex("ContentChannelId", "StartDateTimeUtc");
+
+                    b.HasIndex("TenantId", "ContentChannelId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("content_channel_items", "cms");
                 });
@@ -550,9 +596,15 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid>("ParentItemId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ParentItemId", "ChildItemId")
+                    b.HasIndex("ParentItemId");
+
+                    b.HasIndex("TenantId", "ParentItemId", "ChildItemId")
                         .IsUnique();
 
                     b.ToTable("content_channel_item_associations", "cms");
@@ -600,9 +652,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
                     b.ToTable("content_channel_types", "cms");
@@ -646,9 +702,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("content_topics", "cms");
@@ -714,12 +774,16 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("source_configuration");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<long>("TimeToBuildMs")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccessKey")
+                    b.HasIndex("TenantId", "AccessKey")
                         .IsUnique();
 
                     b.ToTable("persisted_datasets", "cms");
@@ -786,6 +850,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid?>("SiteId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Zone")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -802,6 +870,8 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.HasIndex("PageId");
 
                     b.HasIndex("SiteId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("blocks", "cms");
                 });
@@ -851,9 +921,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<bool>("RequiresInteractivity")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
                     b.ToTable("block_types", "cms");
@@ -899,6 +973,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Zones")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -906,7 +984,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SiteId", "Slug")
+                    b.HasIndex("TenantId", "SiteId", "Slug")
                         .IsUnique();
 
                     b.ToTable("layouts", "cms");
@@ -981,11 +1059,17 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid>("SiteId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SiteId", "Order");
 
@@ -1049,6 +1133,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("ThemeId")
                         .HasColumnType("uuid");
 
@@ -1058,7 +1146,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("sites", "cms");
@@ -1107,9 +1195,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("themes", "cms");
@@ -1160,10 +1252,16 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("StartDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("BlockId", "Version");
 
@@ -1188,9 +1286,15 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid>("PageId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PageId", "EntityKey")
+                    b.HasIndex("PageId");
+
+                    b.HasIndex("TenantId", "PageId", "EntityKey")
                         .IsUnique();
 
                     b.ToTable("page_contexts", "cms");
@@ -1212,11 +1316,17 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(260)
                         .HasColumnType("character varying(260)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PageId");
 
                     b.HasIndex("Route");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("page_routes", "cms");
                 });
@@ -1256,6 +1366,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1277,7 +1391,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     b.HasIndex("SiteId");
 
-                    b.HasIndex("Token")
+                    b.HasIndex("TenantId", "Token")
                         .IsUnique();
 
                     b.ToTable("page_short_links", "cms");
@@ -1324,9 +1438,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid?>("SiteId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
                     b.ToTable("request_filters", "cms");
@@ -1351,12 +1469,16 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<Guid>("SiteId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Domain")
-                        .IsUnique();
-
                     b.HasIndex("SiteId");
+
+                    b.HasIndex("TenantId", "Domain")
+                        .IsUnique();
 
                     b.ToTable("site_domains", "cms");
                 });
@@ -1407,9 +1529,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.ToTable("media_accounts", "cms");
@@ -1473,6 +1599,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("PublishedDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
@@ -1482,7 +1612,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MediaFolderId", "ExternalElementKey")
+                    b.HasIndex("TenantId", "MediaFolderId", "ExternalElementKey")
                         .IsUnique();
 
                     b.ToTable("media_elements", "cms");
@@ -1529,9 +1659,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("MediaAccountId", "ExternalFolderKey")
+                    b.HasIndex("TenantId", "MediaAccountId", "ExternalFolderKey")
                         .IsUnique();
 
                     b.ToTable("media_folders", "cms");
@@ -1578,9 +1712,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("StartDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
                     b.ToTable("adaptive_messages", "cms");
@@ -1637,6 +1775,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("StartDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int?>("ViewSaturationCount")
                         .HasColumnType("integer");
 
@@ -1644,6 +1786,8 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("AdaptiveMessageId", "Order");
 
@@ -1699,7 +1843,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("InteractionComponentId", "OccurredDateTimeUtc");
 
@@ -1744,9 +1894,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<int?>("RetentionDurationDays")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Key")
+                    b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
                     b.ToTable("interaction_channels", "cms");
@@ -1788,9 +1942,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("InteractionChannelId", "ComponentKey")
+                    b.HasIndex("TenantId", "InteractionChannelId", "ComponentKey")
                         .IsUnique();
 
                     b.ToTable("interaction_components", "cms");
@@ -1844,11 +2002,15 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("StartedDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("SessionKey")
+                    b.HasIndex("TenantId", "SessionKey")
                         .IsUnique();
 
                     b.ToTable("interaction_sessions", "cms");
@@ -1900,12 +2062,16 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TimeToUpdateIntervalMinutes")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SegmentKey")
+                    b.HasIndex("TenantId", "SegmentKey")
                         .IsUnique();
 
                     b.ToTable("personalization_segments", "cms");
@@ -1913,6 +2079,10 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Modules.Cms.Domain.Personalization.PersonalizationSegmentMembership", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("SegmentId")
                         .HasColumnType("uuid");
 
@@ -1925,15 +2095,19 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                     b.Property<double>("AffinityScore")
                         .HasColumnType("double precision");
 
-                    b.HasKey("SegmentId", "PersonId");
+                    b.HasKey("TenantId", "SegmentId", "PersonId");
 
-                    b.HasIndex("PersonId");
+                    b.HasIndex("TenantId", "PersonId");
 
                     b.ToTable("personalization_segment_memberships", "cms");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1947,7 +2121,7 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "cms");
                 });
@@ -2004,9 +2178,13 @@ namespace Ruth.Modules.Cms.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "cms");

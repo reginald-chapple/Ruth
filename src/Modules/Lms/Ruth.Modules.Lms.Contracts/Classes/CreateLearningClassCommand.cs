@@ -8,7 +8,6 @@ namespace Ruth.Modules.Lms.Contracts.Classes;
 /// <param name="LearningTermId">Optional term identifier.</param>
 /// <param name="LearningGradingSystemId">Optional grading system override.</param>
 /// <param name="BranchId">Optional branch identifier.</param>
-/// <param name="VirtualRoomId">Optional LiveKit virtual room identifier.</param>
 /// <param name="IsPublic">Whether publicly enrollable.</param>
 /// <param name="TakesAttendance">Whether attendance is tracked.</param>
 /// <param name="AllowOverbooking">Whether enrollment may exceed MaxStudents.</param>
@@ -19,7 +18,6 @@ public sealed record CreateLearningClassCommand(
     Guid? LearningTermId = null,
     Guid? LearningGradingSystemId = null,
     Guid? BranchId = null,
-    Guid? VirtualRoomId = null,
     bool IsPublic = true,
     bool TakesAttendance = false,
     bool AllowOverbooking = false,

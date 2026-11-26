@@ -3,7 +3,7 @@
 @inject ICommandDispatcher CommandDispatcher
 @inject NavigationManager Navigation
 
-<PageTitle>@(_person?.FullName ?? "Person Profile") — Ruth RMS</PageTitle>
+<PageTitle>@(_person?.FullName ?? "Person Profile")</PageTitle>
 
 @if (_loading)
 {
@@ -144,7 +144,7 @@ else
 
         <FluentCard Padding="@Padding.All4">
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                <h2>Known Relationships &amp; Apache AGE Graph</h2>
+                <h2>Known Relationships &amp; Relationship Graph</h2>
                 @if (_relationships.Count == 0)
                 {
                     <p>No known relationships recorded.</p>
@@ -165,7 +165,7 @@ else
                 @if (_graph is not null)
                 {
                     <small>
-                        Apache AGE Graph (@(_graph.PoweredByApacheAge ? "Active" : "Fallback")):
+                        Relationship Graph:
                         @_graph.Nodes.Count node(s), @_graph.Edges.Count edge(s) within @_graph.MaxHops hops.
                     </small>
                 }

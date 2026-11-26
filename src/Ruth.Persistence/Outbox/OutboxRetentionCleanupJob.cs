@@ -14,7 +14,7 @@ public sealed class OutboxRetentionCleanupJob(
     IEnumerable<IOutboxModuleProcessor> processors,
     IOptions<OutboxOptions> options,
     IClock clock
-) : IScheduledJob, IInitialSyncDueJob
+) : IScheduledJob, IInitialSyncDueJob, IPlatformScheduledJob
 {
     private readonly IOutboxModuleProcessor[] _processors = processors?.ToArray()
         ?? throw new ArgumentNullException(nameof(processors));

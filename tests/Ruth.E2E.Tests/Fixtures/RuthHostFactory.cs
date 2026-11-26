@@ -12,6 +12,8 @@ public sealed class RuthHostFactory : WebApplicationFactory<Program>
     public const string SafeTestJwtSigningKey =
         "ruth-e2e-test-signing-key-at-least-32-characters-long!";
 
+    public const string DefaultWorkspaceTenantId = "01967000-0000-7000-8000-000000000001";
+
     private readonly string _environment;
     private readonly Dictionary<string, string?> _settings;
 
@@ -141,6 +143,7 @@ public sealed class RuthHostFactory : WebApplicationFactory<Program>
             ["RustFs:SecretKey"] = rustFsSecretKey,
             ["Authentication:Jwt:SigningKey"] = jwtSigningKey ?? SafeTestJwtSigningKey,
             ["Bootstrap:AutoMigrateAndSeed"] = "true",
+            ["Tenancy:DedicatedWorkspaceTenantId"] = DefaultWorkspaceTenantId,
         };
 
         if (overrides is null)

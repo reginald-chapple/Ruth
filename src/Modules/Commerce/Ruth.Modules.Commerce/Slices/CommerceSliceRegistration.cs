@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Commerce.Contracts.Bookings;
 using Ruth.Modules.Commerce.Contracts.Catalog;
-using Ruth.Modules.Commerce.Contracts.Events;
 using Ruth.Modules.Commerce.Contracts.Orders;
 using Ruth.Modules.Commerce.Contracts.Pricing;
 using Ruth.Modules.Commerce.Contracts.PunchPasses;
@@ -26,7 +25,7 @@ internal static class CommerceSliceRegistration
     {
         services.TryAddSingleton<ICommerceTaxCalculator, FlatRateCommerceTaxCalculator>();
         services.TryAddScoped<MemberEligibilityResolver>();
-        services.TryAddScoped<WalletPassCommerceSyncCollaborator>();
+        services.TryAddScoped<PunchPassCreditCalculator>();
         services.TryAddScoped<ProductCatalogValidator>();
         services.TryAddScoped<CommerceCartEvaluationCollaborator>();
         services.TryAddScoped<CommerceOrderFinanceCollaborator>();
@@ -38,11 +37,6 @@ internal static class CommerceSliceRegistration
         _ = services.AddIdempotentIntegrationEventConsumer<
             PersonMergedIntegrationEvent,
             CommercePersonMergedConsumer,
-            CommerceDbContext
-        >();
-        _ = services.AddIdempotentIntegrationEventConsumer<
-            ServiceBookingConfirmedIntegrationEvent,
-            ServiceBookingWalletPassSyncConsumer,
             CommerceDbContext
         >();
 

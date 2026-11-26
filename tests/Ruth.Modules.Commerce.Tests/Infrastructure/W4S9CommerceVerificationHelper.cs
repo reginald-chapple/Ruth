@@ -1,4 +1,3 @@
-using Ruth.Modules.CheckIn.Contracts.WalletPasses;
 using Ruth.Modules.Commerce.Contracts.Catalog;
 using Ruth.Modules.Commerce.Contracts.Orders;
 using Ruth.Modules.Commerce.Contracts.PunchPasses;
@@ -10,7 +9,7 @@ namespace Ruth.Modules.Commerce.Tests.Infrastructure;
 
 internal static class W4S9CommerceVerificationHelper
 {
-    public static async Task VerifyDigitalLinkWalletPassSyncAndRefundAsync(
+    public static async Task VerifyDigitalLinkPunchPassAndRefundAsync(
         ICommandDispatcher commands,
         IQueryDispatcher queries,
         CommerceSeedBundle seed,
@@ -31,13 +30,13 @@ internal static class W4S9CommerceVerificationHelper
             StringComparison.OrdinalIgnoreCase
         );
 
-        var walletPasses = (
+        var issuedPasses = (
             await queries.QueryAsync<
-                GetIssuedWalletPassesQuery,
-                IReadOnlyList<IssuedWalletPassResponse>
-            >(new GetIssuedWalletPassesQuery(PersonId: seed.MemberPersonId, ActiveOnly: true))
+                GetIssuedPunchPassesQuery,
+                IReadOnlyList<IssuedPunchPassResponse>
+            >(new GetIssuedPunchPassesQuery(OwnerPersonId: seed.MemberPersonId, ActiveOnly: true))
         ).Value;
-        Assert.Equal(10, walletPasses[0].DynamicFields.PunchOrCreditBalance);
+        Assert.Equal(10, issuedPasses[0].RemainingCredits);
 
         var issuedPassId = Assert.Single(order.IssuedPunchPassIds);
         var redeemed = await commands.SendAsync<
@@ -53,14 +52,6 @@ internal static class W4S9CommerceVerificationHelper
         );
         Assert.True(redeemed.IsSuccess);
         Assert.Equal(7, redeemed.Value.RemainingCredits);
-
-        var walletAfterRedeem = (
-            await queries.QueryAsync<
-                GetIssuedWalletPassesQuery,
-                IReadOnlyList<IssuedWalletPassResponse>
-            >(new GetIssuedWalletPassesQuery(PersonId: seed.MemberPersonId, ActiveOnly: true))
-        ).Value;
-        Assert.Equal(7, walletAfterRedeem[0].DynamicFields.PunchOrCreditBalance);
 
         var shipped = await commands.SendAsync<
             UpdateCommerceOrderFulfillmentCommand,
@@ -85,13 +76,13 @@ internal static class W4S9CommerceVerificationHelper
         Assert.True(refunded.IsSuccess);
         Assert.Equal(CommerceOrderStatus.Refunded, refunded.Value.Status);
 
-        var walletAfterRefund = (
+        var passesAfterRefund = (
             await queries.QueryAsync<
-                GetIssuedWalletPassesQuery,
-                IReadOnlyList<IssuedWalletPassResponse>
-            >(new GetIssuedWalletPassesQuery(PersonId: seed.MemberPersonId, ActiveOnly: true))
+                GetIssuedPunchPassesQuery,
+                IReadOnlyList<IssuedPunchPassResponse>
+            >(new GetIssuedPunchPassesQuery(OwnerPersonId: seed.MemberPersonId))
         ).Value;
-        Assert.Equal(0, walletAfterRefund[0].DynamicFields.PunchOrCreditBalance);
+        Assert.Equal(0, passesAfterRefund[0].RemainingCredits);
     }
 
     public static async Task VerifyInvoiceCheckoutAsync(

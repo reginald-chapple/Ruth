@@ -5,6 +5,7 @@ using Ruth.Modules.Core;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.Providers.Checkr;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Crm.Tests.Fixtures;
 
@@ -16,6 +17,7 @@ internal static class CrmTestHostFactory
         string? checkrWebhookSecret = null
     )
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["ConnectionStrings:RuthDatabase"] = connectionString,

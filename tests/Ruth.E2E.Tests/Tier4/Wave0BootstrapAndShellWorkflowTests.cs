@@ -62,7 +62,7 @@ public sealed class Wave0BootstrapAndShellWorkflowTests(E2EContainersFixture con
             var extensions = await probe.GetInstalledExtensionsAsync();
             Assert.Contains("postgis", extensions, StringComparer.Ordinal);
             Assert.Contains("vector", extensions, StringComparer.Ordinal);
-            Assert.Contains("age", extensions, StringComparer.Ordinal);
+            Assert.DoesNotContain("age", extensions, StringComparer.Ordinal);
 
             using var liveResp = await client.GetAsync("/health/live");
             Assert.Equal(HttpStatusCode.OK, liveResp.StatusCode);

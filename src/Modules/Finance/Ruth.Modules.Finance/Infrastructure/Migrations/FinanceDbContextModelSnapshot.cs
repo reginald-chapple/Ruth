@@ -104,18 +104,22 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Code")
-                        .IsUnique();
-
                     b.HasIndex("ParentAccountId");
 
                     b.HasIndex("AccountKind", "IsActive");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
 
                     b.ToTable("financial_accounts", "finance");
                 });
@@ -204,6 +208,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicantPersonId");
@@ -212,10 +220,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("CaseNumber")
-                        .IsUnique();
-
                     b.HasIndex("ProgramId", "Status");
+
+                    b.HasIndex("TenantId", "CaseNumber")
+                        .IsUnique();
 
                     b.ToTable("assistance_cases", "finance");
                 });
@@ -264,11 +272,17 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<Guid?>("TargetInvoiceId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CaseId");
 
                     b.HasIndex("TargetInvoiceId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("assistance_disbursements", "finance");
                 });
@@ -292,6 +306,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<bool>("IsVerified")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -306,6 +324,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CaseId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("assistance_documents", "finance");
                 });
@@ -375,16 +395,20 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalBudgetAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
-                        .IsUnique();
-
                     b.HasIndex("Category", "IsActive");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
 
                     b.ToTable("assistance_programs", "finance");
                 });
@@ -452,7 +476,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("Status", "BatchStartDateTimeUtc");
 
@@ -514,7 +544,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("Status", "AlertKind");
 
@@ -572,7 +608,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("cadence_alert_types", "finance");
                 });
@@ -617,6 +659,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("TransactionId")
                         .HasColumnType("uuid");
 
@@ -627,6 +673,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasIndex("CreditedParticipantId");
 
                     b.HasIndex("DonorPersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TransactionId");
 
@@ -666,9 +714,15 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CampaignId", "PersonId")
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("TenantId", "CampaignId", "PersonId")
                         .IsUnique();
 
                     b.ToTable("campaign_participants", "finance");
@@ -761,6 +815,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
@@ -769,10 +827,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
 
                     b.HasIndex("FinancialAccountId");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
                     b.HasIndex("GroupId", "Status");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("fundraising_campaigns", "finance");
                 });
@@ -833,7 +891,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<bool>("SupportsRecurring")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ProviderKey", "IsActive");
 
@@ -897,12 +961,16 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique();
-
                     b.HasIndex("PersonId", "Status");
+
+                    b.HasIndex("TenantId", "InvoiceNumber")
+                        .IsUnique();
 
                     b.ToTable("invoices", "finance");
                 });
@@ -934,6 +1002,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -941,6 +1013,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("invoice_line_items", "finance");
                 });
@@ -982,6 +1056,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset>("VerifiedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -989,7 +1067,7 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("RoutingAndAccountHash")
+                    b.HasIndex("TenantId", "RoutingAndAccountHash")
                         .IsUnique();
 
                     b.ToTable("bank_account_identifiers", "finance");
@@ -1055,7 +1133,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FinancialGatewayId", "CustomerVaultToken");
 
@@ -1116,6 +1200,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -1123,6 +1211,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("AccountId", "Status");
 
@@ -1145,6 +1235,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("ProcessedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("WebhookEventId")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -1152,7 +1246,7 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FinancialGatewayId", "WebhookEventId")
+                    b.HasIndex("TenantId", "FinancialGatewayId", "WebhookEventId")
                         .IsUnique();
 
                     b.ToTable("processed_gateway_webhooks", "finance");
@@ -1177,9 +1271,15 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ScheduleId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("recurring_schedule_splits", "finance");
                 });
@@ -1257,6 +1357,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)");
@@ -1264,6 +1368,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FinancialGatewayId", "GatewaySubscriptionReference");
 
@@ -1347,7 +1453,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("StatementKind", "IsActive");
 
@@ -1434,16 +1546,20 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchRunId");
 
-                    b.HasIndex("StatementNumber")
-                        .IsUnique();
-
                     b.HasIndex("TargetHouseholdId");
 
                     b.HasIndex("TargetPersonId");
+
+                    b.HasIndex("TenantId", "StatementNumber")
+                        .IsUnique();
 
                     b.ToTable("generated_financial_statements", "finance");
                 });
@@ -1508,6 +1624,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TenderType")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1527,6 +1647,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("AuthorizedPersonId", "TransactionDateTimeUtc");
 
@@ -1555,6 +1677,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("TransactionId")
                         .HasColumnType("uuid");
 
@@ -1563,6 +1689,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.HasIndex("AccountId");
 
                     b.HasIndex("InvoiceId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TransactionId");
 
@@ -1612,6 +1740,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("TransactionId")
                         .HasColumnType("uuid");
 
@@ -1619,6 +1751,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TransactionId");
 
@@ -1649,10 +1783,16 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("RefundedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("TransactionId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TransactionId");
 
@@ -1661,6 +1801,10 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1674,7 +1818,7 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "finance");
                 });
@@ -1731,9 +1875,13 @@ namespace Ruth.Modules.Finance.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "finance");

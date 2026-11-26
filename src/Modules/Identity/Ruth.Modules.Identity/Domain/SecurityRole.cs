@@ -1,5 +1,6 @@
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Domain;
 
@@ -65,11 +66,17 @@ public sealed class SecurityRole
     /// <inheritdoc />
     public Guid ConcurrencyStamp { get; private set; } = Guid.CreateVersion7();
 
+    /// <summary>Derives the collision-free per-tenant Administrators role identifier.</summary>
+    public static SecurityRoleId GetAdministratorsRoleId(TenantId tenantId)
+    {
+        return SecurityRoleId.From(tenantId.DeriveDeterministicGuid(AdministratorsRoleId.Value));
+    }
+
     /// <summary>Creates the built-in system Administrators role.</summary>
-    public static SecurityRole CreateSystemAdministrators()
+    public static SecurityRole CreateSystemAdministrators(TenantId tenantId = default)
     {
         return new SecurityRole(
-            AdministratorsRoleId,
+            GetAdministratorsRoleId(tenantId),
             AdministratorsRoleName,
             "Built-in system administrators with full administrative authority.",
             isSystem: true,

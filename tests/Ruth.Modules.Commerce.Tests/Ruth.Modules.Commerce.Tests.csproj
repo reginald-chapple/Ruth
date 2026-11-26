@@ -41,7 +41,6 @@
     <ProjectReference Include="..\..\src\Modules\Groups\Ruth.Modules.Groups\Ruth.Modules.Groups.csproj" />
     <ProjectReference Include="..\..\src\Providers\Ruth.Providers.CommunicationTransports\Ruth.Providers.CommunicationTransports.csproj" />
     <ProjectReference Include="..\..\src\Providers\Ruth.Providers.PaymentGateways\Ruth.Providers.PaymentGateways.csproj" />
-    <ProjectReference Include="..\..\src\Providers\Ruth.Providers.WalletPasses\Ruth.Providers.WalletPasses.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Persistence\Ruth.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
   </ItemGroup>

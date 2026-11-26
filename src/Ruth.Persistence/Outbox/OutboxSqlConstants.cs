@@ -5,6 +5,7 @@ internal static class OutboxSqlConstants
     public const string OutboxTable = "outbox_messages";
     public const string InboxTable = "inbox_messages";
 
+    public const string ColumnTenantId = "tenant_id";
     public const string ColumnId = "id";
     public const string ColumnEventType = "event_type";
     public const string ColumnPayload = "payload";

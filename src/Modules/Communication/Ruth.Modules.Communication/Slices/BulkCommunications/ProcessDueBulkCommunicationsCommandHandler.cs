@@ -9,6 +9,7 @@ using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Communication.Slices.BulkCommunications;
@@ -18,6 +19,7 @@ internal sealed class ProcessDueBulkCommunicationsCommandHandler(
     BulkEmailComposerService composerService,
     CommunicationTransportResolver transportResolver,
     IOptions<CommunicationTransportOptions> transportOptions,
+    ITenantContext tenantContext,
     IClock clock
 ) : ICommandHandler<ProcessDueBulkCommunicationsCommand, BulkDispatchBatchResultResponse>
 {
@@ -29,6 +31,14 @@ internal sealed class ProcessDueBulkCommunicationsCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (!tenantContext.IsLive)
+        {
+            return DomainError.Validation(
+                "Communication.TenantNotLive",
+                "Outbound bulk email and SMS dispatch requires IRS tax-exempt verification and Live workspace approval."
+            );
+        }
 
         var nowUtc = clock.UtcNow.ToUniversalTime();
         var remainingBudget = Math.Clamp(command.MaxRecipientsPerRun, 1, 1000);

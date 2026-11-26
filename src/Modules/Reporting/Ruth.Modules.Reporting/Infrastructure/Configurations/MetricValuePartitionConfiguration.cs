@@ -10,7 +10,12 @@ internal sealed class MetricValuePartitionConfiguration
     public void Configure(EntityTypeBuilder<MetricValuePartition> builder)
     {
         _ = builder.ToTable("metric_value_partitions");
-        _ = builder.HasKey(static x => new { x.MetricValueId, x.MetricPartitionId });
+        _ = builder.HasKey(static x => new
+        {
+            x.TenantId,
+            x.MetricValueId,
+            x.MetricPartitionId,
+        });
         _ = builder.Property(static x => x.EntityLabel).HasMaxLength(160);
         _ = builder.HasIndex(static x => x.EntityId);
     }

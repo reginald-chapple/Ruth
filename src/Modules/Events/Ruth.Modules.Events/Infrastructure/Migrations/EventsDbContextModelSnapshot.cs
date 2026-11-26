@@ -69,12 +69,16 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(96)
                         .HasColumnType("character varying(96)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
                     b.HasIndex("IsPublic", "IsActive");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("event_calendars", "events");
                 });
@@ -90,11 +94,15 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("EventItemId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EventItemId");
 
-                    b.HasIndex("CalendarId", "EventItemId")
+                    b.HasIndex("TenantId", "CalendarId", "EventItemId")
                         .IsUnique();
 
                     b.ToTable("event_calendar_items", "events");
@@ -162,13 +170,17 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeValues");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AttributeValues"), "gin");
 
-                    b.HasIndex("Slug")
+                    b.HasIndex("TenantId", "Slug")
                         .IsUnique();
 
                     b.HasIndex("ApprovalStatus", "IsActive", "IsPublic");
@@ -192,11 +204,17 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("EventItemId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AudienceDefinedValueId");
 
                     b.HasIndex("EventItemId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("event_item_audiences", "events");
                 });
@@ -249,6 +267,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid?>("ScheduleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeZoneId")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -262,6 +284,8 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.HasIndex("EventItemId");
 
                     b.HasIndex("ScheduleId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("event_item_occurrences", "events");
                 });
@@ -304,12 +328,18 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<bool>("ShowLiveResultsOnStage")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SessionId", "DisplayOrder");
 
@@ -350,6 +380,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("SubmittedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TextResponse")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -360,6 +394,8 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ResponderPersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("SessionId", "ActionId");
 
@@ -409,6 +445,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -416,10 +456,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("JoinCode")
-                        .IsUnique();
-
                     b.HasIndex("Status");
+
+                    b.HasIndex("TenantId", "JoinCode")
+                        .IsUnique();
 
                     b.ToTable("interactive_sessions", "events");
                 });
@@ -444,9 +484,15 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("StartedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SessionId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("interactive_session_occurrences", "events");
                 });
@@ -521,18 +567,22 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConfirmationCode")
-                        .IsUnique();
-
                     b.HasIndex("InstanceId");
 
                     b.HasIndex("RegistrarPersonId");
+
+                    b.HasIndex("TenantId", "ConfirmationCode")
+                        .IsUnique();
 
                     b.ToTable("registrations", "events");
                 });
@@ -605,14 +655,18 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
                     b.HasIndex("TemplateId", "IsActive");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
 
                     b.ToTable("registration_instances", "events");
                 });
@@ -639,9 +693,15 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("RegistrationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RegistrationId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("registration_payment_records", "events");
                 });
@@ -713,6 +773,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int?>("WaitlistPosition")
                         .HasColumnType("integer");
 
@@ -725,6 +789,8 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.HasIndex("PersonId");
 
                     b.HasIndex("RegistrationId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("InstanceId", "Status", "WaitlistPosition");
 
@@ -757,6 +823,10 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("RegistrantId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -766,6 +836,8 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.HasIndex("FeeItemId");
 
                     b.HasIndex("RegistrantId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("registration_registrant_fee_selections", "events");
                 });
@@ -813,9 +885,13 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionToken")
+                    b.HasIndex("TenantId", "SessionToken")
                         .IsUnique();
 
                     b.HasIndex("InstanceId", "Status", "ExpiresAtUtc");
@@ -879,12 +955,18 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<int>("SeatHoldTtlMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("WaitlistEnabled")
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("registration_templates", "events");
                 });
@@ -926,9 +1008,15 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("TemplateId", "Code")
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("TenantId", "TemplateId", "Code")
                         .IsUnique();
 
                     b.ToTable("registration_template_discounts", "events");
@@ -961,7 +1049,13 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TemplateId", "DisplayOrder");
 
@@ -992,11 +1086,17 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<int?>("MaxQuantityAvailable")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FeeId", "DisplayOrder");
 
@@ -1019,7 +1119,13 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("TemplateId", "DisplayOrder");
 
@@ -1068,7 +1174,13 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("FormId", "DisplayOrder");
 
@@ -1100,15 +1212,25 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TemplateId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("registration_template_placements", "events");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1122,7 +1244,7 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "events");
                 });
@@ -1179,9 +1301,13 @@ namespace Ruth.Modules.Events.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "events");

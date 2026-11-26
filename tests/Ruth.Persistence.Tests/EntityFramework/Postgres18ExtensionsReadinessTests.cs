@@ -12,7 +12,7 @@ namespace Ruth.Persistence.Tests.EntityFramework;
 public sealed class Postgres18ExtensionsReadinessTests
 {
     [Fact]
-    public async Task Postgres18_Image_Supports_Postgis_Pgvector_And_ApacheAge_With_ModuleDbContext_Hooks()
+    public async Task Postgres18_Image_Supports_Postgis_And_Pgvector_With_ModuleDbContext_Hooks()
     {
         var repoRoot = CommonDirectoryPath.GetSolutionDirectory().DirectoryPath;
         var initScriptPath = Path.Combine(
@@ -28,7 +28,7 @@ public sealed class Postgres18ExtensionsReadinessTests
                 "deploy/docker/postgres"
             )
             .WithDockerfile("Dockerfile")
-            .WithName("ruth-postgres18-extensions-test:latest")
+            .WithName("ruth-postgres18-postgis-test:latest")
             .WithDeleteIfExists(false)
             .Build();
 
@@ -44,7 +44,7 @@ public sealed class Postgres18ExtensionsReadinessTests
         await container.StartAsync();
 
         var connectionString = container.GetConnectionString();
-        await using var provider = BuildProviderWithAgeInitializer(connectionString);
+        await using var provider = BuildProvider(connectionString);
         await using var scope = provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AlphaModuleDbContext>();
         await TestSchemaHelper.EnsureSchemaTablesCreatedAsync(db, "alpha");
@@ -57,36 +57,16 @@ public sealed class Postgres18ExtensionsReadinessTests
         Assert.Contains("postgis", extensions, StringComparer.Ordinal);
         Assert.Contains("btree_gist", extensions, StringComparer.Ordinal);
         Assert.Contains("vector", extensions, StringComparer.Ordinal);
-        Assert.Contains("age", extensions, StringComparer.Ordinal);
 
         await AssertExtensionsQueryableAsync(connection);
     }
 
-    private static ServiceProvider BuildProviderWithAgeInitializer(string connectionString)
+    private static ServiceProvider BuildProvider(string connectionString)
     {
         var services = new ServiceCollection();
         _ = services.AddLogging();
         _ = services.AddRuthPersistence(connectionString);
-        _ = services.AddModuleDbContext<AlphaModuleDbContext>(connectionString, "alpha", opts =>
-            opts.ConfigureDataSource = dataSource =>
-            {
-                dataSource.ConnectionStringBuilder.SearchPath = "ag_catalog, public";
-                _ = dataSource.UsePhysicalConnectionInitializer(
-                    static conn =>
-                    {
-                        using var cmd = conn.CreateCommand();
-                        cmd.CommandText = "LOAD 'age';";
-                        _ = cmd.ExecuteNonQuery();
-                    },
-                    static async conn =>
-                    {
-                        await using var cmd = conn.CreateCommand();
-                        cmd.CommandText = "LOAD 'age';";
-                        _ = await cmd.ExecuteNonQueryAsync();
-                    }
-                );
-            }
-        );
+        _ = services.AddModuleDbContext<AlphaModuleDbContext>(connectionString, "alpha");
         return services.BuildServiceProvider();
     }
 
@@ -109,8 +89,7 @@ public sealed class Postgres18ExtensionsReadinessTests
     private static async Task AssertExtensionsQueryableAsync(NpgsqlConnection connection)
     {
         await using var probeCmd = connection.CreateCommand();
-        probeCmd.CommandText =
-            "SELECT PostGIS_Version(), ('[1,2,3]'::vector)::text, ag_catalog.create_graph('ruth_probe_graph')::text;";
+        probeCmd.CommandText = "SELECT PostGIS_Version(), ('[1,2,3]'::vector)::text;";
         await using var probeReader = await probeCmd.ExecuteReaderAsync();
         Assert.True(await probeReader.ReadAsync());
         Assert.False(string.IsNullOrWhiteSpace(probeReader.GetString(0)));

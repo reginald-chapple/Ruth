@@ -10,7 +10,12 @@ internal sealed class PersonalizationSegmentMembershipConfiguration
     public void Configure(EntityTypeBuilder<PersonalizationSegmentMembership> builder)
     {
         _ = builder.ToTable("personalization_segment_memberships");
-        _ = builder.HasKey(static x => new { x.SegmentId, x.PersonId });
-        _ = builder.HasIndex(static x => x.PersonId);
+        _ = builder.HasKey(static x => new
+        {
+            x.TenantId,
+            x.SegmentId,
+            x.PersonId,
+        });
+        _ = builder.HasIndex(static x => new { x.TenantId, x.PersonId });
     }
 }

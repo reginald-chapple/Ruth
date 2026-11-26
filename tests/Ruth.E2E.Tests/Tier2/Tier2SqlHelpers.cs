@@ -8,6 +8,20 @@ namespace Ruth.E2E.Tests.Tier2;
 
 internal static class Tier2SqlHelpers
 {
+    private static readonly Guid _defaultTenantGuid = new(
+        0x01967000,
+        0x0000,
+        0x7000,
+        0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01
+    );
+
     public static async Task<NpgsqlConnection> OpenConnectionAsync(string connectionString)
     {
         var connection = new NpgsqlConnection(connectionString);
@@ -22,9 +36,10 @@ internal static class Tier2SqlHelpers
     )
     {
         const string sql =
-            "INSERT INTO identity.inbox_messages (message_id, consumer_name, processed_on_utc)"
-            + " VALUES (@messageId, @consumerName, @processedOnUtc);";
+            "INSERT INTO identity.inbox_messages (tenant_id, message_id, consumer_name, processed_on_utc)"
+            + " VALUES (@tenantId, @messageId, @consumerName, @processedOnUtc);";
         await using var cmd = new NpgsqlCommand(sql, connection);
+        _ = cmd.Parameters.AddWithValue("@tenantId", _defaultTenantGuid);
         _ = cmd.Parameters.AddWithValue("@messageId", messageId);
         _ = cmd.Parameters.AddWithValue("@consumerName", consumerName);
         _ = cmd.Parameters.AddWithValue("@processedOnUtc", DateTimeOffset.UtcNow);
@@ -42,10 +57,11 @@ internal static class Tier2SqlHelpers
     {
         const string sql =
             "INSERT INTO identity.outbox_messages"
-            + " (id, event_type, payload, occurred_on_utc, processed_on_utc)"
-            + " VALUES (@id, @eventType, @payload, @occurredOnUtc, @processedOnUtc);";
+            + " (id, tenant_id, event_type, payload, occurred_on_utc, processed_on_utc)"
+            + " VALUES (@id, @tenantId, @eventType, @payload, @occurredOnUtc, @processedOnUtc);";
         await using var cmd = new NpgsqlCommand(sql, connection);
         _ = cmd.Parameters.AddWithValue("@id", id);
+        _ = cmd.Parameters.AddWithValue("@tenantId", _defaultTenantGuid);
         _ = cmd.Parameters.AddWithValue("@eventType", eventType);
         _ = cmd.Parameters.Add(
             new NpgsqlParameter("@payload", NpgsqlDbType.Jsonb) { Value = payloadJson }
@@ -63,10 +79,11 @@ internal static class Tier2SqlHelpers
     )
     {
         const string sql =
-            "INSERT INTO identity.outbox_messages (id, event_type, payload, occurred_on_utc)"
-            + " VALUES (@id, @eventType, CAST(@payload AS jsonb), @occurredOnUtc);";
+            "INSERT INTO identity.outbox_messages (id, tenant_id, event_type, payload, occurred_on_utc)"
+            + " VALUES (@id, @tenantId, @eventType, CAST(@payload AS jsonb), @occurredOnUtc);";
         await using var cmd = new NpgsqlCommand(sql, connection);
         _ = cmd.Parameters.AddWithValue("@id", id);
+        _ = cmd.Parameters.AddWithValue("@tenantId", _defaultTenantGuid);
         _ = cmd.Parameters.AddWithValue("@eventType", eventType);
         _ = cmd.Parameters.AddWithValue("@payload", rawPayload);
         _ = cmd.Parameters.AddWithValue("@occurredOnUtc", DateTimeOffset.UtcNow);
@@ -180,16 +197,17 @@ internal static class Tier2SqlHelpers
         var uniqueSuffix = Guid.CreateVersion7().ToString("N");
         var sql = userTable switch
         {
-            "UserAccounts" => "INSERT INTO \"identity\".\"UserAccounts\" (\"Id\", \"UserName\","
-                + " \"NormalizedUserName\", \"Email\", \"NormalizedEmail\", \"DisplayName\","
-                + " \"PasswordHash\", \"IsConfirmed\", \"IsLockedOut\", \"CreatedOnUtc\","
-                + " \"ConcurrencyStamp\") VALUES (@id, @userName, @normalizedUserName, @email,"
-                + " @normalizedEmail, @displayName, @passwordHash, @isConfirmed, @isLockedOut,"
-                + " @createdOnUtc, @concurrencyStamp);",
+            "UserAccounts" =>
+                "INSERT INTO \"identity\".\"UserAccounts\" (\"Id\", tenant_id, \"UserName\","
+                    + " \"NormalizedUserName\", \"Email\", \"NormalizedEmail\", \"DisplayName\","
+                    + " \"PasswordHash\", \"IsConfirmed\", \"IsLockedOut\", \"CreatedOnUtc\","
+                    + " \"ConcurrencyStamp\") VALUES (@id, @tenantId, @userName, @normalizedUserName, @email,"
+                    + " @normalizedEmail, @displayName, @passwordHash, @isConfirmed, @isLockedOut,"
+                    + " @createdOnUtc, @concurrencyStamp);",
             "user_accounts" =>
-                "INSERT INTO identity.user_accounts (id, user_name, normalized_user_name, email,"
+                "INSERT INTO identity.user_accounts (id, tenant_id, user_name, normalized_user_name, email,"
                     + " normalized_email, display_name, password_hash, is_confirmed, is_locked_out,"
-                    + " created_on_utc, concurrency_stamp) VALUES (@id, @userName,"
+                    + " created_on_utc, concurrency_stamp) VALUES (@id, @tenantId, @userName,"
                     + " @normalizedUserName, @email, @normalizedEmail, @displayName, @passwordHash,"
                     + " @isConfirmed, @isLockedOut, @createdOnUtc, @concurrencyStamp);",
             _ => throw new NotSupportedException($"Unexpected user table '{userTable}'."),
@@ -198,6 +216,7 @@ internal static class Tier2SqlHelpers
         var userName = $"dup_{uniqueSuffix[..12]}";
         var email = $"{userName}@gracechurch.test";
         _ = cmd.Parameters.AddWithValue("@id", existingId);
+        _ = cmd.Parameters.AddWithValue("@tenantId", _defaultTenantGuid);
         _ = cmd.Parameters.AddWithValue("@userName", userName);
         _ = cmd.Parameters.AddWithValue("@normalizedUserName", userName.ToUpperInvariant());
         _ = cmd.Parameters.AddWithValue("@email", email);

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Ruth.Modules.Communication.Contracts.Templates;
 using Ruth.Modules.Communication.Domain.Templates;
 using Ruth.Modules.Communication.Infrastructure;
@@ -16,6 +17,7 @@ using Ruth.Modules.Communication.Slices.Transports;
 using Ruth.Modules.Communication.Slices.TwoWaySms;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication;
 
@@ -43,6 +45,10 @@ public static class CommunicationModuleExtensions
             CommunicationDbContext.SchemaName
         );
 
+        services.TryAddScoped<CommunicationTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, CommunicationTenantSeedContributor>()
+        );
         _ = services.AddHostedService<CommunicationBootstrapHostedService>();
 
         _ = services.AddScoped<ITemplateSnippetStore, DbTemplateSnippetStore>();

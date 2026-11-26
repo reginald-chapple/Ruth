@@ -70,9 +70,13 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CollectionKey")
+                    b.HasIndex("TenantId", "CollectionKey")
                         .IsUnique();
 
                     b.ToTable("content_collections", "search");
@@ -108,9 +112,15 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ContentCollectionId", "ProviderKey")
+                    b.HasIndex("ContentCollectionId");
+
+                    b.HasIndex("TenantId", "ContentCollectionId", "ProviderKey")
                         .IsUnique();
 
                     b.ToTable("content_collection_sources", "search");
@@ -187,6 +197,10 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -202,6 +216,8 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
 
                     b.HasIndex("ModuleName");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("ContentCollectionId", "EntityTypeKey", "EntityId");
 
                     b.ToTable("search_documents", "search");
@@ -209,6 +225,10 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -222,7 +242,7 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "search");
                 });
@@ -279,9 +299,13 @@ namespace Ruth.Modules.Search.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "search");

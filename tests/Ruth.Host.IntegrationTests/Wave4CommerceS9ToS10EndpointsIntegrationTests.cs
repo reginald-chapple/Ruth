@@ -244,7 +244,7 @@ public sealed class Wave4CommerceS9ToS10EndpointsIntegrationTests(HostContainers
             {
                 name = "Host Virtual Coaching",
                 slug = "host-virtual-coaching",
-                deliveryMode = "VirtualRoom",
+                deliveryMode = "Remote",
                 durationMinutes = 30,
                 slotIncrementMinutes = 30,
                 currencyCode = "USD",
@@ -330,7 +330,7 @@ public sealed class Wave4CommerceS9ToS10EndpointsIntegrationTests(HostContainers
         Assert.Equal(HttpStatusCode.Created, confirmResp.StatusCode);
         using var confirmDoc = JsonDocument.Parse(await confirmResp.Content.ReadAsStringAsync());
         Assert.Equal("MemberFree", confirmDoc.RootElement.GetProperty("pricingKind").GetString());
-        Assert.True(confirmDoc.RootElement.GetProperty("requiresVirtualRoom").GetBoolean());
+        Assert.Equal("Remote", confirmDoc.RootElement.GetProperty("deliveryMode").GetString());
     }
 
     private static async Task VerifyOpenApiAndBlazorPagesAsync(HttpClient client)

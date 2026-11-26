@@ -41,7 +41,6 @@ public sealed class Wave3CheckInEndpointsIntegrationTests(HostContainersFixture 
         );
         await VerifyEvaluateEndpointAndOpenApiAsync(client, token, configId, scheduleId, roomId);
         await VerifyMobileAndRoomRosterEndpointsAsync(client, token, configId, areaId, scheduleId);
-        await VerifyWalletPassAndPassKitEndpointsAsync(client, token);
         await VerifyCheckInBlazorPageAsync(client);
     }
 
@@ -262,106 +261,6 @@ public sealed class Wave3CheckInEndpointsIntegrationTests(HostContainersFixture 
         Assert.Equal(HttpStatusCode.OK, checkoutResp.StatusCode);
     }
 
-    private static async Task VerifyWalletPassAndPassKitEndpointsAsync(
-        HttpClient client,
-        string token
-    )
-    {
-        using var tplReq = new HttpRequestMessage(
-            HttpMethod.Get,
-            "/api/checkin/wallet-passes/templates?activeOnly=true"
-        );
-        tplReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        using var tplResp = await client.SendAsync(tplReq);
-        Assert.Equal(HttpStatusCode.OK, tplResp.StatusCode);
-
-        using var tplDoc = JsonDocument.Parse(await tplResp.Content.ReadAsStringAsync());
-        var templateId = tplDoc.RootElement[0].GetProperty("id").GetGuid();
-
-        using var issueReq = new HttpRequestMessage(
-            HttpMethod.Post,
-            "/api/checkin/wallet-passes/issue"
-        )
-        {
-            Content = JsonContent.Create(
-                new
-                {
-                    templateId,
-                    personId = Guid.CreateVersion7(),
-                    dynamicFields = new
-                    {
-                        holderDisplayName = "Taylor Brooks",
-                        membershipTier = "Gold",
-                        punchOrCreditBalance = 6,
-                    },
-                }
-            ),
-        };
-        issueReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        using var issueResp = await client.SendAsync(issueReq);
-        Assert.Equal(HttpStatusCode.Created, issueResp.StatusCode);
-
-        using var issueDoc = JsonDocument.Parse(await issueResp.Content.ReadAsStringAsync());
-        var claimToken = issueDoc.RootElement.GetProperty("claimToken").GetString()!;
-        var serial = issueDoc
-            .RootElement.GetProperty("pass")
-            .GetProperty("serialNumber")
-            .GetString()!;
-        var scanToken = issueDoc
-            .RootElement.GetProperty("pass")
-            .GetProperty("scanToken")
-            .GetString()!;
-
-        await VerifyWalletClaimScanAndPassKitStatusCodesAsync(
-            client,
-            token,
-            claimToken,
-            serial,
-            scanToken
-        );
-    }
-
-    private static async Task VerifyWalletClaimScanAndPassKitStatusCodesAsync(
-        HttpClient client,
-        string token,
-        string claimToken,
-        string serial,
-        string scanToken
-    )
-    {
-        using var claimResp = await client.GetAsync(
-            new Uri($"/api/checkin/wallet-passes/claim/{claimToken}", UriKind.Relative)
-        );
-        Assert.Equal(HttpStatusCode.OK, claimResp.StatusCode);
-
-        using var scanReq = new HttpRequestMessage(
-            HttpMethod.Post,
-            "/api/checkin/wallet-passes/kiosk-scan"
-        )
-        {
-            Content = JsonContent.Create(new { scanToken }),
-        };
-        scanReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        using var scanResp = await client.SendAsync(scanReq);
-        Assert.Equal(HttpStatusCode.OK, scanResp.StatusCode);
-
-        using var unauthPassKit = await client.GetAsync(
-            new Uri(
-                $"/api/checkin/wallet/v1/passes/pass.org.ruth.member/{serial}",
-                UriKind.Relative
-            )
-        );
-        Assert.Equal(HttpStatusCode.Unauthorized, unauthPassKit.StatusCode);
-
-        using var noSerials = await client.GetAsync(
-            new Uri(
-                "/api/checkin/wallet/v1/devices/unknown-dev/registrations/pass.org.ruth.member",
-                UriKind.Relative
-            )
-        );
-        Assert.Equal(HttpStatusCode.NoContent, noSerials.StatusCode);
-    }
-
     private static async Task VerifyCheckInBlazorPageAsync(HttpClient client)
     {
         foreach (
@@ -371,7 +270,6 @@ public sealed class Wave3CheckInEndpointsIntegrationTests(HostContainersFixture 
                 "/admin/checkin/labels",
                 "/checkin/kiosk",
                 "/checkin/room-manager",
-                "/checkin/wallet-passes",
             }
         )
         {

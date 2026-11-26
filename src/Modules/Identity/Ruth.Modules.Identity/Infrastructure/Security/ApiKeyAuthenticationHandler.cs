@@ -90,6 +90,11 @@ internal sealed class ApiKeyAuthenticationHandler(
             new("api_key_id", apiKeyId.Value.ToString("D")),
         };
 
+        if (!account.TenantId.IsEmpty)
+        {
+            claims.Add(new Claim(RuthClaimTypes.TenantId, account.TenantId.ToString()));
+        }
+
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role.Name));

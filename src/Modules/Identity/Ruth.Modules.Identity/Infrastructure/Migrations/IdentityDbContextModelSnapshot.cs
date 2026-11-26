@@ -45,6 +45,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("purpose");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -57,10 +61,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
                     b.HasIndex("UserAccountId");
+
+                    b.HasIndex("TenantId", "TokenHash")
+                        .IsUnique();
 
                     b.ToTable("account_tokens", "identity");
                 });
@@ -123,6 +127,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("special_role");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("UserAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_account_id");
@@ -130,6 +138,8 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChangedOnUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("EntityTypeKey", "EntityId");
 
@@ -208,9 +218,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("scope_approval_expiration_days");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientId")
+                    b.HasIndex("TenantId", "ClientId")
                         .IsUnique();
 
                     b.ToTable("auth_clients", "identity");
@@ -255,9 +269,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("public_name");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
                     b.ToTable("auth_scopes", "identity");
@@ -314,6 +332,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("special_role");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("UserAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_account_id");
@@ -321,6 +343,8 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SecurityRoleId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserAccountId");
 
@@ -397,9 +421,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(300)")
                         .HasColumnName("scopes");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProviderKey")
+                    b.HasIndex("TenantId", "ProviderKey")
                         .IsUnique();
 
                     b.ToTable("external_auth_providers", "identity");
@@ -432,6 +460,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("provider_subject");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("UserAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_account_id");
@@ -440,7 +472,7 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.HasIndex("ProviderKey", "ProviderSubject")
+                    b.HasIndex("TenantId", "ProviderKey", "ProviderSubject")
                         .IsUnique();
 
                     b.ToTable("external_login_links", "identity");
@@ -481,6 +513,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("succeeded");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid?>("UserAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_account_id");
@@ -499,6 +535,8 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OccurredOnUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserAccountId");
 
@@ -559,6 +597,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("singleton_key");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeZoneId")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -567,7 +609,7 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SingletonKey")
+                    b.HasIndex("TenantId", "SingletonKey")
                         .IsUnique();
 
                     b.ToTable("organization_profiles", "identity", t =>
@@ -612,6 +654,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("revoked_on_utc");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -626,10 +672,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
 
                     b.HasIndex("FamilyId");
 
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
                     b.HasIndex("UserAccountId");
+
+                    b.HasIndex("TenantId", "TokenHash")
+                        .IsUnique();
 
                     b.ToTable("refresh_tokens", "identity");
                 });
@@ -681,9 +727,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("state");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("State")
+                    b.HasIndex("TenantId", "State")
                         .IsUnique();
 
                     b.ToTable("remote_authentication_sessions", "identity");
@@ -747,16 +797,20 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("revoked_on_utc");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("UserAccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_account_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("KeyHash")
-                        .IsUnique();
-
                     b.HasIndex("UserAccountId");
+
+                    b.HasIndex("TenantId", "KeyHash")
+                        .IsUnique();
 
                     b.ToTable("rest_api_keys", "identity");
                 });
@@ -807,9 +861,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("normalized_name");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId", "NormalizedName")
                         .IsUnique();
 
                     b.ToTable("security_roles", "identity");
@@ -910,6 +968,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("password_hash");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -918,10 +980,10 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
+                    b.HasIndex("TenantId", "NormalizedEmail")
                         .IsUnique();
 
-                    b.HasIndex("NormalizedUserName")
+                    b.HasIndex("TenantId", "NormalizedUserName")
                         .IsUnique();
 
                     b.ToTable("user_accounts", "identity");
@@ -945,15 +1007,25 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_on_utc");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("UserAccountId", "SecurityRoleId");
 
                     b.HasIndex("SecurityRoleId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("user_roles", "identity");
                 });
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -967,7 +1039,7 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "identity");
                 });
@@ -1024,9 +1096,13 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "identity");

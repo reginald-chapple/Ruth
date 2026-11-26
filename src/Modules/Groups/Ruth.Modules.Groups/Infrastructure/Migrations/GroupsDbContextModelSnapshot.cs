@@ -101,6 +101,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("StartDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
@@ -109,10 +113,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("RsvpToken")
-                        .IsUnique();
-
                     b.HasIndex("StartDateTimeUtc");
+
+                    b.HasIndex("TenantId", "RsvpToken")
+                        .IsUnique();
 
                     b.ToTable("attendances", "groups");
                 });
@@ -178,6 +182,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("ShowDeclineReasons")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateOnly>("WeekEndDate")
                         .HasColumnType("date");
 
@@ -189,10 +197,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasIndex("WeekEndDate");
 
-                    b.HasIndex("GroupId", "LocationId", "ScheduleId", "OccurrenceDate")
+                    b.HasIndex("TenantId", "GroupId", "LocationId", "ScheduleId", "OccurrenceDate")
                         .IsUnique();
-
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("GroupId", "LocationId", "ScheduleId", "OccurrenceDate"), false);
 
                     b.ToTable("attendance_occurrences", "groups");
                 });
@@ -315,16 +321,20 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("TakesAttendance")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Attributes");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.HasIndex("Order");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
 
                     b.ToTable("group_types", "groups");
                 });
@@ -337,9 +347,15 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid>("ChildGroupTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("ParentGroupTypeId", "ChildGroupTypeId");
 
                     b.HasIndex("ChildGroupTypeId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("group_type_allowed_children", "groups");
                 });
@@ -397,9 +413,15 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("ReceiveRequirementsNotifications")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupTypeId", "Name")
+                    b.HasIndex("GroupTypeId");
+
+                    b.HasIndex("TenantId", "GroupTypeId", "Name")
                         .IsUnique();
 
                     b.ToTable("group_type_roles", "groups");
@@ -507,6 +529,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid?>("StatusValueId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Attributes");
@@ -518,6 +544,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.HasIndex("GroupTypeId");
 
                     b.HasIndex("ParentGroupId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("IsActive", "IsArchived", "IsPublic");
 
@@ -558,9 +586,13 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("RunOnPersonUpdate")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupTypeId", "Name")
+                    b.HasIndex("TenantId", "GroupTypeId", "Name")
                         .IsUnique();
 
                     b.ToTable("group_demographic_types", "groups");
@@ -593,6 +625,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Value")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -609,7 +645,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId", "GroupDemographicTypeId")
+                    b.HasIndex("TenantId", "GroupId", "GroupDemographicTypeId")
                         .IsUnique();
 
                     b.ToTable("group_demographic_values", "groups");
@@ -682,7 +718,13 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid?>("StatusValueId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("GroupId", "CurrentRowIndicator");
 
@@ -738,6 +780,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("schedule_ids");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GeoFence");
@@ -748,9 +794,11 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("GeoPoint"), "gist");
 
+                    b.HasIndex("GroupId");
+
                     b.HasIndex("LocationId");
 
-                    b.HasIndex("GroupId", "LocationId")
+                    b.HasIndex("TenantId", "GroupId", "LocationId")
                         .IsUnique();
 
                     b.ToTable("group_locations", "groups");
@@ -835,6 +883,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Attributes");
@@ -843,11 +895,11 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.HasIndex("GroupId", "PersonId", "GroupRoleId")
+                    b.HasIndex("GroupId", "Status", "IsArchived");
+
+                    b.HasIndex("TenantId", "GroupId", "PersonId", "GroupRoleId")
                         .IsUnique()
                         .HasFilter("\"IsArchived\" = false");
-
-                    b.HasIndex("GroupId", "Status", "IsArchived");
 
                     b.ToTable("group_members", "groups");
                 });
@@ -909,9 +961,15 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PersonId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("GroupMemberId", "CurrentRowIndicator");
 
@@ -971,6 +1029,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("WasManuallyCompleted")
                         .HasColumnType("boolean");
 
@@ -979,7 +1041,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupMemberId", "GroupRequirementId")
+                    b.HasIndex("TenantId", "GroupMemberId", "GroupRequirementId")
                         .IsUnique();
 
                     b.ToTable("group_member_requirements", "groups");
@@ -1026,16 +1088,18 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<bool>("MustMeetRequirementToAddMember")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
 
                     b.HasIndex("GroupTypeId");
 
-                    b.HasIndex("GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId")
+                    b.HasIndex("TenantId", "GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId")
                         .IsUnique();
-
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId"), false);
 
                     b.ToTable("group_requirements", "groups");
                 });
@@ -1114,6 +1178,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int?>("WarningDaysBeforeExpiration")
                         .HasColumnType("integer");
 
@@ -1123,7 +1191,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
                     b.ToTable("group_requirement_types", "groups");
@@ -1167,9 +1235,13 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid>("ScheduleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupLocationId", "ScheduleId")
+                    b.HasIndex("TenantId", "GroupLocationId", "ScheduleId")
                         .IsUnique();
 
                     b.ToTable("group_location_schedule_configs", "groups");
@@ -1204,14 +1276,16 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid?>("ScheduleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
 
-                    b.HasIndex("GroupMemberId", "LocationId", "ScheduleId")
+                    b.HasIndex("TenantId", "GroupMemberId", "LocationId", "ScheduleId")
                         .IsUnique();
-
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("GroupMemberId", "LocationId", "ScheduleId"), false);
 
                     b.ToTable("group_member_assignments", "groups");
                 });
@@ -1246,9 +1320,15 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<Guid>("ScheduleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupTypeId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("group_member_schedule_templates", "groups");
                 });
@@ -1273,11 +1353,17 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("GroupTypeId", "StartDate", "EndDate");
 
@@ -1310,6 +1396,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -1317,6 +1407,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("PersonId", "StartDate", "EndDate");
 
@@ -1379,9 +1471,13 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId", "GroupTypeRoleId")
+                    b.HasIndex("TenantId", "GroupId", "GroupTypeRoleId")
                         .IsUnique();
 
                     b.ToTable("group_sync_rules", "groups");
@@ -1389,6 +1485,10 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -1402,7 +1502,7 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "groups");
                 });
@@ -1459,9 +1559,13 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "groups");

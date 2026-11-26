@@ -43,7 +43,7 @@ public sealed class Wave0PersistenceAndResilienceWorkflowTests(E2EContainersFixt
             Assert.NotNull(inboxTable);
 
             var inboxPk = await probe.GetPrimaryKeyColumnsAsync("identity", inboxTable);
-            Assert.Equal(2, inboxPk.Count);
+            Assert.Equal(3, inboxPk.Count);
         });
     }
 

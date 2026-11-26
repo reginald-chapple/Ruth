@@ -109,6 +109,11 @@ public sealed class AuditAndConcurrencySaveChangesInterceptor(
         }
 
         DiscardStagedEvents(context);
+        if (context is ModuleDbContext moduleContext)
+        {
+            TenantWriteGuardStamper.EnforceAndStampTenant(moduleContext);
+        }
+
         var utcNow = _clock.UtcNow;
         AuditAndConcurrencyStamper.StampAuditMetadata(context, utcNow);
         AuditAndConcurrencyStamper.UpdateConcurrencyTokens(context, utcNow);

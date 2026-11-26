@@ -1,20 +1,24 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ruth.SharedKernel.Jobs;
 using Ruth.SharedKernel.Primitives;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Persistence.Scheduling;
 
 /// <summary>
 /// Executes a single <see cref="IScheduledJob" /> under a PostgreSQL advisory lock with
-/// root <see cref="Activity" /> isolation, isolated status/history bookkeeping, and history pruning.
+/// root <see cref="Activity" /> isolation, per-tenant <see cref="AmbientTenantContext" /> iteration
+/// for tenant jobs, isolated status/history bookkeeping, and history pruning.
 /// </summary>
 public sealed class ScheduledJobExecutor
 {
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly PostgresAdvisoryLockProvider _lockProvider;
     private readonly IClock _clock;
     private readonly ILogger<ScheduledJobExecutor> _logger;
@@ -35,6 +39,7 @@ public sealed class ScheduledJobExecutor
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _scopeFactory = scopeFactory;
         _lockProvider = lockProvider;
         _clock = clock;
         _logger = logger;
@@ -230,7 +235,9 @@ public sealed class ScheduledJobExecutor
     {
         try
         {
-            return await job.ExecuteAsync(cancellationToken);
+            return job is IPlatformScheduledJob
+                ? await job.ExecuteAsync(cancellationToken)
+                : await InvokeTenantIteratedJobAsync(job, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -242,6 +249,57 @@ public sealed class ScheduledJobExecutor
             SchedulerLog.JobFailed(_logger, ex, job.JobKey, message);
             return JobExecutionResult.Failed(message);
         }
+    }
+
+    private async Task<JobExecutionResult> InvokeTenantIteratedJobAsync(
+        IScheduledJob job,
+        CancellationToken cancellationToken
+    )
+    {
+        IActiveTenantRegistry? registry;
+        await using (var scope = _scopeFactory.CreateAsyncScope())
+        {
+            registry = scope.ServiceProvider.GetService<IActiveTenantRegistry>();
+        }
+
+        if (registry is null)
+        {
+            return await job.ExecuteAsync(cancellationToken);
+        }
+
+        var tenants = await registry.GetActiveTenantIdsAsync(cancellationToken);
+        if (tenants.Count == 0)
+        {
+            return AmbientTenantContext.Instance.HasTenant
+                ? await job.ExecuteAsync(cancellationToken)
+                : JobExecutionResult.Success("No active tenants eligible for scheduled execution.");
+        }
+
+        var failedCount = 0;
+        var warningCount = 0;
+        foreach (var tenantId in tenants)
+        {
+            using (AmbientTenantContext.BeginScope(tenantId))
+            {
+                var result = await job.ExecuteAsync(cancellationToken);
+                if (result.Status == JobExecutionStatus.Failed)
+                {
+                    failedCount++;
+                }
+                else if (result.Status == JobExecutionStatus.Warning)
+                {
+                    warningCount++;
+                }
+            }
+        }
+
+        var summary = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Executed across {tenants.Count} tenant(s) ({failedCount} failed, {warningCount} warning)."
+        );
+        return failedCount > 0 ? JobExecutionResult.Failed(summary)
+            : warningCount > 0 ? JobExecutionResult.Warning(summary)
+            : JobExecutionResult.Success(summary);
     }
 
     internal static string FormatExceptionMessage(Exception exception)

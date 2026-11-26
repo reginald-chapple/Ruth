@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Ruth.Modules.Identity.Contracts.Authentication;
 using Ruth.Modules.Identity.Contracts.Onboarding;
 using Ruth.Modules.Identity.Contracts.Security;
-using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Tests.Fixtures;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Security;
@@ -147,7 +146,9 @@ public sealed class Wave1SecurityAclIntegrationTests(Postgres18ContainerFixture 
         Assert.True(audits.Value.Count >= 2);
 
         var deleteAdmin = await commands.SendAsync<DeleteSecurityRoleCommand, bool>(
-            new DeleteSecurityRoleCommand(SecurityRole.AdministratorsRoleId.Value)
+            new DeleteSecurityRoleCommand(
+                IdentityTestHostFactory.CurrentTenantAdministratorsRoleGuid
+            )
         );
         Assert.True(deleteAdmin.IsFailure);
     }

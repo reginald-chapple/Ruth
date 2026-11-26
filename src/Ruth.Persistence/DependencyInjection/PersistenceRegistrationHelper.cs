@@ -29,6 +29,13 @@ internal static class PersistenceRegistrationHelper
         _ = services.AddSharedKernel();
         RegisterPersistenceOptions(services, configuration, configureOutbox, configureScheduler);
 
+        services.TryAddSingleton(sp => new PostgresRlsRoleProvisioner(
+            connectionString,
+            sp.GetRequiredService<IOptions<RlsOptions>>()
+        ));
+        services.TryAddSingleton<TenantRlsConnectionInterceptor>();
+        services.TryAddSingleton<TenantRlsCommandInterceptor>();
+        services.TryAddSingleton<TenantRlsTransactionInterceptor>();
         services.TryAddSingleton<OutboxEventTypeRegistry>();
         services.TryAddScoped<AuditAndConcurrencySaveChangesInterceptor>();
 
@@ -50,9 +57,14 @@ internal static class PersistenceRegistrationHelper
             return;
         }
 
-        _ = services.AddKeyedSingleton(typeof(TContext), (_, _) =>
+        _ = services.AddKeyedSingleton(typeof(TContext), (serviceProvider, _) =>
         {
-            var builder = new NpgsqlDataSourceBuilder(connectionString);
+            var effectiveConnectionString = ResolveRuntimeConnectionString(
+                serviceProvider,
+                connectionString,
+                regOptions
+            );
+            var builder = new NpgsqlDataSourceBuilder(effectiveConnectionString);
             regOptions.ConfigureDataSource(builder);
             return builder.Build();
         });
@@ -66,6 +78,10 @@ internal static class PersistenceRegistrationHelper
     )
         where TContext : ModuleDbContext
     {
+        services.TryAddSingleton(
+            new ModuleMigrationDescriptor<TContext>(connectionString, validatedSchema, regOptions)
+        );
+
         _ = services.AddDbContext<TContext>(
             (serviceProvider, options) =>
             {
@@ -80,14 +96,17 @@ internal static class PersistenceRegistrationHelper
                 }
                 else
                 {
-                    _ = options.UseNpgsql(connectionString, npgsql =>
+                    var effectiveConnectionString = ResolveRuntimeConnectionString(
+                        serviceProvider,
+                        connectionString,
+                        regOptions
+                    );
+                    _ = options.UseNpgsql(effectiveConnectionString, npgsql =>
                         ConfigureNpgsqlOptions(npgsql, validatedSchema, regOptions)
                     );
                 }
 
-                _ = options.AddInterceptors(
-                    serviceProvider.GetRequiredService<AuditAndConcurrencySaveChangesInterceptor>()
-                );
+                AddModuleInterceptors(serviceProvider, options, regOptions.IsTenantScopedSchema);
                 regOptions.ConfigureDbContext?.Invoke(options);
             }
         );
@@ -95,13 +114,55 @@ internal static class PersistenceRegistrationHelper
 
     public static void RegisterOutboxProcessor<TContext>(
         IServiceCollection services,
-        string validatedSchema
+        string validatedSchema,
+        bool isTenantScopedSchema
     )
         where TContext : ModuleDbContext
     {
-        services.TryAddSingleton(new OutboxSchemaDescriptor<TContext>(validatedSchema));
+        services.TryAddSingleton(
+            new OutboxSchemaDescriptor<TContext>(validatedSchema, isTenantScopedSchema)
+        );
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IOutboxModuleProcessor, OutboxModuleProcessor<TContext>>()
+        );
+    }
+
+    private static string ResolveRuntimeConnectionString(
+        IServiceProvider serviceProvider,
+        string connectionString,
+        ModuleDbContextRegistrationOptions regOptions
+    )
+    {
+        if (!regOptions.IsTenantScopedSchema)
+        {
+            return connectionString;
+        }
+
+        var provisioner = serviceProvider.GetService<PostgresRlsRoleProvisioner>();
+        return provisioner is not null
+            ? provisioner.BuildTenantRuntimeConnectionString(connectionString)
+            : connectionString;
+    }
+
+    private static void AddModuleInterceptors(
+        IServiceProvider serviceProvider,
+        DbContextOptionsBuilder options,
+        bool isTenantScopedSchema
+    )
+    {
+        if (isTenantScopedSchema)
+        {
+            _ = options.AddInterceptors(
+                serviceProvider.GetRequiredService<TenantRlsConnectionInterceptor>(),
+                serviceProvider.GetRequiredService<TenantRlsTransactionInterceptor>(),
+                serviceProvider.GetRequiredService<TenantRlsCommandInterceptor>(),
+                serviceProvider.GetRequiredService<AuditAndConcurrencySaveChangesInterceptor>()
+            );
+            return;
+        }
+
+        _ = options.AddInterceptors(
+            serviceProvider.GetRequiredService<AuditAndConcurrencySaveChangesInterceptor>()
         );
     }
 
@@ -114,11 +175,13 @@ internal static class PersistenceRegistrationHelper
     {
         var outboxBuilder = services.AddOptions<OutboxOptions>();
         var schedulerBuilder = services.AddOptions<SchedulerOptions>();
+        var rlsBuilder = services.AddOptions<RlsOptions>();
 
         if (configuration is not null)
         {
             _ = outboxBuilder.Bind(configuration.GetSection("Outbox"));
             _ = schedulerBuilder.Bind(configuration.GetSection("Scheduler"));
+            _ = rlsBuilder.Bind(configuration.GetSection("Persistence:Rls"));
         }
         else
         {
@@ -129,6 +192,10 @@ internal static class PersistenceRegistrationHelper
             _ = schedulerBuilder.Configure<IServiceProvider>(
                 static (options, sp) =>
                     sp.GetService<IConfiguration>()?.GetSection("Scheduler").Bind(options)
+            );
+            _ = rlsBuilder.Configure<IServiceProvider>(
+                static (options, sp) =>
+                    sp.GetService<IConfiguration>()?.GetSection("Persistence:Rls").Bind(options)
             );
         }
 
@@ -172,7 +239,6 @@ internal static class PersistenceRegistrationHelper
         services.TryAddSingleton<ScheduledJobEngine>();
         _ = services.AddScheduledJob<OutboxRetentionCleanupJob>();
 
-        // Register bootstrap migrations before ScheduledJobEngine and OutboxDispatcherService.
         _ = services.AddHostedService(static sp => new SchedulerBootstrapHostedService(
             sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetRequiredService<ILogger<SchedulerBootstrapHostedService>>(),

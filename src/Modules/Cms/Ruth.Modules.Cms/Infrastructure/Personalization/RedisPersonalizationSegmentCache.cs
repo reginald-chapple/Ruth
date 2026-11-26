@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using Ruth.SharedKernel.Tenancy;
 using StackExchange.Redis;
 
 namespace Ruth.Modules.Cms.Infrastructure.Personalization;
@@ -11,7 +12,6 @@ internal sealed partial class RedisPersonalizationSegmentCache(
     IConnectionMultiplexer? redis = null
 ) : IPersonalizationSegmentCache
 {
-    // 262,144-bit (32 KB) deterministic bloom/bitset pre-filter per segment paired with exact Redis Set
     private const long BitsetSize = 262_144;
 
     private readonly ConcurrentDictionary<string, HashSet<Guid>> _localSets = new(
@@ -25,8 +25,14 @@ internal sealed partial class RedisPersonalizationSegmentCache(
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return;
+        }
+
         var localCopy = new HashSet<Guid>(personIds);
-        _localSets[segmentKey] = localCopy;
+        _localSets[BuildLocalKey(tenantId, segmentKey)] = localCopy;
 
         if (redis is null || !redis.IsConnected)
         {
@@ -36,8 +42,8 @@ internal sealed partial class RedisPersonalizationSegmentCache(
         try
         {
             var db = redis.GetDatabase();
-            var setKey = BuildSetKey(segmentKey);
-            var bitKey = BuildBitsetKey(segmentKey);
+            var setKey = BuildSetKey(tenantId, segmentKey);
+            var bitKey = BuildBitsetKey(tenantId, segmentKey);
 
             _ = await db.KeyDeleteAsync([setKey, bitKey]);
             if (personIds.Count > 0)
@@ -63,14 +69,19 @@ internal sealed partial class RedisPersonalizationSegmentCache(
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return false;
+        }
 
         if (redis is not null && redis.IsConnected)
         {
             try
             {
                 var db = redis.GetDatabase();
-                var bitKey = BuildBitsetKey(segmentKey);
-                var setKey = BuildSetKey(segmentKey);
+                var bitKey = BuildBitsetKey(tenantId, segmentKey);
+                var setKey = BuildSetKey(tenantId, segmentKey);
                 if (await db.KeyExistsAsync(setKey))
                 {
                     return await db.StringGetBitAsync(bitKey, ComputeBitOffset(personId))
@@ -83,7 +94,7 @@ internal sealed partial class RedisPersonalizationSegmentCache(
             }
         }
 
-        return _localSets.TryGetValue(segmentKey, out var members)
+        return _localSets.TryGetValue(BuildLocalKey(tenantId, segmentKey), out var members)
             ? members.Contains(personId)
             : null;
     }
@@ -98,14 +109,19 @@ internal sealed partial class RedisPersonalizationSegmentCache(
         return (long)(raw % BitsetSize);
     }
 
-    private static RedisKey BuildSetKey(string segmentKey)
+    private static string BuildLocalKey(TenantId tenantId, string segmentKey)
     {
-        return $"ruth:cms:segment:{segmentKey}:members";
+        return $"{tenantId}:{segmentKey}";
     }
 
-    private static RedisKey BuildBitsetKey(string segmentKey)
+    private static RedisKey BuildSetKey(TenantId tenantId, string segmentKey)
     {
-        return $"ruth:cms:segment:{segmentKey}:bits";
+        return $"t:{tenantId}:cms:segment:{segmentKey}:members";
+    }
+
+    private static RedisKey BuildBitsetKey(TenantId tenantId, string segmentKey)
+    {
+        return $"t:{tenantId}:cms:segment:{segmentKey}:bits";
     }
 
     [LoggerMessage(

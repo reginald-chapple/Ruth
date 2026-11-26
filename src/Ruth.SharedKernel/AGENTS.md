@@ -1,7 +1,7 @@
 # AGENTS.md — `Ruth.SharedKernel`
 
 ## Purpose & Boundaries
-- Owns foundational DDD primitives (`Entity`, `AggregateRoot`, `ValueObject`, Strongly-Typed IDs, `Result<T>`), `IClock`, and zero-magic CQRS/event contracts shared across all modules.
+- Owns foundational DDD primitives (`Entity`, `AggregateRoot`, `ValueObject`, Strongly-Typed IDs, `TenantId`, `ITenantScoped`, `ITenantContext`, `Result<T>`), `IClock`, and zero-magic CQRS/event contracts (including `TenantGuard` decorators) shared across all modules.
 - **Strict Dependency Rule:** Must remain pure .NET (`net10.0`) with **zero** project references and **zero** NuGet dependencies on ASP.NET Core, EF Core, Blazor, Npgsql, or Redis (enforced by `Ruth.ArchitectureTests`).
 
 ## Entry Points & Applicable Skills

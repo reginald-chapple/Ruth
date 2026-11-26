@@ -5,6 +5,7 @@ using Ruth.Modules.Core;
 using Ruth.Modules.Crm;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Groups.Tests.Fixtures;
 
@@ -12,6 +13,7 @@ internal static class GroupsTestHostFactory
 {
     public static async Task<ServiceProvider> BuildAndMigrateAsync(string connectionString)
     {
+        AmbientTenantContext.SetTestHarnessDefault(TenantId.Create(), TenantLifecycleStage.Live);
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["ConnectionStrings:RuthDatabase"] = connectionString,

@@ -302,19 +302,4 @@ public static class CommunicationSystemGuids
         0x40,
         0x03
     );
-
-    /// <summary>Seeded SystemCommunication: Smart Wallet Pass Claim Link.</summary>
-    public static readonly Guid SysCommWalletPassClaim = new(
-        0x6a9c3307,
-        0x72d1,
-        0x489a,
-        0x91,
-        0x22,
-        0x11,
-        0x4b,
-        0x88,
-        0x90,
-        0x30,
-        0x07
-    );
 }

@@ -1,3 +1,5 @@
+using Ruth.SharedKernel.Tenancy;
+
 namespace Ruth.Modules.Crm.Domain.People;
 
 /// <summary>Built-in linguistic reference seed data for first-name gender and nickname expansion (zero sample people).</summary>
@@ -68,14 +70,16 @@ internal static class MetaLookupReferenceData
         ("Steven", "Steve", "M"),
     ];
 
-    public static IReadOnlyList<MetaFirstNameGenderLookup> BuildGenderRows()
+    public static IReadOnlyList<MetaFirstNameGenderLookup> BuildGenderRows(
+        TenantId tenantId = default
+    )
     {
         return
         [
             .. _genderRows.Select(
-                static (row, idx) =>
+                (row, idx) =>
                     new MetaFirstNameGenderLookup(
-                        CreateDeterministicGuid(1, idx + 1),
+                        tenantId.DeriveDeterministicGuid(CreateDeterministicGuid(1, idx + 1)),
                         row.First,
                         row.Male,
                         row.Female
@@ -84,14 +88,14 @@ internal static class MetaLookupReferenceData
         ];
     }
 
-    public static IReadOnlyList<MetaNickNameLookup> BuildNickNameRows()
+    public static IReadOnlyList<MetaNickNameLookup> BuildNickNameRows(TenantId tenantId = default)
     {
         return
         [
             .. _nickRows.Select(
-                static (row, idx) =>
+                (row, idx) =>
                     new MetaNickNameLookup(
-                        CreateDeterministicGuid(2, idx + 1),
+                        tenantId.DeriveDeterministicGuid(CreateDeterministicGuid(2, idx + 1)),
                         row.First,
                         row.Nick,
                         row.Gender

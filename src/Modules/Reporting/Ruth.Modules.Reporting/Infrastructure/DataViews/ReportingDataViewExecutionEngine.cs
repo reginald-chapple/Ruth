@@ -1,10 +1,12 @@
 using System.Data.Common;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using Ruth.Modules.Reporting.Contracts.DataViews;
 using Ruth.Modules.Reporting.Domain;
 using Ruth.Modules.Reporting.Domain.DataViews;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Reporting.Infrastructure.DataViews;
 
@@ -328,42 +330,31 @@ internal sealed class ReportingDataViewExecutionEngine(
         );
     }
 
-    private async Task<IReadOnlyList<DataViewEntityRecord>> ExecuteRecordsQueryAsync(
+    private Task<IReadOnlyList<DataViewEntityRecord>> ExecuteRecordsQueryAsync(
         string sql,
         int maxRows,
         Func<DbDataReader, DataViewEntityRecord> mapRow,
         CancellationToken ct
     )
     {
-        var conn = db.Database.GetDbConnection();
-        var shouldClose = conn.State != System.Data.ConnectionState.Open;
-        if (shouldClose)
-        {
-            await conn.OpenAsync(ct);
-        }
-
-        try
-        {
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            _ = cmd.Parameters.Add(new NpgsqlParameter("limit", Math.Clamp(maxRows, 1, 5000)));
-
-            List<DataViewEntityRecord> results = [];
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
+        return WithTenantConnectionAsync<IReadOnlyList<DataViewEntityRecord>>(
+            async conn =>
             {
-                results.Add(mapRow(reader));
-            }
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                _ = cmd.Parameters.Add(new NpgsqlParameter("limit", Math.Clamp(maxRows, 1, 5000)));
 
-            return results;
-        }
-        finally
-        {
-            if (shouldClose)
-            {
-                await conn.CloseAsync();
-            }
-        }
+                List<DataViewEntityRecord> results = [];
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    results.Add(mapRow(reader));
+                }
+
+                return results;
+            },
+            ct
+        );
     }
 
     private async Task<IReadOnlySet<Guid>> QueryGuidColumnIfTableExistsAsync(
@@ -373,70 +364,75 @@ internal sealed class ReportingDataViewExecutionEngine(
         CancellationToken ct
     )
     {
-        if (!await TableExistsAsync(tableName, ct))
-        {
-            return new HashSet<Guid>();
-        }
-
-        var conn = db.Database.GetDbConnection();
-        var shouldClose = conn.State != System.Data.ConnectionState.Open;
-        if (shouldClose)
-        {
-            await conn.OpenAsync(ct);
-        }
-
-        try
-        {
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            if (parameter.HasValue)
-            {
-                _ = cmd.Parameters.Add(new NpgsqlParameter("p0", parameter.Value));
-            }
-
-            var set = new HashSet<Guid>();
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                if (!await reader.IsDBNullAsync(0, ct))
+        return !await TableExistsAsync(tableName, ct)
+            ? new HashSet<Guid>()
+            : await WithTenantConnectionAsync<IReadOnlySet<Guid>>(
+                async conn =>
                 {
-                    _ = set.Add(reader.GetGuid(0));
-                }
-            }
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = sql;
+                    if (parameter.HasValue)
+                    {
+                        _ = cmd.Parameters.Add(new NpgsqlParameter("p0", parameter.Value));
+                    }
 
-            return set;
-        }
-        finally
-        {
-            if (shouldClose)
-            {
-                await conn.CloseAsync();
-            }
-        }
+                    var set = new HashSet<Guid>();
+                    await using var reader = await cmd.ExecuteReaderAsync(ct);
+                    while (await reader.ReadAsync(ct))
+                    {
+                        if (!await reader.IsDBNullAsync(0, ct))
+                        {
+                            _ = set.Add(reader.GetGuid(0));
+                        }
+                    }
+
+                    return set;
+                },
+                ct
+            );
     }
 
-    internal async Task<bool> TableExistsAsync(string qualifiedTableName, CancellationToken ct)
+    internal Task<bool> TableExistsAsync(string qualifiedTableName, CancellationToken ct)
+    {
+        return WithTenantConnectionAsync(
+            async conn =>
+            {
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT to_regclass(@name) IS NOT NULL";
+                _ = cmd.Parameters.Add(new NpgsqlParameter("name", qualifiedTableName));
+                var scalar = await cmd.ExecuteScalarAsync(ct);
+                return scalar is bool b && b;
+            },
+            ct
+        );
+    }
+
+    private async Task<T> WithTenantConnectionAsync<T>(
+        Func<DbConnection, Task<T>> action,
+        CancellationToken ct
+    )
     {
         var conn = db.Database.GetDbConnection();
         var shouldClose = conn.State != System.Data.ConnectionState.Open;
         if (shouldClose)
         {
-            await conn.OpenAsync(ct);
+            await db.Database.OpenConnectionAsync(ct);
         }
 
         try
         {
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT to_regclass(@name) IS NOT NULL";
-            _ = cmd.Parameters.Add(new NpgsqlParameter("name", qualifiedTableName));
-            var scalar = await cmd.ExecuteScalarAsync(ct);
-            return scalar is bool b && b;
+            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
+                conn,
+                db.Database.CurrentTransaction?.GetDbTransaction(),
+                ct
+            );
+            return await action(conn);
         }
         finally
         {
             if (shouldClose)
             {
-                await conn.CloseAsync();
+                await db.Database.CloseConnectionAsync();
             }
         }
     }

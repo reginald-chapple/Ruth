@@ -1,6 +1,6 @@
 # Ruth — Relationship, Community & Operations Platform Implementation Plan
 
-> **Mission:** Build a clean-room, high-performance **.NET 10 + Fluent UI Blazor v5 + Domain-Driven Design (DDD)** Modular Monolith serving **any member-driven, community, non-profit, or service organization** (handling both tax-deductible funds/grants and standard dues, fees, and invoices), backed by **PostgreSQL 18**, **Redis 8**, and **RustFS (S3)**.
+> **Mission:** Build a clean-room, white-label, high-performance **.NET 10 + Fluent UI Blazor v5 + Domain-Driven Design (DDD)** Multi-Tenant SaaS serving **IRS-recognized tax-exempt organizations** (501(c)(3) charities, foundations, humanitarian, educational, faith-based, and community aid organizations—handling both tax-deductible funds/grants and program fees/invoices/quid-pro-quo splits), backed by **PostgreSQL 18** (`FORCE ROW LEVEL SECURITY`), **Redis 8**, and **RustFS (S3)**.
 
 ---
 
@@ -8,11 +8,11 @@
 
 | # | Decision Area | Locked Choice | Architectural Consequence |
 | :--- | :--- | :--- | :--- |
-| **1** | **Clean-Room & Domain Posture** | **First-Principles & Organization-Agnostic** | Clean PostgreSQL-native DDD schema (`uuidv7` Strongly-Typed IDs, `timestamptz` / `DateTimeOffset`, `jsonb` + GIN indexes, `postgis`, `pgvector`, Apache `age`). Zero code, proprietary heuristics, or schema copying from restrictively licensed ChMS/RMS systems. Operating units are modeled neutrally as `Branch` (`Site` / `Branch` / `Chapter` / `Center`); financial ledgers support both tax-deductible funds and standard dues/fees/invoices. Zero sample data on boot; `/onboarding` locks self-registration after initial admin setup. |
-| **2** | **UI Paradigm** | **Option A — Hybrid App Shell + CMS Engine** | **Internal Staff Workspace:** Fast, idiomatic Fluent UI Blazor v5 routed pages (`/crm/people/{id}`, `/finance/batches`, `/groups/{id}`, `/admin/core/branches`) with optional customizable widget zones.<br>**External / Portals / Custom Pages:** Full database-driven `Site -> Layout -> Page -> Zone -> Block` engine rendered via Blazor `<DynamicComponent>` (`IRuthBlock`). |
-| **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (Staff) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process (zero redundant HTTP DTO client wrappers for internal views). Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
-| **4** | **CQRS, Messaging & Jobs** | **Zero-Magic Explicit Abstractions** | Custom lightweight `ICommand<T>`, `ICommandHandler<TCommand, T>`, `IQuery<T>`, `IQueryHandler<TQuery, T>`, `IDomainEvent`, `IIntegrationEvent`, and `Result<T>` in `Ruth.SharedKernel` (zero commercial licensing risk from MediatR/MassTransit, zero reflection magic). Per-module EF Core **Transactional Outbox** + `BackgroundService` dispatcher + Postgres-backed `IScheduledJob` runner. |
-| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IWalletPassProvider`, `IVirtualRoomProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `ISearchDocumentProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
+| **1** | **Clean-Room & Tax-Exempt SaaS Posture** | **White-Label Multi-Tenant SaaS for IRS Tax-Exempt Orgs** | Clean PostgreSQL-native DDD schema (`uuidv7` Strongly-Typed IDs, `TenantId` + PostgreSQL 18 `FORCE ROW LEVEL SECURITY` + EF Core Global Query Filters under non-`BYPASSRLS` `ruth_app` role, `timestamptz` / `DateTimeOffset`, `jsonb` + GIN indexes, `postgis`, `pgvector`). Zero code, proprietary heuristics, or schema copying from restrictively licensed ChMS/RMS systems. No public directory and zero tech-stack fingerprinting (`__Host-` host-only cookies, custom domain routing, neutral headers). Self-serve signup provisions an isolated `Sandbox` workspace; going `Live` requires IRS EIN / EO BMF charity verification + mockable Stripe Connect payout readiness + Platform Operator approval. |
+| **2** | **UI Paradigm** | **Option A — Hybrid App Shell + CMS Engine** | **Internal Staff Workspace:** Fast, idiomatic Fluent UI Blazor v5 routed pages (`/crm/people/{id}`, `/finance/batches`, `/groups/{id}`, `/admin/core/branches`) served on each organization's own isolated domain.<br>**External / Portals / Custom Pages:** Full database-driven `Site -> Layout -> Page -> Zone -> Block` engine rendered via Blazor `<DynamicComponent>` (`IRuthBlock`).<br>**Platform Operator Console:** Isolated on dedicated internal operator host (`ops.<platform-domain>`). |
+| **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (Staff) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process with immutable circuit `TenantId` binding. Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
+| **4** | **CQRS, Messaging & Jobs** | **Zero-Magic Explicit Abstractions** | Custom lightweight `ICommand<T>`, `ICommandHandler<TCommand, T>`, `IQuery<T>`, `IQueryHandler<TQuery, T>`, `IDomainEvent`, `IIntegrationEvent`, `ITenantContext`, and `Result<T>` in `Ruth.SharedKernel` (zero commercial licensing risk from MediatR/MassTransit, zero reflection magic). Per-module tenant-isolated EF Core **Transactional Outbox** + fair-share `BackgroundService` dispatcher + Postgres-backed `IScheduledJob` runner. |
+| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `IStripeConnectProvider`, `IIrsCharityVerificationProvider`, `ICommunicationTransport`, `IStorageProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `ISearchDocumentProvider`) compiled as modular assemblies. |
 | **6** | **Templating & Rendering** | **Compiled Razor Components (`HtmlRenderer`) + Safe Merge Tokens** | Built-in layouts, transactional emails, annual tax receipts, invoices, and CMS blocks are strongly-typed `.razor` components rendered via Blazor's built-in `HtmlRenderer`. Database-stored, staff-editable content (bulk emails, SMS, waivers, merge fields) uses a safe declarative merge-token engine (`IMergeTemplateEngine` / `TemplateSnippet`) over read-only DTO contexts—eliminating arbitrary runtime scripting/RCE risk. |
 
 ---
@@ -33,25 +33,27 @@ src/
   Ruth.Persistence/                        # ModuleDbContext, Transactional Outbox/Inbox, Postgres Advisory-Locked Scheduler
   Ruth.Host/                               # ASP.NET Core 10 + Fluent UI Blazor v5 App Shell, /onboarding, Middleware, Composition Root
   Modules/
-    Identity/                              # Schema: identity  (Users, Logins, OIDC/JWT, SecurityRoles, Hierarchical ISecured ACLs)
+    Tenancy/                               # Schema: platform  (Tenants, TenantDomains, IRS Tax-Exempt Verification, Mock/Live Stripe Connect, PlatformOperators)
+      Ruth.Modules.Tenancy.Contracts/
+      Ruth.Modules.Tenancy/
+    Identity/                              # Schema: identity  (Tenant-isolated Users, Logins, OIDC/JWT, SecurityRoles, Hierarchical ISecured ACLs)
       Ruth.Modules.Identity.Contracts/
       Ruth.Modules.Identity/               # Domain/, Infrastructure/, Slices/<SliceName>/
     Core/                                  # Schema: core      (DefinedTypes, Categories, jsonb Attributes/FieldTypes, Branches/Sites, PostGIS Locations, Schedules, BinaryFiles, Audit, Notes, Tags)
-    Crm/                                   # Schema: crm       (People/Organizations, Households/Units, Apache AGE Relationships, Merge/Deduplication, Badges, Assessments, Screening)
+    Crm/                                   # Schema: crm       (People/Organizations, Households/Units, Relational Multi-Hop Graph, Merge/Deduplication, Badges, Assessments, Screening)
     Groups/                                # Schema: groups    (GroupTypes, Groups/Chapters/Teams, Memberships, Requirements, Volunteer & Shift Scheduler, Attendance)
-    CheckIn/                               # Schema: checkin   (Kiosk & Facility Check-In Config, Household/Member Matching, Capacity Thresholds, ZPL Badges, Smart Apple/Google Wallet Passes)
+    CheckIn/                               # Schema: checkin   (Kiosk & Facility Check-In Config, Household/Member Matching, Capacity Thresholds, ZPL Badges)
     Communication/                         # Schema: comms     (Razor HtmlRenderer + Safe Merge Engine, Transports, Templates, Bulk Email/SMS/Push, Two-Way SMS, Drip Flows)
-    Finance/                               # Schema: finance   (Tax-Deductible Funds & Revenue Accounts, Gateways, Batches, Donations/Dues/Fees/Invoices, Recurring Billing, Statements/Receipts, Assistance/Grants, Campaigns)
+    Finance/                               # Schema: finance   (Tax-Deductible Funds & Revenue Accounts, Gateways, Batches, Donations/Fees/Invoices, Recurring Billing, Statements/Receipts, Assistance/Grants, Campaigns)
     Events/                                # Schema: events    (Calendars, EventItems, Registrations, Tiered Fees/Discounts/Waitlists, Live Interactive Sessions)
     Commerce/                              # Schema: commerce  (Products/Merch/Digital Goods, Punch/Credit Packs, Member Pricing, Quid-Pro-Quo Splits, 1-on-1 Service Appointments & Facility/Resource Rentals)
     Engagement/                            # Schema: engage    (Engagement Pipelines, Journeys/Milestones, Streaks, Achievements, Care/Support Requests, Reminders, Following, Touchpoints)
     Workflow/                              # Schema: workflow  (WorkflowTypes, State/Activity/Action Engine, Triggers, Interactive Form Builder)
-    VirtualRooms/                          # Schema: virtual   (Embedded LiveKit WebRTC Rooms, ACL Room JWTs, Webhook Auto-Attendance & RustFS Recording Egress)
     Cms/                                   # Schema: cms       (Sites, Layouts, Pages, Zones, Dynamic Blocks, Content Channels, Shortlinks, Media, Interactions, Personalization, Mobile/TV)
     Reporting/                             # Schema: reporting (Query AST DataViews, Reports, MergeTemplates, Operational & Financial Metrics, Star-Schema Projections)
     Lms/                                   # Schema: lms       (Programs, Courses, Terms, Classes, Activities, Grading & Certifications)
     Search/                                # Schema: search    (Content Collections, PostgreSQL tsvector + pg_trgm Full-Text Indexing & Spotlight Search)
-  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Stripe, Checkr, AppleWallet, GoogleWallet, LiveKit, etc.)
+  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Stripe, Checkr)
 tests/
   Ruth.ArchitectureTests/                  # Enforces module isolation, Domain purity, sealed handlers/DTOs
   Ruth.Modules.<Context>.Tests/            # Unit + Testcontainers (PostgreSQL 18 / Redis 8 / RustFS) slice tests
@@ -156,7 +158,8 @@ flowchart TD
     W3 --> W6["Wave 6: CMS, Reporting, LMS & Search (8 Slices)"]
     W4 --> W6
     W5 --> W6
-    W6 --> W7["Wave 7: Security Hardening, Verification & Trust Posture (5 Slices)"]
+    W6 --> W7["Wave 7: SaaS Multi-Tenancy, Scope Pruning & RLS Isolation (8 Slices)"]
+    W7 --> W8["Wave 8: SaaS Security Hardening, Stealth Verification & Supply-Chain Gates (5 Slices)"]
 ```
 
 > [!TIP]
@@ -476,35 +479,64 @@ flowchart TD
 
 ---
 
-### Wave 7 — Security Hardening, Verification & Trust Posture
-*Goal: Execute a comprehensive, test-verified security hardening sweep across application code, cryptography, storage, containers, and CI/CD so `Ruth` ships with concrete, auditable security guarantees for member-driven, community, non-profit, and service organizations.*
+### Wave 7 — SaaS Multi-Tenancy, Scope Pruning & RLS Isolation
+*Goal: Transform `Ruth` into a white-label Multi-Tenant SaaS exclusively for IRS-recognized tax-exempt organizations—retiring `VirtualRooms`/`LiveKit`, `WalletPasses`, and `Apache AGE`, introducing the `Tenancy` (`platform` schema) control plane with IRS EIN/EO BMF verification and mockable Stripe Connect onboarding, and enforcing defense-in-depth PostgreSQL 18 `FORCE ROW LEVEL SECURITY` + EF Core Global Query Filters across 100% of tenant tables.*
 
-#### `W7-S1` — Outbound SSRF Defense, Webhook Verification & Network Egress Guards
-* **Scope:** Shared SSRF-safe outbound HTTP infrastructure (`SafeOutboundHttpHandler` via `SocketsHttpHandler.ConnectCallback` DNS resolution + IP deny-lists blocking loopback, RFC1918 private subnets, link-local `169.254.169.254` cloud metadata, IPv6 unique-local/mapped ranges, internal Docker service hostnames, and cross-origin redirect hops) wired across `Workflow` (`WebhookPostWorkflowAction`), `Identity` (`HttpExternalOidcClient`), and `Cms` media sync; plus constant-time HMAC signature verification and replay-timestamp windows across all inbound provider webhooks (`PaymentGateways`, `Checkr`, `Communication`, `LiveKit`).
+#### `W7-S1` — Complete Removal of `VirtualRooms`/`LiveKit`, `WalletPasses` & `Apache AGE` ✅ *(Completed)*
+* **Scope:** Delete `Ruth.Modules.VirtualRooms*`, `Ruth.Providers.LiveKit`, `Ruth.Providers.WalletPasses`, `Ruth.Modules.VirtualRooms.Tests`, `livekit` / `livekit-egress` Compose services, and `WalletPasses` slices/tables; replace `ApacheAgeCrmGraphService` with RLS-ready `RelationalCrmGraphService` over `crm` SQL tables; switch PostgreSQL 18 Dockerfile to standard `postgres:18` + `postgis` + `pgvector`.
+
+#### `W7-S2` — Governance Update, `TenantId` Primitives & `Tenancy` Control-Plane Module
+* **Scope:** Update root/module `AGENTS.md` and `docs/IMPLEMENTATION_PLAN.md`; add `TenantId`, `ITenantScoped`, `ITenantContext`, `AmbientTenantContext`, `ITenantSeedContributor`, and CQRS `TenantGuard` decorators to `Ruth.SharedKernel`; create `Ruth.Modules.Tenancy.Contracts` and `Ruth.Modules.Tenancy` (`platform` schema) owning `Tenant` (`Sandbox`, `PendingVerification`, `Live`, `Suspended`), `TenantDomain`, `IrsExemptVerification`, `StripeConnectAccount`, and `PlatformOperator`.
+
+#### `W7-S3` — Self-Serve Nonprofit Signup, IRS Exempt Verification & Mock Stripe Connect
+* **Scope:** Self-serve nonprofit registration wizard & Minimal APIs (Legal Name, EIN `XX-XXXXXXX`, state, 501(c)(3)/exempt subsection, sandbox host slug, initial tenant admin) provisioning an isolated `Sandbox` tenant + per-tenant module seeds (`ITenantSeedContributor`); `IIrsCharityVerificationProvider` (EIN validation + deterministic IRS EO BMF / Pub 78 lookup); `IStripeConnectProvider` + zero-config `MockStripeConnectProvider`; and Platform Operator Go-Live review/approval workflow.
+
+#### `W7-S4` — Persistence RLS Engine, Dual DB Roles, Outbox & Scheduler Isolation
+* **Scope:** PostgreSQL role separation (`ruth_migrator` vs non-superuser, non-`BYPASSRLS` `ruth_app`), `ModuleDbContext` `ITenantScoped` Global Query Filters + automatic composite `(tenant_id, ...)` unique index scoping, `AuditAndConcurrencySaveChangesInterceptor` `TenantId` stamping & cross-tenant mutation blocking, `TenantRlsConnectionInterceptor` (`set_config('app.current_tenant_id', ...)`), RLS DDL migration helpers (`ENABLE` + `FORCE ROW LEVEL SECURITY`), and per-tenant fair-share `OutboxModuleProcessor` & `ScheduledJobEngine` isolation.
+
+#### `W7-S5` — Core & Constituent Modules RLS Retrofit (`Identity`, `Core`, `Crm`, `Groups`, `CheckIn`, `Communication`)
+* **Scope:** Clean multi-tenant + `FORCE ROW LEVEL SECURITY` baseline migrations across `identity`, `core`, `crm`, `groups`, `checkin`, and `comms` schemas; per-tenant deterministic system role IDs; tenant-partitioned `AclSnapshotCache` and `CoreReadCache` (`t:{TenantId}:...`); and `Live`-status gating on outbound bulk email/SMS.
+
+#### `W7-S6` — Operations & Portal Modules RLS Retrofit (`Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, `Reporting`, `Lms`, `Search`)
+* **Scope:** Clean multi-tenant + `FORCE ROW LEVEL SECURITY` baseline migrations across `finance`, `events`, `commerce`, `engage`, `workflow`, `cms`, `reporting`, `lms`, and `search` schemas; mandatory `tenants/{TenantId}/...` key prefixing inside `IStorageProvider`; tenant-scoped `DataView`, Star-Schema, and `tsvector` Search projections; and `Live`-status gating on live payment capture.
+
+#### `W7-S7` — Stealth White-Label Routing, `__Host-` Cookies & Blazor Circuit Isolation
+* **Scope:** `TenantResolutionMiddleware` mapping custom domains and sandbox subdomains with neutral `404` on unknown hosts; `__Host-` / host-only neutral cookie names, stripped server/framework fingerprinting headers, zero `"Powered by Ruth"` public branding, immutable Blazor `InteractiveServer` circuit `TenantId` binding, and `ops.<platform-domain>` operator console isolation.
+
+#### `W7-S8` — Automated Cross-Tenant Canary & `pg_class` RLS Enforcement Suite
+* **Scope:** `TenantIsolationArchitectureTests` in `Ruth.ArchitectureTests` asserting 100% `ITenantScoped` coverage across tenant `ModuleDbContext`s, plus Testcontainers PostgreSQL 18 `pg_class` verification (`relrowsecurity = true` & `relforcerowsecurity = true` on every table in all 15 tenant schemas under `ruth_app`) and end-to-end Tenant A vs. Tenant B vs. Unset-Tenant isolation tests across HTTP, Blazor, Outbox, Caches, Search, and Storage.
+
+---
+
+### Wave 8 — SaaS Security Hardening, Stealth Verification & Supply-Chain Gates
+*Goal: Execute a comprehensive, test-verified security hardening sweep across application code, cryptography, storage, containers, and CI/CD for the multi-tenant white-label SaaS.*
+
+#### `W8-S1` — Outbound SSRF Defense, Webhook Verification & Network Egress Guards
+* **Scope:** Shared SSRF-safe outbound HTTP infrastructure (`SafeOutboundHttpHandler` via `SocketsHttpHandler.ConnectCallback` DNS resolution + IP deny-lists blocking loopback, RFC1918 private subnets, link-local `169.254.169.254` cloud metadata, IPv6 unique-local/mapped ranges, internal Docker service hostnames, and cross-origin redirect hops) wired across `Workflow` (`WebhookPostWorkflowAction`), `Identity` (`HttpExternalOidcClient`), and `Cms` media sync; plus constant-time HMAC signature verification and replay-timestamp windows across all inbound provider webhooks (`PaymentGateways`, `StripeConnect`, `Checkr`, `Communication`).
 * **Acceptance & Tests:** Unit and integration tests proving private/loopback/metadata IPs, redirect-based SSRF hops, and unsigned or replayed webhook payloads are deterministically rejected before payload transmission or state mutation.
 * **Authoring Skills:** `architecture`, `aspnet-core`, `modern-csharp`, `exploiting-server-side-request-forgery`, `performing-ssrf-vulnerability-exploitation`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S2` — HTTP Security Headers, CSP, Proxy Trust & Tiered Abuse Rate Limiting
-* **Scope:** Harden `Ruth.Host` pipeline with strict `Content-Security-Policy` (scoped for Blazor `InteractiveServer`, Static SSR CMS, and `LiveKit` WebRTC), `Permissions-Policy` (camera/microphone restricted to scanner & virtual-room routes), `Cross-Origin-Opener-Policy`, explicit `ForwardedHeaders` trusted-proxy CIDR boundaries, canonical `AllowedHosts` / public-origin enforcement on password-reset, RSVP, and Wallet Pass links, production lock-down on `/openapi`, and tiered ASP.NET Core rate-limiting policies (dedicated sliding/token buckets on `/api/auth/*`, `/onboarding`, Kiosk lookup, public forms, and webhooks).
-* **Acceptance & Tests:** `WebApplicationFactory` integration tests asserting security headers on HTML and API responses, rejecting spoofed `X-Forwarded-For` / `Host` headers from untrusted peers, and enforcing `429 Too Many Requests` (`ProblemDetails`) on auth and Kiosk brute-force bursts.
+#### `W8-S2` — HTTP Security Headers, Stealth Fingerprint Audit, Proxy Trust & Tiered Rate Limiting
+* **Scope:** Harden `Ruth.Host` pipeline with strict `Content-Security-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, explicit `ForwardedHeaders` trusted-proxy CIDR boundaries, canonical host enforcement on password-reset and RSVP links, zero tech-stack header/DOM leakage assertions, production lock-down on `/openapi`, and dual per-tenant + per-IP ASP.NET Core rate-limiting policies.
+* **Acceptance & Tests:** `WebApplicationFactory` integration tests asserting security headers, zero platform fingerprint headers, spoofed `X-Forwarded-For` / `Host` rejection, and `429 Too Many Requests` (`ProblemDetails`) on auth and Kiosk brute-force bursts.
 * **Authoring Skills:** `aspnet-core`, `dotnet-webapi`, `performing-security-headers-audit`, `testing-for-host-header-injection`, `implementing-api-rate-limiting-and-throttling`, `performing-clickjacking-attack-test`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `webhint`, `complexity`, `crap-score`.
 
-#### `W7-S3` — Auth, JWT/OIDC, WebSocket & Cross-Module BOLA/IDOR Authorization Audit
-* **Scope:** End-to-end authentication and authorization verification across every module: strict JWT algorithm pinning (`alg: none` and key-confusion rejection), refresh-token rotation with reuse-detection family revocation, OIDC `state`/`nonce`/PKCE and exact redirect-URI enforcement, `RestApiKey` high-entropy prefix + salted hash storage and least-privilege scopes, SignalR/WebSocket handshake and hub-method authorization (`Events`), LiveKit room-token ACL scoping (`VirtualRooms`), and a full `Ruth.ArchitectureTests` + endpoint integration sweep verifying zero unauthenticated shadow endpoints, zero mass-assignment DTO over-posting, and mandatory object-level `ISecured` ACL enforcement across all `Map*ModuleEndpoints()` and Blazor handlers.
-* **Acceptance & Tests:** Negative security test suite covering tampered/`alg: none` JWTs, replayed refresh tokens, open-redirect payloads, cross-constituent/cross-branch BOLA/IDOR requests (`403 Forbidden`), and architecture-test assertions that every endpoint explicitly declares an authorization or intentional public policy.
+#### `W8-S3` — Auth, JWT/OIDC, WebSocket & Cross-Tenant BOLA/IDOR Authorization Audit
+* **Scope:** End-to-end authentication and authorization verification across every module: strict JWT algorithm pinning (`alg: none` and key-confusion rejection) + `tid` tenant-claim binding, refresh-token rotation with reuse-detection family revocation, OIDC `state`/`nonce`/PKCE and exact redirect-URI enforcement, `RestApiKey` high-entropy prefix + salted hash storage, SignalR hub authorization (`Events`), and architecture-test assertions that every endpoint explicitly declares an authorization or intentional public policy.
+* **Acceptance & Tests:** Negative security test suite covering tampered/`alg: none`/cross-tenant JWTs, replayed refresh tokens, open-redirect payloads, and cross-constituent/cross-tenant BOLA/IDOR requests (`403`/`404`).
 * **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `testing-jwt-token-security`, `implementing-jwt-signing-and-verification`, `testing-oauth2-implementation-flaws`, `testing-for-open-redirect-vulnerabilities`, `implementing-api-key-security-controls`, `testing-api-security-with-owasp-top-10`, `testing-api-for-broken-object-level-authorization`, `testing-for-broken-access-control`, `testing-api-for-mass-assignment-vulnerability`, `testing-websocket-api-security`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S4` — Cryptography at Rest, Storage Isolation & Content/XSS Sanitization
-* **Scope:** Envelope encryption at rest (`IDataProtectionProvider` / AES-256-GCM key ring) for all database-stored third-party credentials (`FinancialGateway` keys, `ExternalAuthProviderConfig` client secrets, communication transport credentials, Wallet pass signing material); `RustFS` S3 storage hardening (private-by-default buckets, short-lived presigned URLs, magic-byte MIME validation, SVG/HTML active-content blocking with `Content-Disposition: attachment`, and path-traversal guards on `BinaryFile` and `FinancialTransactionImage`); plus strict allowlist HTML/XSS, merge-token, and email-header CRLF sanitization across `Communication`, `Cms` (`HtmlContent`), and `Search` (`ts_headline` snippets).
-* **Acceptance & Tests:** Round-trip encryption and key-rotation tests proving secrets never persist in plaintext database columns, upload tests rejecting polyglot/SVG/path-traversal payloads, and OWASP XSS/CRLF payload corpus tests across CMS blocks, search highlights, and outbound emails.
+#### `W8-S4` — Per-Tenant Cryptography at Rest, Storage Isolation & Content/XSS Sanitization
+* **Scope:** Per-tenant AAD-bound envelope encryption at rest (AES-256-GCM binding `TenantId` into associated data) for all database-stored third-party credentials (`FinancialGateway` keys, `ExternalAuthProviderConfig` client secrets, communication transport credentials); `RustFS` S3 storage hardening (private-by-default buckets, short-lived presigned URLs, magic-byte MIME validation, SVG/HTML active-content blocking with `Content-Disposition: attachment`, and path-traversal guards on `BinaryFile` and `FinancialTransactionImage`); plus strict allowlist HTML/XSS, merge-token, and email-header CRLF sanitization across `Communication`, `Cms` (`HtmlContent`), and `Search` (`ts_headline` snippets).
+* **Acceptance & Tests:** Round-trip encryption and cross-tenant AAD rejection tests, upload tests rejecting polyglot/SVG/path-traversal payloads, and OWASP XSS/CRLF payload corpus tests across CMS blocks, search highlights, and outbound emails.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `performing-cryptographic-audit-of-application`, `implementing-aes-encryption-for-data-at-rest`, `testing-for-sensitive-data-exposure`, `auditing-aws-s3-bucket-permissions`, `performing-directory-traversal-testing`, `testing-for-xss-vulnerabilities`, `testing-for-email-header-injection`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`, `crap-score`.
 
-#### `W7-S5` — Hardened Containers, CI Supply-Chain Gates, SBOM & Verifiable Security Posture
-* **Scope:** Harden [Dockerfile](file:///Users/reginaldchapple/Developer/Ruth/deploy/docker/dotnet/Dockerfile) (non-root `$APP_UID` / chiseled runtime image, dropped Linux capabilities, read-only rootfs compatibility) and `docker-compose.yml` (`127.0.0.1` local port bindings, internal backing networks, authenticated `Redis 8`, version/digest-pinned `RustFS` & `LiveKit` images, isolated `livekit-egress`); harden `.github/workflows/ci.yml` with `permissions: contents: read`, commit-SHA-pinned actions, `gitleaks` secret scanning, `dotnet list package --vulnerable` + `npm audit`, `Trivy` container/IaC scanning, and CycloneDX SBOM generation; and publish `docs/SECURITY.md` (**Security Architecture & Verifiable Controls Matrix** + backup/recovery runbook) mapping every customer-facing security promise directly to automated tests and CI gates.
+#### `W8-S5` — Hardened Containers, CI Supply-Chain Gates, SBOM & Verifiable Security Posture
+* **Scope:** Harden [Dockerfile](file:///Users/reginaldchapple/Developer/Ruth/deploy/docker/dotnet/Dockerfile) (non-root `$APP_UID` / chiseled runtime image, dropped Linux capabilities, read-only rootfs compatibility) and `docker-compose.yml` (`127.0.0.1` local port bindings, internal backing networks, authenticated `Redis 8`, version/digest-pinned `RustFS` image); harden `.github/workflows/ci.yml` with `permissions: contents: read`, commit-SHA-pinned actions, `gitleaks` secret scanning, `dotnet list package --vulnerable` + `npm audit`, `Trivy` container/IaC scanning, and CycloneDX SBOM generation; and publish `docs/SECURITY.md` (**SaaS Isolation & Verifiable Controls Matrix** + backup/recovery runbook).
 * **Acceptance & Tests:** Automated CI and container verification assertions confirming non-root UID execution, zero leaked secrets (`gitleaks`), zero unpinned GitHub Action tags, clean `Trivy` high/critical vulnerability gate, and reproducible CycloneDX SBOM artifact generation.
 * **Authoring Skills:** `quality-ci`, `hardening-docker-containers-for-production`, `performing-container-image-hardening`, `securing-github-actions-workflows`, `implementing-secrets-scanning-in-ci-cd`, `scanning-containers-with-trivy-in-cicd`, `integrating-sast-into-github-actions-pipeline`, `generating-and-analyzing-sboms`, `implementing-immutable-backup-with-restic`.
 * **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`, `roslynator`.

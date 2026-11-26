@@ -113,9 +113,9 @@ public sealed class W4S10BookingSlotEngineAndPricingDomainTests
         var service = BookableService
             .Create(
                 new BookableServiceSpec(
-                    "Virtual Financial Intake",
+                    "Remote Financial Intake",
                     "virtual-financial-intake",
-                    BookingDeliveryMode.VirtualRoom,
+                    BookingDeliveryMode.Remote,
                     45,
                     30,
                     "USD",
@@ -192,8 +192,7 @@ public sealed class W4S10BookingSlotEngineAndPricingDomainTests
             )
             .Value;
 
-        Assert.True(booking.RequiresVirtualRoom);
-        Assert.NotNull(booking.VirtualRoomReferenceKey);
+        Assert.Equal(BookingDeliveryMode.Remote, booking.DeliveryMode);
 
         Assert.True(booking.Cancel(1440, staffOverride: false, "Too late", _nowUtc).IsFailure);
         Assert.True(

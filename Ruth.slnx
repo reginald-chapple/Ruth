@@ -60,9 +60,9 @@
     <Project Path="src/Modules/Search/Ruth.Modules.Search.Contracts/Ruth.Modules.Search.Contracts.csproj" />
     <Project Path="src/Modules/Search/Ruth.Modules.Search/Ruth.Modules.Search.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/VirtualRooms/">
-    <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms.Contracts/Ruth.Modules.VirtualRooms.Contracts.csproj" />
-    <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms/Ruth.Modules.VirtualRooms.csproj" />
+  <Folder Name="/src/Modules/Tenancy/">
+    <Project Path="src/Modules/Tenancy/Ruth.Modules.Tenancy.Contracts/Ruth.Modules.Tenancy.Contracts.csproj" />
+    <Project Path="src/Modules/Tenancy/Ruth.Modules.Tenancy/Ruth.Modules.Tenancy.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Workflow/">
     <Project Path="src/Modules/Workflow/Ruth.Modules.Workflow.Contracts/Ruth.Modules.Workflow.Contracts.csproj" />
@@ -71,10 +71,8 @@
   <Folder Name="/src/Providers/">
     <Project Path="src/Providers/Ruth.Providers.Checkr/Ruth.Providers.Checkr.csproj" />
     <Project Path="src/Providers/Ruth.Providers.CommunicationTransports/Ruth.Providers.CommunicationTransports.csproj" />
-    <Project Path="src/Providers/Ruth.Providers.LiveKit/Ruth.Providers.LiveKit.csproj" />
     <Project Path="src/Providers/Ruth.Providers.PaymentGateways/Ruth.Providers.PaymentGateways.csproj" />
     <Project Path="src/Providers/Ruth.Providers.RustFsStorage/Ruth.Providers.RustFsStorage.csproj" />
-    <Project Path="src/Providers/Ruth.Providers.WalletPasses/Ruth.Providers.WalletPasses.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ruth.ArchitectureTests/Ruth.ArchitectureTests.csproj" />
@@ -94,7 +92,7 @@
     <Project Path="tests/Ruth.Modules.Lms.Tests/Ruth.Modules.Lms.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Reporting.Tests/Ruth.Modules.Reporting.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Search.Tests/Ruth.Modules.Search.Tests.csproj" />
-    <Project Path="tests/Ruth.Modules.VirtualRooms.Tests/Ruth.Modules.VirtualRooms.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Tenancy.Tests/Ruth.Modules.Tenancy.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Workflow.Tests/Ruth.Modules.Workflow.Tests.csproj" />
     <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />
     <Project Path="tests/Ruth.SharedKernel.Tests/Ruth.SharedKernel.Tests.csproj" />

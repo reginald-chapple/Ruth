@@ -25,8 +25,11 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Modules.Reporting.Domain.Analytics.DimBranch", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("BranchId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("BranchName")
@@ -44,18 +47,19 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.HasKey("BranchId");
+                    b.HasKey("TenantId", "BranchId");
 
                     b.ToTable("dim_branch", "reporting");
                 });
 
             modelBuilder.Entity("Ruth.Modules.Reporting.Domain.Analytics.DimDate", b =>
                 {
-                    b.Property<int>("DateKey")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DateKey"));
+                    b.Property<int>("DateKey")
+                        .HasColumnType("integer");
 
                     b.Property<DateOnly>("CalendarDate")
                         .HasColumnType("date");
@@ -80,9 +84,9 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<int>("Year")
                         .HasColumnType("integer");
 
-                    b.HasKey("DateKey");
+                    b.HasKey("TenantId", "DateKey");
 
-                    b.HasIndex("CalendarDate")
+                    b.HasIndex("TenantId", "CalendarDate")
                         .IsUnique();
 
                     b.ToTable("dim_date", "reporting");
@@ -90,8 +94,11 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Modules.Reporting.Domain.Analytics.DimMetric", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MetricId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("MetricKey")
@@ -116,7 +123,7 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.HasKey("MetricId");
+                    b.HasKey("TenantId", "MetricId");
 
                     b.ToTable("dim_metric", "reporting");
                 });
@@ -139,6 +146,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("RefreshedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateOnly>("WeekEndDate")
                         .HasColumnType("date");
 
@@ -146,6 +157,8 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("WeekEndDateKey", "BranchId");
 
@@ -186,7 +199,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<int>("SampleCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("DateKey", "MetricId");
 
@@ -221,10 +240,16 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TransactionCount")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("MonthDateKey", "BranchId");
 
@@ -281,6 +306,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<int?>("PersistedScheduleIntervalMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TransformKey")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -288,6 +317,8 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EntityTypeKey");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("data_views", "reporting");
                 });
@@ -329,11 +360,17 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Value")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("DataViewId", "ParentFilterId", "Order");
 
@@ -342,6 +379,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Modules.Reporting.Domain.DataViews.DataViewPersistedValue", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("DataViewId")
                         .HasColumnType("uuid");
 
@@ -351,7 +392,7 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("PersistedDateTimeUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("DataViewId", "EntityId");
+                    b.HasKey("TenantId", "DataViewId", "EntityId");
 
                     b.HasIndex("EntityId");
 
@@ -409,7 +450,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("merge_templates", "reporting");
                 });
@@ -470,6 +517,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(180)
@@ -485,7 +536,7 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MetricKey")
+                    b.HasIndex("TenantId", "MetricKey")
                         .IsUnique();
 
                     b.ToTable("metrics", "reporting");
@@ -521,7 +572,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<Guid?>("ParentCategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("metric_categories", "reporting");
                 });
@@ -549,7 +606,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("MetricId", "Order");
 
@@ -582,6 +645,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("XValue")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -592,6 +659,8 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("MetricId", "MetricValueDateTimeUtc");
 
                     b.ToTable("metric_values", "reporting");
@@ -599,6 +668,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Modules.Reporting.Domain.Metrics.MetricValuePartition", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MetricValueId")
                         .HasColumnType("uuid");
 
@@ -612,9 +685,11 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
-                    b.HasKey("MetricValueId", "MetricPartitionId");
+                    b.HasKey("TenantId", "MetricValueId", "MetricPartitionId");
 
                     b.HasIndex("EntityId");
+
+                    b.HasIndex("MetricValueId");
 
                     b.ToTable("metric_value_partitions", "reporting");
                 });
@@ -660,9 +735,15 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EntityTypeKey");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("reports", "reporting");
                 });
@@ -702,7 +783,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                     b.Property<int?>("SortOrder")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ReportId", "ColumnOrder");
 
@@ -711,6 +798,10 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
 
             modelBuilder.Entity("Ruth.Persistence.Outbox.InboxMessage", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uuid")
                         .HasColumnName("message_id");
@@ -724,7 +815,7 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_on_utc");
 
-                    b.HasKey("MessageId", "ConsumerName");
+                    b.HasKey("TenantId", "MessageId", "ConsumerName");
 
                     b.ToTable("inbox_messages", "reporting");
                 });
@@ -781,9 +872,13 @@ namespace Ruth.Modules.Reporting.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProcessedOnUtc", "NextRetryOnUtc")
+                    b.HasIndex("TenantId", "ProcessedOnUtc", "NextRetryOnUtc")
                         .HasFilter("\"processed_on_utc\" IS NULL AND \"dead_lettered_on_utc\" IS NULL");
 
                     b.ToTable("outbox_messages", "reporting");

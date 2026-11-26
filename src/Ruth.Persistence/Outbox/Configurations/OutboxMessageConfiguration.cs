@@ -3,8 +3,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Ruth.Persistence.Outbox.Configurations;
 
-internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
+internal sealed class OutboxMessageConfiguration(bool isTenantScoped = true)
+    : IEntityTypeConfiguration<OutboxMessage>
 {
+    private readonly bool _isTenantScoped = isTenantScoped;
+
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
         _ = builder.ToTable(OutboxSqlConstants.OutboxTable);
@@ -13,11 +16,25 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         ConfigurePayloadProperties(builder);
         ConfigureDeliveryProperties(builder);
 
+        var pendingFilter =
+            $"\"{OutboxSqlConstants.ColumnProcessedOnUtc}\" IS NULL AND \"{OutboxSqlConstants.ColumnDeadLetteredOnUtc}\" IS NULL";
+
+        if (_isTenantScoped)
+        {
+            _ = builder
+                .HasIndex(x => new
+                {
+                    x.TenantId,
+                    x.ProcessedOnUtc,
+                    x.NextRetryOnUtc,
+                })
+                .HasFilter(pendingFilter);
+            return;
+        }
+
         _ = builder
             .HasIndex(x => new { x.ProcessedOnUtc, x.NextRetryOnUtc })
-            .HasFilter(
-                $"\"{OutboxSqlConstants.ColumnProcessedOnUtc}\" IS NULL AND \"{OutboxSqlConstants.ColumnDeadLetteredOnUtc}\" IS NULL"
-            );
+            .HasFilter(pendingFilter);
     }
 
     private static void ConfigurePayloadProperties(EntityTypeBuilder<OutboxMessage> builder)

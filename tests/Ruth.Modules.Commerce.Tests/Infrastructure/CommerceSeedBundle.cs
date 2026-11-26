@@ -9,6 +9,5 @@ internal sealed record CommerceSeedBundle(
     Guid GroupId,
     Guid DigitalBinaryFileId,
     Guid MemberPersonId,
-    Guid HouseholdPartnerPersonId,
-    Guid WalletPassId
+    Guid HouseholdPartnerPersonId
 );

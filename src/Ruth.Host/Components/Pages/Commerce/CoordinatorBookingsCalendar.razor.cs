@@ -10,7 +10,7 @@ public sealed partial class CoordinatorBookingsCalendar : ComponentBase
 {
     private static readonly BookingDeliveryMode[] _deliveryModes =
     [
-        BookingDeliveryMode.VirtualRoom,
+        BookingDeliveryMode.Remote,
         BookingDeliveryMode.InPerson,
         BookingDeliveryMode.Hybrid,
     ];
@@ -22,7 +22,7 @@ public sealed partial class CoordinatorBookingsCalendar : ComponentBase
 
     private string _serviceName = "1-on-1 Member Coaching Session";
     private string _serviceSlug = "member-coaching-session";
-    private BookingDeliveryMode _deliveryMode = BookingDeliveryMode.VirtualRoom;
+    private BookingDeliveryMode _deliveryMode = BookingDeliveryMode.Remote;
     private Guid _revenueAccountId;
     private string _serviceDurationInput = "45";
     private string _servicePriceInput = "60.00";

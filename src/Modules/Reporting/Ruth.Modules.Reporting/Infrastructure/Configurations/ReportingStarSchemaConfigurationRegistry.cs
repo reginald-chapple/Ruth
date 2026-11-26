@@ -10,7 +10,7 @@ internal static class ReportingStarSchemaConfigurationRegistry
         _ = modelBuilder.Entity<DimDate>(static b =>
         {
             _ = b.ToTable("dim_date");
-            _ = b.HasKey(static x => x.DateKey);
+            _ = b.HasKey(static x => new { x.TenantId, x.DateKey });
             _ = b.Property(static x => x.MonthLabel).HasMaxLength(12).IsRequired();
             _ = b.HasIndex(static x => x.CalendarDate).IsUnique();
         });
@@ -18,7 +18,7 @@ internal static class ReportingStarSchemaConfigurationRegistry
         _ = modelBuilder.Entity<DimBranch>(static b =>
         {
             _ = b.ToTable("dim_branch");
-            _ = b.HasKey(static x => x.BranchId);
+            _ = b.HasKey(static x => new { x.TenantId, x.BranchId });
             _ = b.Property(static x => x.BranchName).HasMaxLength(160).IsRequired();
             _ = b.Property(static x => x.ShortCode).HasMaxLength(32);
         });
@@ -26,7 +26,7 @@ internal static class ReportingStarSchemaConfigurationRegistry
         _ = modelBuilder.Entity<DimMetric>(static b =>
         {
             _ = b.ToTable("dim_metric");
-            _ = b.HasKey(static x => x.MetricId);
+            _ = b.HasKey(static x => new { x.TenantId, x.MetricId });
             _ = b.Property(static x => x.MetricKey).HasMaxLength(120).IsRequired();
             _ = b.Property(static x => x.Title).HasMaxLength(180).IsRequired();
             _ = b.Property(static x => x.UnitLabel).HasMaxLength(40);
