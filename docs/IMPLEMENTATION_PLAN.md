@@ -12,7 +12,7 @@
 | **2** | **UI Paradigm** | **Option A — Hybrid App Shell + CMS Engine** | **Internal Staff Workspace:** Fast, idiomatic Fluent UI Blazor v5 routed pages (`/crm/people/{id}`, `/finance/batches`, `/groups/{id}`, `/admin/core/branches`) with optional customizable widget zones.<br>**External / Portals / Custom Pages:** Full database-driven `Site -> Layout -> Page -> Zone -> Block` engine rendered via Blazor `<DynamicComponent>` (`IRuthBlock`). |
 | **3** | **Blazor Render Modes & APIs** | **`InteractiveServer` (Staff) + `Static SSR` Islands (CMS) + Minimal APIs** | Staff components invoke Application-layer `ICommandHandler`/`IQueryHandler` in-process (zero redundant HTTP DTO client wrappers for internal views). Public CMS uses `Static SSR` + interactive islands. Check-in Kiosk uses a resilient low-latency interactive flow. External/mobile/webhook consumers use ASP.NET Core Minimal APIs + built-in OpenAPI (`AddOpenApi()`). |
 | **4** | **CQRS, Messaging & Jobs** | **Zero-Magic Explicit Abstractions** | Custom lightweight `ICommand<T>`, `ICommandHandler<TCommand, T>`, `IQuery<T>`, `IQueryHandler<TQuery, T>`, `IDomainEvent`, `IIntegrationEvent`, and `Result<T>` in `Ruth.SharedKernel` (zero commercial licensing risk from MediatR/MassTransit, zero reflection magic). Per-module EF Core **Transactional Outbox** + `BackgroundService` dispatcher + Postgres-backed `IScheduledJob` runner. |
-| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IWalletPassProvider`, `IVirtualRoomProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `IAiProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
+| **5** | **Extensibility Model** | **Modular Assemblies First** | Clean DI-registered strategy contracts (`IPaymentGateway`, `ICommunicationTransport`, `IStorageProvider`, `IWalletPassProvider`, `IVirtualRoomProvider`, `IFieldTypePlugin`, `IWorkflowAction`, `IBackgroundCheckProvider`, `ISearchDocumentProvider`) compiled as modular assemblies, preserving clean seams if dynamic runtime loading is ever desired later. |
 | **6** | **Templating & Rendering** | **Compiled Razor Components (`HtmlRenderer`) + Safe Merge Tokens** | Built-in layouts, transactional emails, annual tax receipts, invoices, and CMS blocks are strongly-typed `.razor` components rendered via Blazor's built-in `HtmlRenderer`. Database-stored, staff-editable content (bulk emails, SMS, waivers, merge fields) uses a safe declarative merge-token engine (`IMergeTemplateEngine` / `TemplateSnippet`) over read-only DTO contexts—eliminating arbitrary runtime scripting/RCE risk. |
 
 ---
@@ -50,8 +50,8 @@ src/
     Cms/                                   # Schema: cms       (Sites, Layouts, Pages, Zones, Dynamic Blocks, Content Channels, Shortlinks, Media, Interactions, Personalization, Mobile/TV)
     Reporting/                             # Schema: reporting (Query AST DataViews, Reports, MergeTemplates, Operational & Financial Metrics, Star-Schema Projections)
     Lms/                                   # Schema: lms       (Programs, Courses, Terms, Classes, Activities, Grading & Certifications)
-    Ai/                                    # Schema: ai        (Content Collections, pgvector Hybrid Search, AI Providers, Agents & Skills/Tools)
-  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Stripe, Checkr, AppleWallet, GoogleWallet, LiveKit, OpenAi, etc.)
+    Search/                                # Schema: search    (Content Collections, PostgreSQL tsvector + pg_trgm Full-Text Indexing & Spotlight Search)
+  Providers/                               # Modular provider assemblies (RustFsStorage, Smtp, SendGrid, Mailgun, Nmi, Stripe, Checkr, AppleWallet, GoogleWallet, LiveKit, etc.)
 tests/
   Ruth.ArchitectureTests/                  # Enforces module isolation, Domain purity, sealed handlers/DTOs
   Ruth.Modules.<Context>.Tests/            # Unit + Testcontainers (PostgreSQL 18 / Redis 8 / RustFS) slice tests
@@ -103,6 +103,18 @@ Every skill in `.agents/skills/` has a distinct role. Per `quality-ci`, **overla
 | **`eslint`** | [.agents/skills/eslint/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/eslint/SKILL.md) | Standby (`not_applicable` by default while `biome` owns JS/TS); activate **only** on bounded rich client packages (e.g., visual Form/Workflow canvas) if specialized ESLint plugins are required. |
 | **`sonarjs`** | [.agents/skills/sonarjs/SKILL.md](file:///Users/reginaldchapple/Developer/Ruth/.agents/skills/sonarjs/SKILL.md) | Cognitive-complexity extension (`eslint-plugin-sonarjs`) paired with `eslint` **only** if complex client-side TypeScript editors (ZPL label canvas / Workflow designer) are introduced. |
 
+### 3.4 Security Hardening & Supply-Chain Verification Skills
+
+Only security skills matching `Ruth`'s `.NET 10` / Blazor / PostgreSQL / Docker / GitHub Actions stack are retained in `.agents/skills/` (alongside the 25 core engineering/quality skills above).
+
+| Capability Area | Retained Skills (`.agents/skills/<skill>/SKILL.md`) | Primary Responsibility in `Ruth` |
+| :--- | :--- | :--- |
+| **Outbound SSRF & Webhooks** | `exploiting-server-side-request-forgery`, `performing-ssrf-vulnerability-exploitation` | Private/loopback/metadata IP deny-lists on `SocketsHttpHandler`, redirect blocking, and signed webhook replay protection. |
+| **Headers, CSRF/CORS & Rate Limiting** | `performing-security-headers-audit`, `testing-for-host-header-injection`, `implementing-api-rate-limiting-and-throttling`, `performing-clickjacking-attack-test`, `performing-csrf-attack-simulation`, `testing-cors-misconfiguration` | `CSP`, `Permissions-Policy`, `HSTS`, antiforgery/CORS boundaries, trusted proxy `ForwardedHeaders`, `AllowedHosts`, and tiered endpoint rate limits. |
+| **Auth, OIDC/JWT, API ACLs & Logic** | `testing-jwt-token-security`, `implementing-jwt-signing-and-verification`, `testing-oauth2-implementation-flaws`, `testing-for-open-redirect-vulnerabilities`, `implementing-api-key-security-controls`, `testing-api-security-with-owasp-top-10`, `testing-api-for-broken-object-level-authorization`, `testing-for-broken-access-control`, `testing-api-for-mass-assignment-vulnerability`, `testing-websocket-api-security`, `exploiting-race-condition-vulnerabilities`, `testing-for-business-logic-vulnerabilities` | Algorithm-pinned JWTs, refresh-token reuse revocation, PKCE/nonce OIDC, hashed `RestApiKey`s, SignalR/LiveKit auth, concurrency/seat-hold safety, and cross-module `ISecured` BOLA/IDOR verification. |
+| **Crypto, Storage, Injection & Comms** | `performing-cryptographic-audit-of-application`, `implementing-aes-encryption-for-data-at-rest`, `testing-for-sensitive-data-exposure`, `auditing-aws-s3-bucket-permissions`, `performing-directory-traversal-testing`, `testing-for-xss-vulnerabilities`, `testing-for-email-header-injection`, `exploiting-sql-injection-vulnerabilities`, `exploiting-insecure-deserialization`, `implementing-dmarc-dkim-spf-email-security` | Envelope encryption for DB-stored provider secrets, `RustFS` S3 upload MIME/SVG isolation, CMS/Search/SQL/deserialization guards, and Email XSS/CRLF + SPF/DKIM/DMARC guidance. |
+| **Containers, CI, Supply Chain & Trust** | `hardening-docker-containers-for-production`, `performing-container-image-hardening`, `securing-github-actions-workflows`, `implementing-secrets-scanning-in-ci-cd`, `scanning-containers-with-trivy-in-cicd`, `integrating-sast-into-github-actions-pipeline`, `generating-and-analyzing-sboms`, `implementing-immutable-backup-with-restic`, `implementing-pci-dss-compliance-controls`, `performing-soc2-type2-audit-preparation` | Non-root chiseled containers, loopback/internal Compose networking, SHA-pinned GitHub Actions, `gitleaks`, `Trivy`, CycloneDX SBOMs, backup runbooks, and PCI/SOC2 trust alignment. |
+
 ---
 
 ## 4. Standard Slice Execution Contract ("Clean-Room & Shippable")
@@ -141,10 +153,10 @@ flowchart TD
     W2 --> W3["Wave 3: Generalization, Check-In, Comms & Wallet Passes (9 Slices)"]
     W2 --> W4["Wave 4: Finance, Events & Commerce/Bookings (10 Slices)"]
     W2 --> W5["Wave 5: Engagement, Care, Workflow & LiveKit Rooms (7 Slices)"]
-    W3 --> W6["Wave 6: CMS, Reporting, LMS & AI (8 Slices)"]
+    W3 --> W6["Wave 6: CMS, Reporting, LMS & Search (8 Slices)"]
     W4 --> W6
     W5 --> W6
-    W6 --> W7["Wave 7 (Optional): Universal CSV/JSON Data Import Pipeline (1 Slice)"]
+    W6 --> W7["Wave 7: Security Hardening, Verification & Trust Posture (5 Slices)"]
 ```
 
 > [!TIP]
@@ -413,14 +425,14 @@ flowchart TD
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `stylelint`, `complexity`, `webhint`.
 
 #### `W5-S7` — Embedded `LiveKit` Virtual Rooms, Hybrid Sessions & Auto-Attendance ✅ *(Completed)*
-* **Scope:** `VirtualRooms` module (`virtual` schema) + Apache-2.0 `livekit/livekit-server` (+ Egress) in `docker-compose.yml` backed by `Redis 8` and `RustFS` S3: `IVirtualRoomProvider` (`LiveKitRoomProvider` + `InMemoryVirtualRoomProvider` for deterministic tests), `VirtualRoom` & `VirtualRoomSession` linked to `Group` meetings, `Commerce` 1-on-1 bookings/workshops (`ServiceBookingConfirmedIntegrationEvent`), `SupportRequest` tele-care consults, `Events` hybrid sessions, or `LMS` cohorts; short-lived HMAC-SHA256 room JWT minting mapped from `Ruth` ACL/moderator roles; `Biome`-linted LiveKit WebComponent Blazor island; and verified LiveKit webhook endpoints (`participant_joined`, `participant_left`, `egress_ended`) that auto-record `Attendance` after configurable dwell thresholds and archive `RustFS` recordings for `Wave 6` `pgvector` transcript search.
+* **Scope:** `VirtualRooms` module (`virtual` schema) + Apache-2.0 `livekit/livekit-server` (+ Egress) in `docker-compose.yml` backed by `Redis 8` and `RustFS` S3: `IVirtualRoomProvider` (`LiveKitRoomProvider` + `InMemoryVirtualRoomProvider` for deterministic tests), `VirtualRoom` & `VirtualRoomSession` linked to `Group` meetings, `Commerce` 1-on-1 bookings/workshops (`ServiceBookingConfirmedIntegrationEvent`), `SupportRequest` tele-care consults, `Events` hybrid sessions, or `LMS` cohorts; short-lived HMAC-SHA256 room JWT minting mapped from `Ruth` ACL/moderator roles; `Biome`-linted LiveKit WebComponent Blazor island; and verified LiveKit webhook endpoints (`participant_joined`, `participant_left`, `egress_ended`) that auto-record `Attendance` after configurable dwell thresholds and archive `RustFS` recordings for playback and audit retention.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `aspnet-core`, `dotnet-webapi`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `biome`, `stylelint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `biome`, `stylelint`, `complexity`, `crap-score`.
 
 ---
 
-### Wave 6 — CMS, Reporting, LMS, Channels & AI
-*Goal: Deliver external website/member-portal CMS, declarative DataViews/Reporting, Operational & Financial Analytics, LMS, Mobile/Display backends, and `pgvector` AI agents.*
+### Wave 6 — CMS, Reporting, LMS, Channels & Universal Search
+*Goal: Deliver external website/member-portal CMS, declarative DataViews/Reporting, Operational & Financial Analytics, LMS, Mobile/Display backends, and deterministic PostgreSQL full-text Spotlight Search. (AI features are intentionally deferred post-MVP so requirements can emerge naturally from real platform workflows.)*
 
 #### `W6-S1` — Dynamic CMS Engine (`Site -> Layout -> Page -> Zone -> Block`)
 * **Scope:** `Cms` module (`cms` schema): `Site`, `SiteDomain` multi-host routing, `Theme` (CSS custom-property bundles), `Layout`, `Page`, `PageRoute`, `PageContext`, `BlockType`, `Block`, `HtmlContent` (versioned + approval), `<CmsPageHost />` (`Static SSR` + interactive `<DynamicComponent>` islands implementing `IRuthBlock`), admin inline Zone/Block configurator, `PageShortLink` URL shortener + QR generator, and `RequestFilter`.
@@ -457,26 +469,51 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
 
-#### `W6-S8` — Universal Search, Content Collections & `pgvector` AI Agents
-* **Scope:** `Ai` module (`ai` schema): `ContentCollection` + `ContentCollectionSource` indexing pipeline combining PostgreSQL `tsvector` full-text search with **`pgvector` HNSW semantic embeddings** (respecting `ISecured` ACL filters at query time), global Spotlight Search modal in Staff Shell, modular `IAiProvider` (`OpenAiProvider`), `AIAgent`, `AISkill`, `AISkillTool` (typed read/write tools invoking Ruth Application Queries/Commands under the caller's ACL permissions), and `AIAgentSession` chat drawer.
+#### `W6-S8` — Universal Spotlight Search & Content Collections (PostgreSQL Full-Text)
+* **Scope:** `Search` module (`search` schema): `ContentCollection` + `ContentCollectionSource` + `SearchDocument` indexing pipeline powered purely by deterministic **PostgreSQL `tsvector` weighted full-text search (`A`/`B`/`C`/`D` weights, `websearch_to_tsquery`, `ts_rank_cd`, `ts_headline` snippets) + `pg_trgm` fuzzy trigram GIN indexes** (zero external LLM/AI dependencies); modular `ISearchDocumentProvider` & Outbox integration-event projection hooks across `Crm`, `Groups`, `Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, and `Lms`; query-time `ISecured` ACL & entity/module facet filtering; global keyboard-driven (`Cmd+K` / `Ctrl+K`) **Spotlight Search** modal in the Staff Shell; and reusable `<ContentSearchBlock />` (`IRuthBlock`) + Minimal API search endpoint for Public CMS / Member Portals. *(Note: `pgvector` semantic embeddings, `IAiProvider`, and AI agents are deferred post-MVP until natural workflow requirements are discovered.)*
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 ---
 
-### Wave 7 (Optional) — Universal Bulk Data Import & Onboarding Pipeline
-*Goal: Provide a high-throughput, repeatable bulk import engine so organizations migrating from spreadsheets, CRMs, association platforms, or legacy databases can onboard cleanly onto `Ruth`.*
+### Wave 7 — Security Hardening, Verification & Trust Posture
+*Goal: Execute a comprehensive, test-verified security hardening sweep across application code, cryptography, storage, containers, and CI/CD so `Ruth` ships with concrete, auditable security guarantees for member-driven, community, non-profit, and service organizations.*
 
-#### `W7-S1` — `Ruth.DataImport` Streaming CSV/JSON Bulk Import & Mapping Engine
-* **Scope:** Admin import wizard + CLI job ingesting CSV/JSON/ZIP packages via streaming parsers + PostgreSQL `COPY` binary bulk import: configurable column-to-field & `ExternalRecordGuid` mapping across Branches, Locations, People, Households, Groups, Memberships, Financial Accounts, Invoices, and Transactions, packing custom columns into validated `jsonb` attributes, converting WKT/lat-lng to PostGIS, and producing a post-import reconciliation checksum report.
-* **Authoring Skills:** `architecture`, `modern-csharp`, `blazing-fast-dotnet`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
-* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `roslynator`.
+#### `W7-S1` — Outbound SSRF Defense, Webhook Verification & Network Egress Guards
+* **Scope:** Shared SSRF-safe outbound HTTP infrastructure (`SafeOutboundHttpHandler` via `SocketsHttpHandler.ConnectCallback` DNS resolution + IP deny-lists blocking loopback, RFC1918 private subnets, link-local `169.254.169.254` cloud metadata, IPv6 unique-local/mapped ranges, internal Docker service hostnames, and cross-origin redirect hops) wired across `Workflow` (`WebhookPostWorkflowAction`), `Identity` (`HttpExternalOidcClient`), and `Cms` media sync; plus constant-time HMAC signature verification and replay-timestamp windows across all inbound provider webhooks (`PaymentGateways`, `Checkr`, `Communication`, `LiveKit`).
+* **Acceptance & Tests:** Unit and integration tests proving private/loopback/metadata IPs, redirect-based SSRF hops, and unsigned or replayed webhook payloads are deterministically rejected before payload transmission or state mutation.
+* **Authoring Skills:** `architecture`, `aspnet-core`, `modern-csharp`, `exploiting-server-side-request-forgery`, `performing-ssrf-vulnerability-exploitation`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
+
+#### `W7-S2` — HTTP Security Headers, CSP, Proxy Trust & Tiered Abuse Rate Limiting
+* **Scope:** Harden `Ruth.Host` pipeline with strict `Content-Security-Policy` (scoped for Blazor `InteractiveServer`, Static SSR CMS, and `LiveKit` WebRTC), `Permissions-Policy` (camera/microphone restricted to scanner & virtual-room routes), `Cross-Origin-Opener-Policy`, explicit `ForwardedHeaders` trusted-proxy CIDR boundaries, canonical `AllowedHosts` / public-origin enforcement on password-reset, RSVP, and Wallet Pass links, production lock-down on `/openapi`, and tiered ASP.NET Core rate-limiting policies (dedicated sliding/token buckets on `/api/auth/*`, `/onboarding`, Kiosk lookup, public forms, and webhooks).
+* **Acceptance & Tests:** `WebApplicationFactory` integration tests asserting security headers on HTML and API responses, rejecting spoofed `X-Forwarded-For` / `Host` headers from untrusted peers, and enforcing `429 Too Many Requests` (`ProblemDetails`) on auth and Kiosk brute-force bursts.
+* **Authoring Skills:** `aspnet-core`, `dotnet-webapi`, `performing-security-headers-audit`, `testing-for-host-header-injection`, `implementing-api-rate-limiting-and-throttling`, `performing-clickjacking-attack-test`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `webhint`, `complexity`, `crap-score`.
+
+#### `W7-S3` — Auth, JWT/OIDC, WebSocket & Cross-Module BOLA/IDOR Authorization Audit
+* **Scope:** End-to-end authentication and authorization verification across every module: strict JWT algorithm pinning (`alg: none` and key-confusion rejection), refresh-token rotation with reuse-detection family revocation, OIDC `state`/`nonce`/PKCE and exact redirect-URI enforcement, `RestApiKey` high-entropy prefix + salted hash storage and least-privilege scopes, SignalR/WebSocket handshake and hub-method authorization (`Events`), LiveKit room-token ACL scoping (`VirtualRooms`), and a full `Ruth.ArchitectureTests` + endpoint integration sweep verifying zero unauthenticated shadow endpoints, zero mass-assignment DTO over-posting, and mandatory object-level `ISecured` ACL enforcement across all `Map*ModuleEndpoints()` and Blazor handlers.
+* **Acceptance & Tests:** Negative security test suite covering tampered/`alg: none` JWTs, replayed refresh tokens, open-redirect payloads, cross-constituent/cross-branch BOLA/IDOR requests (`403 Forbidden`), and architecture-test assertions that every endpoint explicitly declares an authorization or intentional public policy.
+* **Authoring Skills:** `architecture`, `aspnet-core`, `dotnet-webapi`, `testing-jwt-token-security`, `implementing-jwt-signing-and-verification`, `testing-oauth2-implementation-flaws`, `testing-for-open-redirect-vulnerabilities`, `implementing-api-key-security-controls`, `testing-api-security-with-owasp-top-10`, `testing-api-for-broken-object-level-authorization`, `testing-for-broken-access-control`, `testing-api-for-mass-assignment-vulnerability`, `testing-websocket-api-security`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
+
+#### `W7-S4` — Cryptography at Rest, Storage Isolation & Content/XSS Sanitization
+* **Scope:** Envelope encryption at rest (`IDataProtectionProvider` / AES-256-GCM key ring) for all database-stored third-party credentials (`FinancialGateway` keys, `ExternalAuthProviderConfig` client secrets, communication transport credentials, Wallet pass signing material); `RustFS` S3 storage hardening (private-by-default buckets, short-lived presigned URLs, magic-byte MIME validation, SVG/HTML active-content blocking with `Content-Disposition: attachment`, and path-traversal guards on `BinaryFile` and `FinancialTransactionImage`); plus strict allowlist HTML/XSS, merge-token, and email-header CRLF sanitization across `Communication`, `Cms` (`HtmlContent`), and `Search` (`ts_headline` snippets).
+* **Acceptance & Tests:** Round-trip encryption and key-rotation tests proving secrets never persist in plaintext database columns, upload tests rejecting polyglot/SVG/path-traversal payloads, and OWASP XSS/CRLF payload corpus tests across CMS blocks, search highlights, and outbound emails.
+* **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `performing-cryptographic-audit-of-application`, `implementing-aes-encryption-for-data-at-rest`, `testing-for-sensitive-data-exposure`, `auditing-aws-s3-bucket-permissions`, `performing-directory-traversal-testing`, `testing-for-xss-vulnerabilities`, `testing-for-email-header-injection`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `htmlhint`, `complexity`, `crap-score`.
+
+#### `W7-S5` — Hardened Containers, CI Supply-Chain Gates, SBOM & Verifiable Security Posture
+* **Scope:** Harden [Dockerfile](file:///Users/reginaldchapple/Developer/Ruth/deploy/docker/dotnet/Dockerfile) (non-root `$APP_UID` / chiseled runtime image, dropped Linux capabilities, read-only rootfs compatibility) and `docker-compose.yml` (`127.0.0.1` local port bindings, internal backing networks, authenticated `Redis 8`, version/digest-pinned `RustFS` & `LiveKit` images, isolated `livekit-egress`); harden `.github/workflows/ci.yml` with `permissions: contents: read`, commit-SHA-pinned actions, `gitleaks` secret scanning, `dotnet list package --vulnerable` + `npm audit`, `Trivy` container/IaC scanning, and CycloneDX SBOM generation; and publish `docs/SECURITY.md` (**Security Architecture & Verifiable Controls Matrix** + backup/recovery runbook) mapping every customer-facing security promise directly to automated tests and CI gates.
+* **Acceptance & Tests:** Automated CI and container verification assertions confirming non-root UID execution, zero leaked secrets (`gitleaks`), zero unpinned GitHub Action tags, clean `Trivy` high/critical vulnerability gate, and reproducible CycloneDX SBOM artifact generation.
+* **Authoring Skills:** `quality-ci`, `hardening-docker-containers-for-production`, `performing-container-image-hardening`, `securing-github-actions-workflows`, `implementing-secrets-scanning-in-ci-cd`, `scanning-containers-with-trivy-in-cicd`, `integrating-sast-into-github-actions-pipeline`, `generating-and-analyzing-sboms`, `implementing-immutable-backup-with-restic`.
+* **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`, `roslynator`.
 
 ---
 
 ## 7. End-of-Wave Consolidation Checklist
 
-At the completion of each Wave (`Wave 0` .. `Wave 6`) before advancing:
+At the completion of each Wave (`Wave 0` .. `Wave 7`) before advancing:
 1. Run `roslynator` unused-symbol / dead-code sweep across newly added modules (`roslynator`).
 2. Run `Ruth.ArchitectureTests` verifying zero cross-module `Domain` or `Infrastructure` leaks (`architecture`).
 3. Run full Cobertura test suite + `crap-score` audit on every domain service/aggregate with cyclomatic complexity >= 8 (`complexity`, `crap-score`).
