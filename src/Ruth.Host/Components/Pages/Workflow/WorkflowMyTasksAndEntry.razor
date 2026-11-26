@@ -1,0 +1,93 @@
+@page "/workflow/tasks"
+@rendermode InteractiveServer
+
+<PageTitle>My Tasks &amp; Workflow Entry — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>My Tasks Inbox &amp; Interactive Workflow Entry</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadTasksAsync">
+        Refresh Inbox
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <h2>1. Open Interactive Tasks (@_tasks.Count)</h2>
+            @if (_tasks.Count == 0)
+            {
+                <p>No waiting workflow form tasks are currently open.</p>
+            }
+            @foreach (var item in _tasks)
+            {
+                <div class="ruth-kiosk-member-row" @key="item.ActionId">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@item.WorkflowNumber — @item.ActivityName</strong>
+                        <span class="ruth-room-status-pill">@item.WorkflowTypeName (@item.StateLabel)</span>
+                        <FluentButton Size="ButtonSize.Small"
+                                      Appearance="ButtonAppearance.Primary"
+                                      OnClick="@(() => OpenEntryFormAsync(item.WorkflowId, item.ActivityId))">
+                            Open Form
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_activeForm is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                <h2>2. @(_activeForm.WorkflowNumber) — @(_activeForm.ActivityName)</h2>
+                @if (!string.IsNullOrWhiteSpace(_activeForm.RenderedHeaderHtml))
+                {
+                    <p>@_activeForm.RenderedHeaderHtml</p>
+                }
+
+                @foreach (var sec in _activeForm.Sections.Where(static s => s.IsCurrentlyVisible))
+                {
+                    <div class="ruth-form-section-card" @key="sec.SectionKey">
+                        <h3>@sec.Title</h3>
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                            @foreach (var field in sec.Fields.Where(static f => f.IsCurrentlyVisible))
+                            {
+                                <FluentTextInput Label="@field.Label"
+                                                 Value="@GetDraftValue(field.AttributeKey, field.CurrentValue)"
+                                                 ValueChanged="@(val => OnFieldEditedAsync(field.AttributeKey, val))"
+                                                 @key="field.FieldId" />
+                            }
+                        </FluentStack>
+                    </div>
+                }
+
+                @foreach (var field in _activeForm.UngroupedFields.Where(static f => f.IsCurrentlyVisible))
+                {
+                    <FluentTextInput Label="@field.Label"
+                                     Value="@GetDraftValue(field.AttributeKey, field.CurrentValue)"
+                                     ValueChanged="@(val => OnFieldEditedAsync(field.AttributeKey, val))"
+                                     @key="field.FieldId" />
+                }
+
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    @foreach (var btn in _activeForm.Buttons)
+                    {
+                        <FluentButton Appearance="@(btn.CancelWorkflow ? ButtonAppearance.Outline : ButtonAppearance.Primary)"
+                                      OnClick="@(() => SubmitFormAsync(btn.ButtonKey))"
+                                      @key="btn.ButtonKey">
+                            @btn.Label
+                        </FluentButton>
+                    }
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

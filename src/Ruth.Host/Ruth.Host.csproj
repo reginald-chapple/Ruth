@@ -30,8 +30,13 @@
     <ProjectReference Include="..\Modules\Groups\Ruth.Modules.Groups\Ruth.Modules.Groups.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\VirtualRooms\Ruth.Modules.VirtualRooms\Ruth.Modules.VirtualRooms.csproj" />
+    <ProjectReference Include="..\Modules\Workflow\Ruth.Modules.Workflow.Contracts\Ruth.Modules.Workflow.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Workflow\Ruth.Modules.Workflow\Ruth.Modules.Workflow.csproj" />
     <ProjectReference Include="..\Providers\Ruth.Providers.Checkr\Ruth.Providers.Checkr.csproj" />
     <ProjectReference Include="..\Providers\Ruth.Providers.CommunicationTransports\Ruth.Providers.CommunicationTransports.csproj" />
+    <ProjectReference Include="..\Providers\Ruth.Providers.LiveKit\Ruth.Providers.LiveKit.csproj" />
     <ProjectReference Include="..\Providers\Ruth.Providers.PaymentGateways\Ruth.Providers.PaymentGateways.csproj" />
     <ProjectReference Include="..\Providers\Ruth.Providers.RustFsStorage\Ruth.Providers.RustFsStorage.csproj" />
     <ProjectReference Include="..\Providers\Ruth.Providers.WalletPasses\Ruth.Providers.WalletPasses.csproj" />

@@ -1,0 +1,94 @@
+@page "/workflow/definitions"
+@rendermode InteractiveServer
+
+<PageTitle>Workflow Designer &amp; Automation Triggers — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Workflow State/Action Engine &amp; Automation Triggers</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ProcessPendingNowAsync">
+        Run Background Queue Pass
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Create WorkflowType State Machine</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_typeName" Label="Workflow Name" />
+                <FluentTextInput @bind-Value="_typeSlug" Label="Workflow Slug" />
+                <FluentTextInput @bind-Value="_prefix" Label="Number Prefix" />
+                <FluentTextInput @bind-Value="_workTerm" Label="Work Term" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateWorkflowTypeAsync">
+                    Create WorkflowType
+                </FluentButton>
+            </FluentStack>
+            <small>Registered modular IWorkflowAction plugins: @_catalog.Count (@string.Join(", ", _catalog.Select(static c => c.Category).Distinct()))</small>
+        </FluentStack>
+    </FluentCard>
+
+    @if (_workflowTypes.Count > 0)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                <h2>2. Configure Integration Event Automation Trigger &amp; Launch</h2>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <FluentSelect TOption="WorkflowTypeResponse"
+                                  TValue="Guid"
+                                  Label="Target WorkflowType"
+                                  Items="@_workflowTypes"
+                                  OptionText="@(static t => t.Name)"
+                                  OptionValue="@(static t => t.Id)"
+                                  Value="@_selectedTypeId"
+                                  ValueChanged="@OnTypeChangedAsync" />
+                    <FluentTextInput @bind-Value="_triggerName" Label="Trigger Name" />
+                    <FluentTextInput @bind-Value="_eventTypeKey" Label="Integration Event Key" />
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@CreateTriggerAsync">
+                        Add Trigger
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@LaunchSelectedAsync">
+                        Launch Instance Now
+                    </FluentButton>
+                </FluentStack>
+
+                @foreach (var trig in _triggers)
+                {
+                    <div class="ruth-kiosk-member-row" @key="trig.Id">
+                        <strong>@trig.Name → @trig.WorkflowTypeName</strong>
+                        <small>@trig.TriggerKind · @trig.EventTypeKey (@trig.FilterOperator)</small>
+                    </div>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>3. Recent Workflow Instances &amp; Audit Logs</h2>
+            @foreach (var inst in _instances)
+            {
+                <FluentCard Padding="@Padding.All3" @key="inst.Id">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <strong>@inst.WorkflowNumber — @inst.Name</strong>
+                            <span class="ruth-room-status-pill">@inst.Status (@inst.StateLabel)</span>
+                            <small>Activities: @inst.Activities.Count · Logs: @inst.Logs.Count</small>
+                        </FluentStack>
+                        @foreach (var log in inst.Logs.TakeLast(3))
+                        {
+                            <small @key="log.Id">[@log.EntryKind] @log.Summary</small>
+                        }
+                    </FluentStack>
+                </FluentCard>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

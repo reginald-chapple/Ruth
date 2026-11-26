@@ -44,6 +44,10 @@
     <ProjectReference Include="..\..\src\Modules\Groups\Ruth.Modules.Groups\Ruth.Modules.Groups.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\VirtualRooms\Ruth.Modules.VirtualRooms\Ruth.Modules.VirtualRooms.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Ruth.Modules.Workflow.Contracts\Ruth.Modules.Workflow.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Ruth.Modules.Workflow\Ruth.Modules.Workflow.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Host\Ruth.Host.csproj" />
     <ProjectReference Include="..\..\src\Ruth.Persistence\Ruth.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />

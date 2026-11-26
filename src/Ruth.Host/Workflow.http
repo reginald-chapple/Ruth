@@ -1,0 +1,279 @@
+@baseUrl = http://localhost:5098
+@accessToken = replace-with-jwt
+
+### 1. Get modular IWorkflowAction plugin catalog
+GET {{baseUrl}}/api/workflows/actions/catalog
+Authorization: Bearer {{accessToken}}
+
+### 2. List WorkflowType definitions
+GET {{baseUrl}}/api/workflows/types?includeInactive=true
+Authorization: Bearer {{accessToken}}
+
+### 3. Create a WorkflowType state-machine definition
+POST {{baseUrl}}/api/workflows/types
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Grant & Assistance Triage",
+  "slug": "grant-assistance-triage",
+  "workTerm": "Case",
+  "workflowIdPrefix": "CASE-",
+  "attributes": [
+    { "key": "RequestKind", "name": "Request Kind", "fieldTypeKey": "select", "defaultValue": "Grant", "order": 0 }
+  ],
+  "activities": [
+    {
+      "key": "intake",
+      "name": "Intake Form",
+      "order": 0,
+      "isActivatedWithWorkflow": true,
+      "isActive": true,
+      "actions": [
+        { "key": "review-form", "name": "Coordinator Entry Form", "actionPluginKey": "workflow.forms.user-entry", "order": 0 }
+      ]
+    },
+    {
+      "key": "approved",
+      "name": "Approved Resolution",
+      "order": 1,
+      "isActive": true,
+      "actions": [
+        {
+          "key": "complete",
+          "name": "Mark Completed",
+          "actionPluginKey": "workflow.control.set-status",
+          "order": 0,
+          "configuration": { "StateLabel": "Approved", "CompleteWorkflow": "true" }
+        }
+      ]
+    }
+  ]
+}
+
+### 4. Get WorkflowType by slug
+GET {{baseUrl}}/api/workflows/types/grant-assistance-triage
+Authorization: Bearer {{accessToken}}
+
+### 5. Update WorkflowType
+PUT {{baseUrl}}/api/workflows/types/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Grant & Assistance Triage Updated",
+  "slug": "grant-assistance-triage",
+  "workTerm": "Case",
+  "workflowIdPrefix": "CASE-",
+  "activities": [
+    { "key": "intake", "name": "Intake", "order": 0, "isActivatedWithWorkflow": true, "isActive": true }
+  ]
+}
+
+### 6. Create an automated WorkflowTrigger
+POST {{baseUrl}}/api/workflows/triggers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Launch on Support Request",
+  "triggerKind": "IntegrationEvent",
+  "eventTypeKey": "engagement.support.submitted",
+  "workflowTypeId": "00000000-0000-0000-0000-000000000001",
+  "filterAttributeKey": "IsUrgent",
+  "filterOperator": "Equals",
+  "filterExpectedValue": "true"
+}
+
+### 7. List WorkflowTriggers
+GET {{baseUrl}}/api/workflows/triggers
+Authorization: Bearer {{accessToken}}
+
+### 8. Update WorkflowTrigger
+PUT {{baseUrl}}/api/workflows/triggers/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Launch on Any Support Request",
+  "triggerKind": "IntegrationEvent",
+  "eventTypeKey": "engagement.support.submitted",
+  "workflowTypeId": "00000000-0000-0000-0000-000000000001",
+  "filterOperator": "Always"
+}
+
+### 9. Dispatch automation stimulus manually
+POST {{baseUrl}}/api/workflows/triggers/dispatch
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "triggerKind": "IntegrationEvent",
+  "eventTypeKey": "engagement.support.submitted",
+  "payloadAttributes": { "IsUrgent": "true" }
+}
+
+### 10. Launch Workflow instance
+POST {{baseUrl}}/api/workflows/instances/launch
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "workflowTypeIdOrSlug": "grant-assistance-triage",
+  "initialAttributes": { "RequestKind": "Grant" },
+  "processImmediately": true
+}
+
+### 11. List Workflow instances
+GET {{baseUrl}}/api/workflows/instances
+Authorization: Bearer {{accessToken}}
+
+### 12. Get Workflow instance by ID
+GET {{baseUrl}}/api/workflows/instances/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+
+### 13. Process single Workflow instance
+POST {{baseUrl}}/api/workflows/instances/00000000-0000-0000-0000-000000000001/process
+Authorization: Bearer {{accessToken}}
+
+### 14. Process pending Workflow queue
+POST {{baseUrl}}/api/workflows/instances/process-pending
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "maxBatchSize": 25 }
+
+### 15. Assign Workflow activity
+POST {{baseUrl}}/api/workflows/instances/00000000-0000-0000-0000-000000000001/assign
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "workflowId": "00000000-0000-0000-0000-000000000001",
+  "activityId": "00000000-0000-0000-0000-000000000002",
+  "assignedPersonId": "00000000-0000-0000-0000-000000000003"
+}
+
+### 16. Cancel Workflow instance
+POST {{baseUrl}}/api/workflows/instances/00000000-0000-0000-0000-000000000001/cancel
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "workflowId": "00000000-0000-0000-0000-000000000001",
+  "reason": "Withdrawn by requester"
+}
+
+### 17. Create FormBuilderTemplate (W5-S6)
+POST {{baseUrl}}/api/workflows/forms/templates
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Community Grant Application",
+  "slug": "community-grant-application",
+  "confirmationTitle": "Grant Application Submitted",
+  "confirmationMessageTemplate": "Case {{ WorkflowNumber }} is in review."
+}
+
+### 18. List FormBuilderTemplates
+GET {{baseUrl}}/api/workflows/forms/templates
+Authorization: Bearer {{accessToken}}
+
+### 19. Update FormBuilderTemplate
+PUT {{baseUrl}}/api/workflows/forms/templates/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Community Grant Application Updated",
+  "slug": "community-grant-application",
+  "confirmationTitle": "Submitted"
+}
+
+### 20. Upsert WorkflowActionForm with conditional visibility
+PUT {{baseUrl}}/api/workflows/forms/actions/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "sections": [{ "sectionKey": "main", "title": "Main Details", "order": 0 }],
+  "fields": [
+    { "attributeKey": "RequestKind", "label": "Request Kind", "fieldTypeKey": "select", "sectionKey": "main", "isRequired": true, "selectOptions": ["General", "Grant"], "order": 0 },
+    {
+      "attributeKey": "GrantAmount",
+      "label": "Requested Grant Amount",
+      "fieldTypeKey": "currency",
+      "sectionKey": "main",
+      "isRequired": true,
+      "order": 1,
+      "visibilityRule": {
+        "matchMode": "All",
+        "conditions": [{ "sourceAttributeKey": "RequestKind", "operator": "Equals", "comparisonValue": "Grant" }]
+      }
+    }
+  ],
+  "buttons": [
+    { "buttonKey": "approve", "label": "Approve", "targetActivityKey": "approved", "setStateLabel": "Approved", "order": 0 }
+  ]
+}
+
+### 21. Get WorkflowActionForm
+GET {{baseUrl}}/api/workflows/forms/actions/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+
+### 22. Preview conditional visibility rules
+POST {{baseUrl}}/api/workflows/forms/preview-visibility
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "formSpec": {
+    "fields": [
+      {
+        "attributeKey": "GrantAmount",
+        "label": "Amount",
+        "isRequired": true,
+        "visibilityRule": {
+          "matchMode": "All",
+          "conditions": [{ "sourceAttributeKey": "RequestKind", "operator": "Equals", "comparisonValue": "Grant" }]
+        }
+      }
+    ],
+    "buttons": [{ "buttonKey": "submit", "label": "Submit" }]
+  },
+  "sampleValues": { "RequestKind": "Grant" }
+}
+
+### 23. Get MyTasks inbox
+GET {{baseUrl}}/api/workflows/forms/tasks
+Authorization: Bearer {{accessToken}}
+
+### 24. Get active WorkflowEntry form
+GET {{baseUrl}}/api/workflows/forms/entry/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{accessToken}}
+
+### 25. Submit interactive WorkflowEntry form
+POST {{baseUrl}}/api/workflows/forms/entry/00000000-0000-0000-0000-000000000001/submit
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "workflowId": "00000000-0000-0000-0000-000000000001",
+  "actionId": "00000000-0000-0000-0000-000000000002",
+  "selectedButtonKey": "approve",
+  "fieldValues": { "RequestKind": "Grant", "GrantAmount": "500.00" }
+}
+
+### 26. Public FormBuilder submission
+POST {{baseUrl}}/api/workflows/public/forms/submit
+Content-Type: application/json
+
+{
+  "templateIdOrSlug": "community-grant-application",
+  "selectedButtonKey": "approve",
+  "fieldValues": { "RequestKind": "Grant", "GrantAmount": "250.00" },
+  "submitterFirstName": "Maya",
+  "submitterLastName": "Lin",
+  "submitterEmail": "maya.lin@example.org"
+}

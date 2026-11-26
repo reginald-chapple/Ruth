@@ -21,6 +21,10 @@ using Ruth.Modules.Groups;
 using Ruth.Modules.Groups.Contracts;
 using Ruth.Modules.Identity;
 using Ruth.Modules.Identity.Contracts;
+using Ruth.Modules.VirtualRooms;
+using Ruth.Modules.VirtualRooms.Contracts;
+using Ruth.Modules.Workflow;
+using Ruth.Modules.Workflow.Contracts;
 using Ruth.Persistence;
 using Ruth.SharedKernel;
 using Xunit;
@@ -61,6 +65,12 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.Engagement.Domain",
         "Ruth.Modules.Engagement.Infrastructure",
         "Ruth.Modules.Engagement.Slices",
+        "Ruth.Modules.Workflow.Domain",
+        "Ruth.Modules.Workflow.Infrastructure",
+        "Ruth.Modules.Workflow.Slices",
+        "Ruth.Modules.VirtualRooms.Domain",
+        "Ruth.Modules.VirtualRooms.Infrastructure",
+        "Ruth.Modules.VirtualRooms.Slices",
     ];
 
     private static Assembly[] GetModuleAssemblies()
@@ -77,6 +87,8 @@ public sealed class ModularMonolithArchitectureTests
             EventsModuleAssembly.Instance,
             CommerceModuleAssembly.Instance,
             EngagementModuleAssembly.Instance,
+            WorkflowModuleAssembly.Instance,
+            VirtualRoomsModuleAssembly.Instance,
         ];
 
         return
@@ -107,6 +119,8 @@ public sealed class ModularMonolithArchitectureTests
             EventsContractsAssembly.Instance,
             CommerceContractsAssembly.Instance,
             EngagementContractsAssembly.Instance,
+            WorkflowContractsAssembly.Instance,
+            VirtualRoomsContractsAssembly.Instance,
         ];
 
         return

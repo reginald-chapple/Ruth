@@ -44,9 +44,18 @@
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity.Contracts/Ruth.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity/Ruth.Modules.Identity.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/VirtualRooms/">
+    <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms.Contracts/Ruth.Modules.VirtualRooms.Contracts.csproj" />
+    <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms/Ruth.Modules.VirtualRooms.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Workflow/">
+    <Project Path="src/Modules/Workflow/Ruth.Modules.Workflow.Contracts/Ruth.Modules.Workflow.Contracts.csproj" />
+    <Project Path="src/Modules/Workflow/Ruth.Modules.Workflow/Ruth.Modules.Workflow.csproj" />
+  </Folder>
   <Folder Name="/src/Providers/">
     <Project Path="src/Providers/Ruth.Providers.Checkr/Ruth.Providers.Checkr.csproj" />
     <Project Path="src/Providers/Ruth.Providers.CommunicationTransports/Ruth.Providers.CommunicationTransports.csproj" />
+    <Project Path="src/Providers/Ruth.Providers.LiveKit/Ruth.Providers.LiveKit.csproj" />
     <Project Path="src/Providers/Ruth.Providers.PaymentGateways/Ruth.Providers.PaymentGateways.csproj" />
     <Project Path="src/Providers/Ruth.Providers.RustFsStorage/Ruth.Providers.RustFsStorage.csproj" />
     <Project Path="src/Providers/Ruth.Providers.WalletPasses/Ruth.Providers.WalletPasses.csproj" />
@@ -65,6 +74,8 @@
     <Project Path="tests/Ruth.Modules.Finance.Tests/Ruth.Modules.Finance.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Groups.Tests/Ruth.Modules.Groups.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Identity.Tests/Ruth.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.VirtualRooms.Tests/Ruth.Modules.VirtualRooms.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Workflow.Tests/Ruth.Modules.Workflow.Tests.csproj" />
     <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />
     <Project Path="tests/Ruth.SharedKernel.Tests/Ruth.SharedKernel.Tests.csproj" />
   </Folder>

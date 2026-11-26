@@ -1,0 +1,12 @@
+log_level: info
+api_key: devkey
+api_secret: replace-with-a-unique-random-32-plus-character-livekit-secret
+ws_url: ws://livekit:7880
+redis:
+  address: redis:6379
+s3:
+  access_key: rustfsadmin
+  secret: rustfsadmin
+  bucket: ruth
+  endpoint: http://rustfs:9000
+  force_path_style: true

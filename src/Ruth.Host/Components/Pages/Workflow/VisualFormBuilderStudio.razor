@@ -1,0 +1,96 @@
+@page "/workflow/form-builder"
+@rendermode InteractiveServer
+
+<PageTitle>Visual Form Builder Studio — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Visual Form Builder &amp; Conditional Visibility Studio</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@PreviewVisibilityAsync">
+        Test Conditional Visibility
+    </FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Reusable FormBuilderTemplate</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_templateName" Label="Template Name" />
+                <FluentTextInput @bind-Value="_templateSlug" Label="Template Slug" />
+                <FluentTextInput @bind-Value="_confirmTitle" Label="Confirmation Title" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveTemplateAsync">
+                    Create Template
+                </FluentButton>
+            </FluentStack>
+            @foreach (var tmpl in _templates)
+            {
+                <small @key="tmpl.Id">Template: @tmpl.Name (@tmpl.Slug) — @tmpl.ConfirmationTitle</small>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Bind Interactive Form &amp; Conditional Field Rules to Action</h2>
+            @if (_formCapableActions.Count > 0)
+            {
+                <FluentSelect TOption="ActionSelectionOption"
+                              TValue="Guid"
+                              Label="Target User-Entry Action"
+                              Items="@_formCapableActions"
+                              OptionText="@(static a => a.DisplayLabel)"
+                              OptionValue="@(static a => a.ActionTypeId)"
+                              @bind-Value="_selectedActionTypeId" />
+            }
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_newFieldKey" Label="Field Attribute Key" />
+                <FluentTextInput @bind-Value="_newFieldLabel" Label="Field Label" />
+                <FluentTextInput @bind-Value="_conditionSourceKey" Label="Show When Attribute" />
+                <FluentTextInput @bind-Value="_conditionExpectedValue" Label="Equals Value" />
+                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@AddDraftField">
+                    Add Field to Canvas
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@SaveActionFormAsync">
+                    Save Form to Action
+                </FluentButton>
+            </FluentStack>
+
+            <div class="ruth-form-builder-grid">
+                @foreach (var f in _draftFields)
+                {
+                    <div class="@(f.ColumnSpan <= 6 ? "ruth-form-col-6" : "ruth-form-col-12") ruth-form-section-card"
+                         @key="f.AttributeKey">
+                        <strong>@f.Label (@f.AttributeKey)</strong>
+                        <div>
+                            <small>
+                                Type: @f.FieldTypeKey · Required: @f.IsRequired
+                                @if (f.VisibilityRule is not null)
+                                {
+                                    <span> · Conditional (@f.VisibilityRule.MatchMode)</span>
+                                }
+                            </small>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_sampleKindValue" Label="Sample RequestKind Value" />
+                @if (_previewResult is not null)
+                {
+                    <span class="ruth-room-status-pill">
+                        Visible Fields: @string.Join(", ", _previewResult.VisibleAttributeKeys)
+                    </span>
+                }
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

@@ -1,0 +1,69 @@
+@page "/virtual-rooms/stage"
+@page "/virtual-rooms/stage/{RoomSlug}"
+@rendermode InteractiveServer
+
+<PageTitle>LiveKit Virtual Room Stage — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Embedded LiveKit Virtual Room Stage</h1>
+    <a href="/virtual-rooms" class="ruth-header-link">Back to Virtual Rooms</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Join Room with Short-Lived ACL JWT</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_targetRoomSlug" Label="Room Slug or UUID" />
+                <FluentTextInput @bind-Value="_displayName" Label="Your Display Name" />
+                @if (_joinSession is null)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ConnectStageAsync">
+                        Mint JWT &amp; Join Stage
+                    </FluentButton>
+                }
+                else
+                {
+                    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@DisconnectStageAsync">
+                        Leave Room
+                    </FluentButton>
+                }
+            </FluentStack>
+
+            @if (_joinSession is not null)
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                    <span class="ruth-room-status-pill">Role: @_joinSession.GrantedRole</span>
+                    <span class="ruth-room-status-pill">LiveKit Room: @_joinSession.LiveKitRoomName</span>
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => ToggleTrackAsync("microphone"))">
+                        Toggle Mic
+                    </FluentButton>
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => ToggleTrackAsync("camera"))">
+                        Toggle Camera
+                    </FluentButton>
+                    <FluentButton Size="ButtonSize.Small" OnClick="@(() => ToggleTrackAsync("screenshare"))">
+                        Share Screen
+                    </FluentButton>
+                    @if (_joinSession.GrantedRole == VirtualParticipantRole.HostModerator)
+                    {
+                        <FluentButton Size="ButtonSize.Small"
+                                      Appearance="ButtonAppearance.Primary"
+                                      OnClick="@StartRecordingAsync">
+                            Record to RustFS
+                        </FluentButton>
+                    }
+                </FluentStack>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <ruth-livekit-stage stage-id="@_stageElementId" class="ruth-livekit-stage-shell"></ruth-livekit-stage>
+</FluentStack>

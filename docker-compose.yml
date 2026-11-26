@@ -46,6 +46,38 @@ services:
     volumes:
       - rustfs_data:/data
 
+  livekit:
+    image: livekit/livekit-server:v1.8
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-replace-with-a-unique-random-32-plus-character-livekit-secret}"
+    ports:
+      - "${LIVEKIT_PORT:-7880}:7880"
+      - "${LIVEKIT_TCP_PORT:-7881}:7881"
+    volumes:
+      - ./deploy/docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
+
+  livekit-egress:
+    image: livekit/egress:v1.8
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    depends_on:
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+      livekit:
+        condition: service_started
+    environment:
+      EGRESS_CONFIG_FILE: /etc/egress.yaml
+    volumes:
+      - ./deploy/docker/livekit/egress.yaml:/etc/egress.yaml:ro
+
   ruth-host:
     profiles: ["app"]
     build:
@@ -59,6 +91,8 @@ services:
         condition: service_healthy
       rustfs:
         condition: service_started
+      livekit:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__RuthDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ruth};Username=${POSTGRES_USER:-ruth};Password=${POSTGRES_PASSWORD:-ruth_secret}
@@ -67,6 +101,15 @@ services:
       Storage__RustFs__BucketName: ${RUSTFS_BUCKET:-ruth}
       Storage__RustFs__AccessKey: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
       Storage__RustFs__SecretKey: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      VirtualRooms__LiveKit__Enabled: ${LIVEKIT_ENABLED:-true}
+      VirtualRooms__LiveKit__ServerUrl: http://livekit:7880
+      VirtualRooms__LiveKit__PublicWebSocketUrl: ${LIVEKIT_PUBLIC_WS_URL:-ws://localhost:7880}
+      VirtualRooms__LiveKit__ApiKey: ${LIVEKIT_API_KEY:-devkey}
+      VirtualRooms__LiveKit__ApiSecret: ${LIVEKIT_API_SECRET:-replace-with-a-unique-random-32-plus-character-livekit-secret}
+      VirtualRooms__LiveKit__S3Endpoint: http://rustfs:9000
+      VirtualRooms__LiveKit__S3Bucket: ${RUSTFS_BUCKET:-ruth}
+      VirtualRooms__LiveKit__S3AccessKey: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      VirtualRooms__LiveKit__S3SecretKey: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:-replace-with-a-unique-random-32-plus-character-secret-in-production}
       Bootstrap__AutoMigrateAndSeed: ${Bootstrap__AutoMigrateAndSeed:-true}
     ports:

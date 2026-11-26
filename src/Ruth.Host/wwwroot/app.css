@@ -292,3 +292,58 @@
   font-size: 0.8125rem;
   letter-spacing: 0.08em;
 }
+
+.ruth-form-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.ruth-form-col-6 {
+  grid-column: span 6 / span 6;
+}
+
+.ruth-form-col-12 {
+  grid-column: span 12 / span 12;
+}
+
+.ruth-form-section-card {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
+  background-color: color-mix(in srgb, currentcolor 4%, transparent);
+}
+
+.ruth-livekit-stage-shell {
+  display: block;
+  min-height: 16rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid color-mix(in srgb, currentcolor 22%, transparent);
+  background-color: color-mix(in srgb, currentcolor 7%, transparent);
+}
+
+.ruth-livekit-stage-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.ruth-livekit-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.875rem;
+}
+
+.ruth-livekit-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 9rem;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentcolor 20%, transparent);
+  background-color: color-mix(in srgb, currentcolor 10%, transparent);
+}
