@@ -24,6 +24,10 @@
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm.Contracts/Ruth.Modules.Crm.Contracts.csproj" />
     <Project Path="src/Modules/Crm/Ruth.Modules.Crm/Ruth.Modules.Crm.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Engagement/">
+    <Project Path="src/Modules/Engagement/Ruth.Modules.Engagement.Contracts/Ruth.Modules.Engagement.Contracts.csproj" />
+    <Project Path="src/Modules/Engagement/Ruth.Modules.Engagement/Ruth.Modules.Engagement.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Events/">
     <Project Path="src/Modules/Events/Ruth.Modules.Events.Contracts/Ruth.Modules.Events.Contracts.csproj" />
     <Project Path="src/Modules/Events/Ruth.Modules.Events/Ruth.Modules.Events.csproj" />
@@ -56,6 +60,7 @@
     <Project Path="tests/Ruth.Modules.Communication.Tests/Ruth.Modules.Communication.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Core.Tests/Ruth.Modules.Core.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Crm.Tests/Ruth.Modules.Crm.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Engagement.Tests/Ruth.Modules.Engagement.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Events.Tests/Ruth.Modules.Events.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Finance.Tests/Ruth.Modules.Finance.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Groups.Tests/Ruth.Modules.Groups.Tests.csproj" />

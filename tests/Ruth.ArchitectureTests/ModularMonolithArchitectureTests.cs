@@ -11,6 +11,8 @@ using Ruth.Modules.Core;
 using Ruth.Modules.Core.Contracts;
 using Ruth.Modules.Crm;
 using Ruth.Modules.Crm.Contracts;
+using Ruth.Modules.Engagement;
+using Ruth.Modules.Engagement.Contracts;
 using Ruth.Modules.Events;
 using Ruth.Modules.Events.Contracts;
 using Ruth.Modules.Finance;
@@ -56,6 +58,9 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.Commerce.Domain",
         "Ruth.Modules.Commerce.Infrastructure",
         "Ruth.Modules.Commerce.Slices",
+        "Ruth.Modules.Engagement.Domain",
+        "Ruth.Modules.Engagement.Infrastructure",
+        "Ruth.Modules.Engagement.Slices",
     ];
 
     private static Assembly[] GetModuleAssemblies()
@@ -71,6 +76,7 @@ public sealed class ModularMonolithArchitectureTests
             FinanceModuleAssembly.Instance,
             EventsModuleAssembly.Instance,
             CommerceModuleAssembly.Instance,
+            EngagementModuleAssembly.Instance,
         ];
 
         return
@@ -100,6 +106,7 @@ public sealed class ModularMonolithArchitectureTests
             FinanceContractsAssembly.Instance,
             EventsContractsAssembly.Instance,
             CommerceContractsAssembly.Instance,
+            EngagementContractsAssembly.Instance,
         ];
 
         return

@@ -34,6 +34,8 @@
     <ProjectReference Include="..\..\src\Modules\Core\Ruth.Modules.Core\Ruth.Modules.Core.csproj" />
     <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm\Ruth.Modules.Crm.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Engagement\Ruth.Modules.Engagement.Contracts\Ruth.Modules.Engagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Engagement\Ruth.Modules.Engagement\Ruth.Modules.Engagement.csproj" />
     <ProjectReference Include="..\..\src\Modules\Events\Ruth.Modules.Events.Contracts\Ruth.Modules.Events.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Events\Ruth.Modules.Events\Ruth.Modules.Events.csproj" />
     <ProjectReference Include="..\..\src\Modules\Finance\Ruth.Modules.Finance.Contracts\Ruth.Modules.Finance.Contracts.csproj" />
