@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.Search</RootNamespace>
+    <AssemblyName>Ruth.Modules.Search</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ruth.Modules.Search.Tests" />
+    <InternalsVisibleTo Include="Ruth.Host.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Ruth.Persistence\Ruth.Persistence.csproj" />
+    <ProjectReference Include="..\..\..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Cms\Ruth.Modules.Cms.Contracts\Ruth.Modules.Cms.Contracts.csproj" />
+    <ProjectReference Include="..\..\Commerce\Ruth.Modules.Commerce.Contracts\Ruth.Modules.Commerce.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\Engagement\Ruth.Modules.Engagement.Contracts\Ruth.Modules.Engagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Events\Ruth.Modules.Events.Contracts\Ruth.Modules.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Finance\Ruth.Modules.Finance.Contracts\Ruth.Modules.Finance.Contracts.csproj" />
+    <ProjectReference Include="..\..\Groups\Ruth.Modules.Groups.Contracts\Ruth.Modules.Groups.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Lms\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
+    <ProjectReference Include="..\..\Workflow\Ruth.Modules.Workflow.Contracts\Ruth.Modules.Workflow.Contracts.csproj" />
+    <ProjectReference Include="..\Ruth.Modules.Search.Contracts\Ruth.Modules.Search.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,65 @@
+@page "/reporting/dataviews"
+@rendermode InteractiveServer
+
+<PageTitle>DataViews &amp; Query AST — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Declarative DataViews &amp; Query AST Builder</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Create DataView (AND / OR / NOT AST + JSONB / Spatial / Cross-Module Sets)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_name" Label="DataView Name" />
+                <FluentTextInput @bind-Value="_entityTypeKey" Label="Entity Type Key" />
+                <FluentTextInput @bind-Value="_fieldKey" Label="Filter Field / Attribute Key" />
+                <FluentTextInput @bind-Value="_filterValue" Label="Match Value" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateDataViewAsync">
+                    Create DataView
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>Saved DataViews (@_dataViews.Count)</h2>
+            @foreach (var dv in _dataViews)
+            {
+                <div class="ruth-kiosk-member-row" @key="dv.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@dv.Name</strong>
+                        <span class="ruth-room-status-pill">@dv.EntityTypeKey · Persisted: @dv.PersistedResultCount</span>
+                        <FluentButton Size="ButtonSize.Small" OnClick="@(() => ExecuteAsync(dv.Id))">
+                            Run Query
+                        </FluentButton>
+                        <FluentButton Size="ButtonSize.Small"
+                                      Appearance="ButtonAppearance.Outline"
+                                      OnClick="@(() => MaterializeAsync(dv.Id))">
+                            Materialize
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    @if (_lastExecution is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <h3>Execution Result (@_lastExecution.TotalMatchedCount rows in @_lastExecution.ExecutionMilliseconds ms)</h3>
+            <p class="ruth-cms-empty-note">Compiled SQL Predicate: <code>@_lastExecution.CompiledSqlPreview</code></p>
+        </FluentCard>
+    }
+</FluentStack>

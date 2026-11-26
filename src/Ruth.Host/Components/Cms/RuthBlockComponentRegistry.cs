@@ -44,6 +44,13 @@ public sealed class RuthBlockComponentRegistry
             RequiresInteractivity: true,
             typeof(MediaGalleryCmsBlock)
         ),
+        ["search.content-search"] = new(
+            "search.content-search",
+            "Content Search",
+            "Search",
+            RequiresInteractivity: true,
+            typeof(ContentSearchCmsBlock)
+        ),
     };
 
     /// <summary>Gets all registered CMS block component descriptors.</summary>

@@ -76,6 +76,13 @@ internal sealed partial class CmsBootstrapHostedService(
             "Displays synced Vimeo/YouTube/HLS MediaElements.",
             true
         ),
+        (
+            "search.content-search",
+            "Content Search",
+            "Search",
+            "PostgreSQL full-text and trigram content search block for public portals.",
+            true
+        ),
     ];
 
     internal static async Task EnsureBuiltInBlockTypesAsync(

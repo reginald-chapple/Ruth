@@ -1,0 +1,53 @@
+@page "/lms/programs"
+@rendermode InteractiveServer
+
+<PageTitle>LMS Programs, Courses &amp; Classes — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>LMS Programs, Grading Scales, Courses &amp; Classes</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Create Learning Program (On-Demand / Cohort)</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_programName" Label="Program Name" />
+                <FluentTextInput @bind-Value="_courseName" Label="Initial Course Name" />
+                <FluentTextInput @bind-Value="_courseCode" Label="Course Code" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateProgramAndCourseAsync">
+                    Create Program + Course + Class
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Active Programs (@_programs.Count) &amp; Courses (@_courses.Count)</h2>
+            @foreach (var p in _programs)
+            {
+                <div class="ruth-kiosk-member-row" @key="p.Id">
+                    <strong>@p.PublicName</strong>
+                    <span class="ruth-room-status-pill">@p.ConfigurationMode · Public: @p.IsPublic</span>
+                </div>
+            }
+            @foreach (var c in _courses)
+            {
+                <div class="ruth-kiosk-member-row" @key="c.Id">
+                    <strong>@c.CourseCode — @c.PublicName</strong>
+                    <span class="ruth-room-status-pill">Credits: @c.Credits · Prereqs: @c.Requirements.Count</span>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

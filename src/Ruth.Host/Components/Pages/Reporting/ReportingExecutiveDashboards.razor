@@ -1,0 +1,69 @@
+@page "/reporting/executive"
+@rendermode InteractiveServer
+
+<PageTitle>Executive &amp; Impact Dashboards — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Executive Insights, Revenue &amp; Impact &amp; BI Star-Schema</h1>
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RefreshStarSchemaAsync">
+            Refresh BI Star-Schema
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Reload</FluentButton>
+    </FluentStack>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+@if (_insights is not null)
+{
+    <section class="ruth-kpi-grid" aria-label="Executive KPI Cards">
+        @foreach (var kpi in _insights.Kpis)
+        {
+            <article class="ruth-kpi-card" @key="kpi.Key">
+                <div class="ruth-cms-empty-note">@kpi.Title</div>
+                <div class="ruth-kpi-value">@kpi.FormattedValue</div>
+                @if (kpi.DeltaPercent is not null)
+                {
+                    <div class="ruth-cms-empty-note">Delta: @kpi.DeltaPercent%</div>
+                }
+            </article>
+        }
+    </section>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @if (_overview is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <h2>Revenue &amp; Impact Overview</h2>
+            <p>
+                Tax-Deductible Giving: <strong>$@_overview.TotalTaxDeductibleGiving.ToString("N2")</strong> ·
+                Dues, Fees &amp; Commerce: <strong>$@_overview.TotalNonDeductibleRevenue.ToString("N2")</strong> ·
+                MRR: <strong>$@_overview.MonthlyRecurringRevenue.ToString("N2")</strong> ·
+                Retention: <strong>@_overview.RetentionRatePercent%</strong> ·
+                Attendance: <strong>@_overview.TotalAttendance</strong> ·
+                Program Outcomes: <strong>@_overview.ProgramCompletionsCount</strong>
+            </p>
+        </FluentCard>
+    }
+
+    @if (_starSchema is not null)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <h2>PostgreSQL Star-Schema BI Projections</h2>
+            <p class="ruth-cms-empty-note">
+                dim_date: @_starSchema.DimDateRows · dim_branch: @_starSchema.DimBranchRows ·
+                dim_metric: @_starSchema.DimMetricRows · fact_metric_daily: @_starSchema.FactMetricDailyRows ·
+                fact_revenue_monthly: @_starSchema.FactRevenueMonthlyRows · fact_attendance_weekly: @_starSchema.FactAttendanceWeeklyRows
+            </p>
+            <p class="ruth-cms-empty-note">BI Views: @string.Join(", ", _starSchema.AvailableBiViews)</p>
+        </FluentCard>
+    }
+</FluentStack>

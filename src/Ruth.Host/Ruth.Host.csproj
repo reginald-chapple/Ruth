@@ -32,6 +32,12 @@
     <ProjectReference Include="..\Modules\Groups\Ruth.Modules.Groups\Ruth.Modules.Groups.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Lms\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Lms\Ruth.Modules.Lms\Ruth.Modules.Lms.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\Ruth.Modules.Reporting.Contracts\Ruth.Modules.Reporting.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\Ruth.Modules.Reporting\Ruth.Modules.Reporting.csproj" />
+    <ProjectReference Include="..\Modules\Search\Ruth.Modules.Search.Contracts\Ruth.Modules.Search.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Search\Ruth.Modules.Search\Ruth.Modules.Search.csproj" />
     <ProjectReference Include="..\Modules\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />
     <ProjectReference Include="..\Modules\VirtualRooms\Ruth.Modules.VirtualRooms\Ruth.Modules.VirtualRooms.csproj" />
     <ProjectReference Include="..\Modules\Workflow\Ruth.Modules.Workflow.Contracts\Ruth.Modules.Workflow.Contracts.csproj" />

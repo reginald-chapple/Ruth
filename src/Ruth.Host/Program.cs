@@ -18,6 +18,9 @@ using Ruth.Modules.Events;
 using Ruth.Modules.Finance;
 using Ruth.Modules.Groups;
 using Ruth.Modules.Identity;
+using Ruth.Modules.Lms;
+using Ruth.Modules.Reporting;
+using Ruth.Modules.Search;
 using Ruth.Modules.VirtualRooms;
 using Ruth.Modules.Workflow;
 using Ruth.Persistence.DependencyInjection;
@@ -52,6 +55,9 @@ builder.Services.AddWorkflowModule(builder.Configuration);
 builder.Services.AddVirtualRoomsModule(builder.Configuration);
 builder.Services.AddLiveKitVirtualRoomProvider(builder.Configuration);
 builder.Services.AddCmsModule(builder.Configuration);
+builder.Services.AddReportingModule(builder.Configuration);
+builder.Services.AddLmsModule(builder.Configuration);
+builder.Services.AddSearchModule(builder.Configuration);
 builder.Services.AddSingleton<RuthBlockComponentRegistry>();
 builder.Services.AddRuthJwtConfiguration();
 
@@ -154,5 +160,8 @@ app.MapEngagementModuleEndpoints();
 app.MapWorkflowModuleEndpoints();
 app.MapVirtualRoomsModuleEndpoints();
 app.MapCmsModuleEndpoints();
+app.MapReportingModuleEndpoints();
+app.MapLmsModuleEndpoints();
+app.MapSearchModuleEndpoints();
 
 await app.RunAsync();

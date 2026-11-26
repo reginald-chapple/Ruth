@@ -1,0 +1,53 @@
+@baseUrl = https://localhost:7142
+@token = REPLACE_WITH_JWT
+
+### List Reporting DataViews
+GET {{baseUrl}}/api/reporting/dataviews
+Authorization: Bearer {{token}}
+
+### Create Declarative DataView
+POST {{baseUrl}}/api/reporting/dataviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Active Members",
+  "entityTypeKey": "Ruth.Crm.Person",
+  "persistedScheduleIntervalMinutes": 60,
+  "rootFilter": {
+    "expressionType": "GroupAll",
+    "children": [
+      {
+        "expressionType": "Rule",
+        "ruleKind": "EntityProperty",
+        "fieldKey": "RecordStatus",
+        "operator": "Equals",
+        "value": "Active"
+      }
+    ]
+  }
+}
+
+### List Reports
+GET {{baseUrl}}/api/reporting/reports
+Authorization: Bearer {{token}}
+
+### List Merge Templates
+GET {{baseUrl}}/api/reporting/merge-templates
+Authorization: Bearer {{token}}
+
+### Operational Metrics
+GET {{baseUrl}}/api/reporting/metrics
+Authorization: Bearer {{token}}
+
+### Revenue & Impact Overview
+GET {{baseUrl}}/api/reporting/analytics/revenue-impact
+Authorization: Bearer {{token}}
+
+### Executive Insights
+GET {{baseUrl}}/api/reporting/analytics/executive-insights?windowDays=30
+Authorization: Bearer {{token}}
+
+### Refresh Star-Schema BI Projections
+POST {{baseUrl}}/api/reporting/analytics/star-schema/refresh
+Authorization: Bearer {{token}}

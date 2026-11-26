@@ -454,22 +454,22 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `dotnet-webapi`, `aspnet-core`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S5` — Declarative DataViews, Reports & Merge Document Templates
+#### `W6-S5` — Declarative DataViews, Reports & Merge Document Templates ✅ *(Completed)*
 * **Scope:** `Reporting` module (`reporting` schema): `DataView` + `DataViewFilter` declarative **Query AST** (AND/OR/NOT filter trees compiling to module EF Core queries, `jsonb` attribute predicates, PostGIS spatial filters, and cross-module `PersonId` set intersections), `DataViewPersistedValue` background materializer, `Report` + `ReportField` column selector (`IFieldSelectPlugin`), CSV/Excel export, and DOCX/HTML `MergeTemplate` generator.
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W6-S6` — Operational Metrics, Executive Dashboards & Star-Schema Projections
+#### `W6-S6` — Operational Metrics, Executive Dashboards & Star-Schema Projections ✅ *(Completed)*
 * **Scope:** `MetricCategory`, `Metric`, `MetricPartition`, `MetricValue` (manual `OperationalMetricsEntry` + scheduled SQL/Query calculation jobs), `DynamicChart` / KPI widgets, `RevenueAndImpactOverview` & `ExecutiveInsights` dashboards (covering donations, dues/MRR, retention, attendance, and program outcomes), and materialized PostgreSQL star-schema views/tables for BI tools.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`.
 
-#### `W6-S7` — Learning Management System (LMS & Certifications)
+#### `W6-S7` — Learning Management System (LMS & Certifications) ✅ *(Completed)*
 * **Scope:** `Lms` module (`lms` schema): `LearningProgram` (On-Demand vs. Term/Cohort), `LearningCourse` + prerequisites, `LearningTerm`, `LearningGradingSystem` / `Scale`, `LearningClass`, `LearningClassContentPage`, `LearningClassAnnouncement`, `LearningActivity` (Video, Article, File Upload, Assessment, Acknowledgment), `LearningParticipant`, `LearningActivityCompletion`, Facilitator Grading Queue, and Public Course Catalog / Learner Portal.
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `webhint`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `webhint`.
 
-#### `W6-S8` — Universal Spotlight Search & Content Collections (PostgreSQL Full-Text)
+#### `W6-S8` — Universal Spotlight Search & Content Collections (PostgreSQL Full-Text) ✅ *(Completed)*
 * **Scope:** `Search` module (`search` schema): `ContentCollection` + `ContentCollectionSource` + `SearchDocument` indexing pipeline powered purely by deterministic **PostgreSQL `tsvector` weighted full-text search (`A`/`B`/`C`/`D` weights, `websearch_to_tsquery`, `ts_rank_cd`, `ts_headline` snippets) + `pg_trgm` fuzzy trigram GIN indexes** (zero external LLM/AI dependencies); modular `ISearchDocumentProvider` & Outbox integration-event projection hooks across `Crm`, `Groups`, `Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, and `Lms`; query-time `ISecured` ACL & entity/module facet filtering; global keyboard-driven (`Cmd+K` / `Ctrl+K`) **Spotlight Search** modal in the Staff Shell; and reusable `<ContentSearchBlock />` (`IRuthBlock`) + Minimal API search endpoint for Public CMS / Member Portals. *(Note: `pgvector` semantic embeddings, `IAiProvider`, and AI agents are deferred post-MVP until natural workflow requirements are discovered.)*
 * **Authoring Skills:** `architecture`, `modern-csharp`, `entity-framework-core`, `blazing-fast-dotnet`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.

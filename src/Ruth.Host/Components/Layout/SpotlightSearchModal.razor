@@ -1,0 +1,58 @@
+@if (_isOpen)
+{
+    <div class="ruth-spotlight-backdrop" role="dialog" aria-modal="true" aria-label="Spotlight Search">
+        <div class="ruth-spotlight-dialog">
+            <div class="ruth-spotlight-header">
+                <FluentTextInput @bind-Value="_queryText"
+                                 Label="Universal Spotlight Search (PostgreSQL Full-Text)"
+                                 Placeholder="Search people, groups, funds, events, courses, articles..." />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@ExecuteSearchAsync">
+                    Search
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Transparent" OnClick="@Close">
+                    Close (Esc)
+                </FluentButton>
+            </div>
+
+            <div class="ruth-spotlight-facets">
+                @foreach (var mod in _moduleFilters)
+                {
+                    var selected = string.Equals(_selectedModule, mod, StringComparison.OrdinalIgnoreCase);
+                    <FluentButton Size="ButtonSize.Small"
+                                  Appearance="@(selected ? ButtonAppearance.Primary : ButtonAppearance.Outline)"
+                                  OnClick="@(() => ToggleModuleAsync(mod))">
+                        @mod
+                    </FluentButton>
+                }
+            </div>
+
+            @if (_results is not null)
+            {
+                <p class="ruth-cms-empty-note">
+                    @_results.TotalAuthorizedHits authorized hit(s) in @_results.ExecutionMilliseconds ms
+                </p>
+                <div class="ruth-search-hit-list">
+                    @foreach (var hit in _results.Hits)
+                    {
+                        <article class="ruth-search-hit-card">
+                            <div class="ruth-search-hit-head">
+                                <span class="ruth-room-status-pill">@hit.ModuleName</span>
+                                <a href="@(hit.UrlPath ?? "/search/collections")" @onclick="@Close">
+                                    <strong>@hit.Title</strong>
+                                </a>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(hit.Subtitle))
+                            {
+                                <div class="ruth-cms-empty-note">@hit.Subtitle</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(hit.HighlightedSnippet))
+                            {
+                                <p class="ruth-search-snippet">@((MarkupString)hit.HighlightedSnippet)</p>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}

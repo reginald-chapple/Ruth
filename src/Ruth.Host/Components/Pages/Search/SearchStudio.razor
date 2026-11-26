@@ -1,0 +1,80 @@
+@page "/search/collections"
+@rendermode InteractiveServer
+
+<PageTitle>Universal Search &amp; Content Collections — Ruth RMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Universal Spotlight Search &amp; Content Collections (PostgreSQL Full-Text)</h1>
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RebuildGlobalIndexAsync">
+            Rebuild All 9 Module Providers
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+    </FluentStack>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <FluentMessageBar Intent="@(_isError ? MessageBarIntent.Error : MessageBarIntent.Success)"
+                      AllowDismiss="true">
+        @_statusMessage
+    </FluentMessageBar>
+}
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>1. Create Content Collection</h2>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                <FluentTextInput @bind-Value="_collectionName" Label="Collection Name" />
+                <FluentTextInput @bind-Value="_collectionKey" Label="Collection Slug" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@CreateCollectionAsync">
+                    Create Collection
+                </FluentButton>
+            </FluentStack>
+            @foreach (var col in _collections)
+            {
+                <div class="ruth-kiosk-member-row" @key="col.Id">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="10" Wrap="true">
+                        <strong>@col.Name (@col.CollectionKey)</strong>
+                        <span class="ruth-room-status-pill">Sources: @col.Sources.Count · Indexed: @col.LastIndexItemCount</span>
+                        <FluentButton Size="ButtonSize.Small" OnClick="@(() => ReindexCollectionAsync(col.Id))">
+                            Reindex
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+
+    <FluentCard Padding="@Padding.All4">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+            <h2>2. Full-Text &amp; Trigram Search Workbench</h2>
+            <div class="ruth-search-bar">
+                <FluentTextInput @bind-Value="_searchText" Label="Query (tsvector + pg_trgm)" />
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RunSearchAsync">
+                    Search Index
+                </FluentButton>
+            </div>
+            @if (_searchResults is not null)
+            {
+                <p class="ruth-cms-empty-note">
+                    @_searchResults.TotalAuthorizedHits hit(s) in @_searchResults.ExecutionMilliseconds ms
+                </p>
+                <div class="ruth-search-hit-list">
+                    @foreach (var hit in _searchResults.Hits)
+                    {
+                        <article class="ruth-search-hit-card" @key="hit.DocumentId">
+                            <div class="ruth-search-hit-head">
+                                <span class="ruth-room-status-pill">@hit.ModuleName</span>
+                                <strong>@hit.Title</strong>
+                                <span class="ruth-cms-empty-note">score @hit.Score</span>
+                            </div>
+                            <p class="ruth-search-snippet">@((MarkupString)hit.HighlightedSnippet)</p>
+                        </article>
+                    }
+                </div>
+            }
+        </FluentStack>
+    </FluentCard>
+</FluentStack>

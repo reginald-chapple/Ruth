@@ -1,0 +1,31 @@
+@baseUrl = https://localhost:7142
+@token = REPLACE_WITH_JWT
+
+### Public Course Catalog (Anonymous)
+GET {{baseUrl}}/api/lms/catalog
+
+### List Grading Systems
+GET {{baseUrl}}/api/lms/grading-systems
+Authorization: Bearer {{token}}
+
+### Create Grading System
+POST {{baseUrl}}/api/lms/grading-systems
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Certification Pass/Fail",
+  "scales": [
+    { "name": "Distinction", "thresholdPercentage": 90, "isPassing": true },
+    { "name": "Pass", "thresholdPercentage": 70, "isPassing": true },
+    { "name": "Needs Review", "thresholdPercentage": 0, "isPassing": false }
+  ]
+}
+
+### List Learning Programs
+GET {{baseUrl}}/api/lms/programs
+Authorization: Bearer {{token}}
+
+### Facilitator Grading Queue
+GET {{baseUrl}}/api/lms/grading-queue
+Authorization: Bearer {{token}}

@@ -13,6 +13,7 @@ public sealed partial class MainLayout : LayoutComponentBase
         $"color: {StylesVariables.Colors.Neutral.ForegroundOnBrand};";
 
     private ErrorBoundary? _errorBoundary;
+    private SpotlightSearchModal? _spotlightModal;
     private bool _isAuthenticated;
     private string? _authenticatedUserName;
 
@@ -43,6 +44,12 @@ public sealed partial class MainLayout : LayoutComponentBase
     public async Task ToggleThemeAsync()
     {
         _ = await JsRuntime.InvokeAsync<bool>("Blazor.theme.switchTheme");
+    }
+
+    /// <summary>Opens the global Spotlight Search modal.</summary>
+    public void OpenSpotlight()
+    {
+        _spotlightModal?.Open();
     }
 
     /// <summary>Recovers the layout error boundary after a child component failure.</summary>

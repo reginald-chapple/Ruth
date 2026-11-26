@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.Lms</RootNamespace>
+    <AssemblyName>Ruth.Modules.Lms</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ruth.Modules.Lms.Tests" />
+    <InternalsVisibleTo Include="Ruth.Host.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Ruth.Persistence\Ruth.Persistence.csproj" />
+    <ProjectReference Include="..\..\..\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Communication\Ruth.Modules.Communication.Contracts\Ruth.Modules.Communication.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Ruth.Modules.Core.Contracts\Ruth.Modules.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\VirtualRooms\Ruth.Modules.VirtualRooms.Contracts\Ruth.Modules.VirtualRooms.Contracts.csproj" />
+    <ProjectReference Include="..\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
+  </ItemGroup>
+</Project>

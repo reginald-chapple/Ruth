@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.Lms.Tests</RootNamespace>
+    <AssemblyName>Ruth.Modules.Lms.Tests</AssemblyName>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lms\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lms\Ruth.Modules.Lms\Ruth.Modules.Lms.csproj" />
+    <ProjectReference Include="..\..\src\Ruth.Persistence\Ruth.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

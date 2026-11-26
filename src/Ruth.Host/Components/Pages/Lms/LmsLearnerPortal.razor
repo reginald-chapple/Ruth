@@ -1,0 +1,38 @@
+@page "/lms/catalog"
+@rendermode InteractiveServer
+
+<PageTitle>Course Catalog &amp; Learner Portal — Ruth LMS</PageTitle>
+
+<div class="ruth-page-header">
+    <h1>Public Course Catalog &amp; Learner Portal</h1>
+    <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@ReloadAsync">Refresh</FluentButton>
+</div>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @if (_catalog.Count == 0)
+    {
+        <FluentCard Padding="@Padding.All4">
+            <p class="ruth-cms-empty-note">No public courses are published yet. Create a public program and course in LMS Studio.</p>
+        </FluentCard>
+    }
+    else
+    {
+        <div class="ruth-cms-feed-grid">
+            @foreach (var item in _catalog)
+            {
+                <article class="ruth-cms-feed-card" @key="item.Course.Id">
+                    <span class="ruth-room-status-pill">@item.Program.PublicName · @item.Course.CourseCode</span>
+                    <h3>@item.Course.PublicName</h3>
+                    @if (!string.IsNullOrWhiteSpace(item.Course.Summary))
+                    {
+                        <p>@item.Course.Summary</p>
+                    }
+                    <p class="ruth-cms-empty-note">
+                        Open Classes: @item.OpenClasses.Count · Credits: @item.Course.Credits ·
+                        Prerequisites: @(item.PrerequisitesMet ? "Met" : "Required")
+                    </p>
+                </article>
+            }
+        </div>
+    }
+</FluentStack>

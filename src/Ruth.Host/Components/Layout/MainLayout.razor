@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 
 <FluentProviders />
+<SpotlightSearchModal @ref="_spotlightModal" />
 
 <FluentLayout>
     <FluentLayoutItem Area="LayoutArea.Header">
@@ -8,6 +9,13 @@
             <FluentLayoutHamburger IconTitle="Toggle navigation menu" PanelHeader="Ruth RMS" />
             <a href="/" class="ruth-brand">Ruth RMS</a>
             <div class="ruth-header-spacer"></div>
+            <FluentButton Appearance="ButtonAppearance.Transparent"
+                          Title="Open Spotlight Search (Cmd+K / Ctrl+K)"
+                          aria-label="Open Spotlight Search"
+                          Style="@_themeToggleStyle"
+                          OnClick="@OpenSpotlight">
+                Search (⌘K)
+            </FluentButton>
             <a href="/engagement/notifications" class="ruth-header-link" aria-label="Notifications">Notifications</a>
             @if (_isAuthenticated)
             {
@@ -151,6 +159,29 @@
                 <FluentNavItem Href="/cms/content">Content Channels, Media &amp; Datasets</FluentNavItem>
                 <FluentNavItem Href="/cms/personalization">Interactions, Segments &amp; Adaptive</FluentNavItem>
                 <FluentNavItem Href="/cms/apps">Mobile &amp; Digital Signage / TV</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Reporting &amp; BI"
+                               IconRest="@(new Icons.Regular.Size20.DataBarVertical())"
+                               IconActive="@(new Icons.Filled.Size20.DataBarVertical())">
+                <FluentNavItem Href="/reporting/dataviews">DataViews &amp; Query AST</FluentNavItem>
+                <FluentNavItem Href="/reporting/reports">Reports &amp; Merge Templates</FluentNavItem>
+                <FluentNavItem Href="/reporting/metrics">Operational Metrics &amp; Charts</FluentNavItem>
+                <FluentNavItem Href="/reporting/executive">Executive &amp; Impact Dashboards</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="LMS &amp; Training"
+                               IconRest="@(new Icons.Regular.Size20.HatGraduation())"
+                               IconActive="@(new Icons.Filled.Size20.HatGraduation())">
+                <FluentNavItem Href="/lms/programs">Programs, Courses &amp; Classes</FluentNavItem>
+                <FluentNavItem Href="/lms/grading">Facilitator Grading Queue</FluentNavItem>
+                <FluentNavItem Href="/lms/catalog">Course Catalog &amp; Learner Portal</FluentNavItem>
+            </FluentNavCategory>
+
+            <FluentNavCategory Title="Search"
+                               IconRest="@(new Icons.Regular.Size20.Search())"
+                               IconActive="@(new Icons.Filled.Size20.Search())">
+                <FluentNavItem Href="/search/collections">Spotlight &amp; Content Collections</FluentNavItem>
             </FluentNavCategory>
 
             <FluentNavCategory Title="Security"

@@ -1,0 +1,84 @@
+@implements IRuthBlock
+@inject IQueryDispatcher QueryDispatcher
+
+<section class="ruth-cms-block @Block.CssClass" data-block-key="@BlockKey" aria-label="Public content search">
+    <h3>Search</h3>
+    <div class="ruth-search-bar">
+        <FluentTextInput @bind-Value="_queryText"
+                         Label="Search articles, courses, events, and groups"
+                         Placeholder="Type keywords..." />
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="@RunSearchAsync">
+            Search
+        </FluentButton>
+    </div>
+
+    @if (_results is not null)
+    {
+        <p class="ruth-cms-empty-note">
+            Found @_results.TotalAuthorizedHits result(s) in @_results.ExecutionMilliseconds ms
+        </p>
+        @if (_results.Hits.Count == 0)
+        {
+            <p class="ruth-cms-empty-note">No matching public content found.</p>
+        }
+        else
+        {
+            <div class="ruth-search-hit-list">
+                @foreach (var hit in _results.Hits)
+                {
+                    <article class="ruth-search-hit-card">
+                        <div class="ruth-search-hit-head">
+                            <span class="ruth-room-status-pill">@hit.ModuleName</span>
+                            @if (!string.IsNullOrWhiteSpace(hit.UrlPath))
+                            {
+                                <a href="@hit.UrlPath"><strong>@hit.Title</strong></a>
+                            }
+                            else
+                            {
+                                <strong>@hit.Title</strong>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(hit.HighlightedSnippet))
+                        {
+                            <p class="ruth-search-snippet">@((MarkupString)hit.HighlightedSnippet)</p>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    }
+</section>
+
+@code {
+    public string BlockKey => "search.content-search";
+    public string DisplayName => "Content Search";
+    public string Category => "Search";
+    public string? Description => "PostgreSQL full-text and trigram content search block for public portals.";
+    public bool RequiresInteractivity => true;
+
+    [Parameter]
+    public CmsBlockResponse Block { get; set; } = default!;
+
+    [Parameter]
+    public string? CollectionKey { get; set; }
+
+    private string _queryText = string.Empty;
+    private SearchResultsResponse? _results;
+
+    private async Task RunSearchAsync()
+    {
+        var res = await QueryDispatcher.QueryAsync<ExecuteUniversalSearchQuery, SearchResultsResponse>(
+            new ExecuteUniversalSearchQuery(
+                _queryText,
+                SecuritySubject.Anonymous,
+                CollectionKey: CollectionKey,
+                PublicOnly: true,
+                Limit: 15
+            )
+        );
+        if (res.IsSuccess)
+        {
+            _results = res.Value;
+        }
+    }
+}

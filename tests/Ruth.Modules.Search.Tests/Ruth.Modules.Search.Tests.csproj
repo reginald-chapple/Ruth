@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ruth.Modules.Search.Tests</RootNamespace>
+    <AssemblyName>Ruth.Modules.Search.Tests</AssemblyName>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Cms\Ruth.Modules.Cms.Contracts\Ruth.Modules.Cms.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Commerce\Ruth.Modules.Commerce.Contracts\Ruth.Modules.Commerce.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Crm\Ruth.Modules.Crm.Contracts\Ruth.Modules.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Engagement\Ruth.Modules.Engagement.Contracts\Ruth.Modules.Engagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Events\Ruth.Modules.Events.Contracts\Ruth.Modules.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Finance\Ruth.Modules.Finance.Contracts\Ruth.Modules.Finance.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ruth.Modules.Groups.Contracts\Ruth.Modules.Groups.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity.Contracts\Ruth.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Ruth.Modules.Identity\Ruth.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lms\Ruth.Modules.Lms.Contracts\Ruth.Modules.Lms.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Search\Ruth.Modules.Search.Contracts\Ruth.Modules.Search.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Search\Ruth.Modules.Search\Ruth.Modules.Search.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Ruth.Modules.Workflow.Contracts\Ruth.Modules.Workflow.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Ruth.Persistence\Ruth.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Ruth.SharedKernel\Ruth.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

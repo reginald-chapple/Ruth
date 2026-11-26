@@ -1,0 +1,20 @@
+@baseUrl = https://localhost:7142
+@token = REPLACE_WITH_JWT
+
+### List Search Content Collections
+GET {{baseUrl}}/api/search/collections
+Authorization: Bearer {{token}}
+
+### Trigger Universal Search Index Rebuild
+POST {{baseUrl}}/api/search/reindex
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### Authenticated Staff Spotlight Search
+GET {{baseUrl}}/api/search/spotlight?q=leadership&limit=20
+Authorization: Bearer {{token}}
+
+### Public CMS / Member Portal Content Search (Anonymous)
+GET {{baseUrl}}/api/search/public?q=leadership&limit=10

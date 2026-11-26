@@ -23,6 +23,12 @@ using Ruth.Modules.Groups;
 using Ruth.Modules.Groups.Contracts;
 using Ruth.Modules.Identity;
 using Ruth.Modules.Identity.Contracts;
+using Ruth.Modules.Lms;
+using Ruth.Modules.Lms.Contracts;
+using Ruth.Modules.Reporting;
+using Ruth.Modules.Reporting.Contracts;
+using Ruth.Modules.Search;
+using Ruth.Modules.Search.Contracts;
 using Ruth.Modules.VirtualRooms;
 using Ruth.Modules.VirtualRooms.Contracts;
 using Ruth.Modules.Workflow;
@@ -76,6 +82,15 @@ public sealed class ModularMonolithArchitectureTests
         "Ruth.Modules.Cms.Domain",
         "Ruth.Modules.Cms.Infrastructure",
         "Ruth.Modules.Cms.Slices",
+        "Ruth.Modules.Reporting.Domain",
+        "Ruth.Modules.Reporting.Infrastructure",
+        "Ruth.Modules.Reporting.Slices",
+        "Ruth.Modules.Lms.Domain",
+        "Ruth.Modules.Lms.Infrastructure",
+        "Ruth.Modules.Lms.Slices",
+        "Ruth.Modules.Search.Domain",
+        "Ruth.Modules.Search.Infrastructure",
+        "Ruth.Modules.Search.Slices",
     ];
 
     private static Assembly[] GetModuleAssemblies()
@@ -95,6 +110,9 @@ public sealed class ModularMonolithArchitectureTests
             WorkflowModuleAssembly.Instance,
             VirtualRoomsModuleAssembly.Instance,
             CmsModuleAssembly.Instance,
+            ReportingModuleAssembly.Instance,
+            LmsModuleAssembly.Instance,
+            SearchModuleAssembly.Instance,
         ];
 
         return
@@ -128,6 +146,9 @@ public sealed class ModularMonolithArchitectureTests
             WorkflowContractsAssembly.Instance,
             VirtualRoomsContractsAssembly.Instance,
             CmsContractsAssembly.Instance,
+            ReportingContractsAssembly.Instance,
+            LmsContractsAssembly.Instance,
+            SearchContractsAssembly.Instance,
         ];
 
         return

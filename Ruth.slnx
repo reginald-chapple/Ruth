@@ -48,6 +48,18 @@
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity.Contracts/Ruth.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Ruth.Modules.Identity/Ruth.Modules.Identity.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Lms/">
+    <Project Path="src/Modules/Lms/Ruth.Modules.Lms.Contracts/Ruth.Modules.Lms.Contracts.csproj" />
+    <Project Path="src/Modules/Lms/Ruth.Modules.Lms/Ruth.Modules.Lms.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Reporting/">
+    <Project Path="src/Modules/Reporting/Ruth.Modules.Reporting.Contracts/Ruth.Modules.Reporting.Contracts.csproj" />
+    <Project Path="src/Modules/Reporting/Ruth.Modules.Reporting/Ruth.Modules.Reporting.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Search/">
+    <Project Path="src/Modules/Search/Ruth.Modules.Search.Contracts/Ruth.Modules.Search.Contracts.csproj" />
+    <Project Path="src/Modules/Search/Ruth.Modules.Search/Ruth.Modules.Search.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/VirtualRooms/">
     <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms.Contracts/Ruth.Modules.VirtualRooms.Contracts.csproj" />
     <Project Path="src/Modules/VirtualRooms/Ruth.Modules.VirtualRooms/Ruth.Modules.VirtualRooms.csproj" />
@@ -79,6 +91,9 @@
     <Project Path="tests/Ruth.Modules.Finance.Tests/Ruth.Modules.Finance.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Groups.Tests/Ruth.Modules.Groups.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Identity.Tests/Ruth.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Lms.Tests/Ruth.Modules.Lms.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Reporting.Tests/Ruth.Modules.Reporting.Tests.csproj" />
+    <Project Path="tests/Ruth.Modules.Search.Tests/Ruth.Modules.Search.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.VirtualRooms.Tests/Ruth.Modules.VirtualRooms.Tests.csproj" />
     <Project Path="tests/Ruth.Modules.Workflow.Tests/Ruth.Modules.Workflow.Tests.csproj" />
     <Project Path="tests/Ruth.Persistence.Tests/Ruth.Persistence.Tests.csproj" />
