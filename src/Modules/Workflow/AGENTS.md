@@ -12,6 +12,7 @@
   - `WorkflowTrigger` and `WorkflowTriggerEvaluator` evaluate integration event and entity automation predicates before launching matching `WorkflowType` instances; `WorkflowPersonMergedConsumer` idempotently repoints `PersonId` references across initiators, activity assignees, and logs.
 - **W5-S6 (`FormBuilderTemplate`, `WorkflowActionForm`, `WorkflowActionFormSection`, `WorkflowActionFormField`, `ConditionalVisibilityRule`, `FormVisibilityEvaluator`):**
   - `FormVisibilityEvaluator` evaluates `All`/`Any` conditional visibility rules dynamically over merged workflow and draft form values, enforcing required-field validation strictly on currently visible, non-read-only fields and routing outcome buttons to activity completion, target activity activation, or cancellation.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `workflow` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`).
 
 ## Verification
 ```bash

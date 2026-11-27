@@ -23,6 +23,7 @@
   - `CmsPersonMergedConsumer` idempotently repoints `PersonId` across interactions, sessions, segment memberships, bookmarks, channel items, and HTML approvals.
 - **W6-S4 (`MobileApplication`/`Layout`/`Page`/`DeepLink`, `SignageApplication`):**
   - Versioned Minimal API contracts (`/api/v1/mobile/apps/{slug}/bootstrap`, `/pages/{pageKey}`, `/deeplinks/resolve`) and Digital Signage / Apple TV / Roku Direct Publisher JSON feeds (`/api/v1/signage/{slug}/feed`, `/apple-tv`, `/roku`).
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `cms` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), `CmsTenantSeedContributor` seeds system block types per tenant, and `RedisPersonalizationSegmentCache` partitions segment keys under `t:{TenantId}:...`.
 
 ## Verification
 ```bash

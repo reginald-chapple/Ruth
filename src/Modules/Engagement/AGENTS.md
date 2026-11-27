@@ -19,6 +19,7 @@
 - **W5-S4 (`ConstituentContact`, `Touchpoint`, `TouchpointCadenceScheduler`):**
   - `ConstituentContact` and `TouchpointCadenceScheduler` compute deterministic outreach and connection-note due dates, first-principles relationship health scores (`0..100`), prioritized outreach queues, and `Crm.Contracts` peer-network relationship strength synchronization upon touchpoint completion.
   - `EngagementPersonMergedConsumer` idempotently repoints and deduplicates person references across pipelines, milestones, bitmask streaks, achievements, support requests, reminders, notifications, following subscriptions, and constituent portfolios upon `PersonMergedIntegrationEvent`.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `engage` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`).
 
 ## Verification
 ```bash

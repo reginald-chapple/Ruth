@@ -810,7 +810,7 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                 table: "template_snippets",
                 columns: new[] { "tenant_id", "system_guid" },
                 unique: true);
-            Ruth.Persistence.EntityFramework.TenantRlsMigrationExtensions.EnableTenantRowLevelSecurity(migrationBuilder, "communication");
+            Ruth.Persistence.EntityFramework.TenantRlsMigrationExtensions.EnableTenantRowLevelSecurity(migrationBuilder, "comms");
         }
 
         /// <inheritdoc />

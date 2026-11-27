@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Ruth.Modules.Groups.Contracts.Requirements;
 using Ruth.Modules.Groups.Domain;
 using Ruth.Modules.Groups.Domain.Groups;
@@ -54,7 +55,18 @@ internal sealed class AddGroupRequirementCommandHandler(GroupsDbContext dbContex
         }
 
         _ = dbContext.GroupRequirements.Add(created.Value);
-        _ = await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            dbContext.ChangeTracker.Clear();
+            return DomainError.Conflict(
+                "Groups.RequirementAlreadyExists",
+                "This requirement is already attached to the specified group, group type, and role scope."
+            );
+        }
 
         return Result.Success(ToResponse(created.Value, reqType));
     }
@@ -78,5 +90,15 @@ internal sealed class AddGroupRequirementCommandHandler(GroupsDbContext dbContex
             requirement.DueDateStaticDate,
             requirement.DueDateAttributeKey
         );
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException pg
+            && string.Equals(
+                pg.SqlState,
+                PostgresErrorCodes.UniqueViolation,
+                StringComparison.Ordinal
+            );
     }
 }

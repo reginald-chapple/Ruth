@@ -121,7 +121,7 @@ internal static class IdentityErrors
 
     public static readonly DomainError SystemRoleProtected = DomainError.Forbidden(
         "Identity.SystemRoleProtected",
-        "Built-in system roles cannot be deleted or deactivated."
+        "Built-in system roles cannot be renamed, deleted, or deactivated."
     );
 
     public static readonly DomainError InvalidControlCharacters = DomainError.Validation(

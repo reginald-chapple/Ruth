@@ -90,4 +90,16 @@ internal static partial class OutboxLog
         string schema,
         DateTimeOffset cutoffUtc
     );
+
+    [LoggerMessage(
+        EventId = 3009,
+        Level = LogLevel.Error,
+        Message = "Outbox processing failed for tenant {TenantId} in schema {Schema}."
+    )]
+    public static partial void TenantBatchFailed(
+        ILogger logger,
+        Exception exception,
+        Guid tenantId,
+        string schema
+    );
 }

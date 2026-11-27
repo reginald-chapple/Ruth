@@ -682,7 +682,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                 schema: "groups",
                 table: "attendance_occurrences",
                 columns: new[] { "tenant_id", "GroupId", "LocationId", "ScheduleId", "OccurrenceDate" },
-                unique: true);
+                unique: true)
+                .Annotation("Npgsql:NullsDistinct", false);
 
             migrationBuilder.CreateIndex(
                 name: "IX_attendance_occurrences_WeekEndDate",
@@ -804,7 +805,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                 schema: "groups",
                 table: "group_member_assignments",
                 columns: new[] { "tenant_id", "GroupMemberId", "LocationId", "ScheduleId" },
-                unique: true);
+                unique: true)
+                .Annotation("Npgsql:NullsDistinct", false);
 
             migrationBuilder.CreateIndex(
                 name: "IX_group_member_historicals_GroupMemberId_CurrentRowIndicator",
@@ -894,7 +896,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                 schema: "groups",
                 table: "group_requirements",
                 columns: new[] { "tenant_id", "GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId" },
-                unique: true);
+                unique: true)
+                .Annotation("Npgsql:NullsDistinct", false);
 
             migrationBuilder.CreateIndex(
                 name: "IX_group_schedule_exclusions_GroupTypeId_StartDate_EndDate",

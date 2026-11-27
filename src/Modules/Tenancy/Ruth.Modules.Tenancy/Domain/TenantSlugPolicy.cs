@@ -4,50 +4,6 @@ namespace Ruth.Modules.Tenancy.Domain;
 
 internal static class TenantSlugPolicy
 {
-    private static readonly HashSet<string> _reservedSlugs = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "admin",
-        "api",
-        "app",
-        "assets",
-        "auth",
-        "billing",
-        "cdn",
-        "console",
-        "dashboard",
-        "docs",
-        "health",
-        "help",
-        "localhost",
-        "login",
-        "mail",
-        "metrics",
-        "onboarding",
-        "ops",
-        "platform",
-        "portal",
-        "root",
-        "ruth",
-        "sandbox",
-        "security",
-        "signup",
-        "smtp",
-        "static",
-        "status",
-        "stripe",
-        "support",
-        "system",
-        "webhooks",
-        "www",
-    };
-
-    private static readonly HashSet<string> _eligibleSubsections = new(
-        StringComparer.OrdinalIgnoreCase
-    )
-    {
-        "501(c)(3)",
-    };
-
     public static Result<string> NormalizeAndValidateSlug(string? rawSlug)
     {
         if (string.IsNullOrWhiteSpace(rawSlug))
@@ -56,39 +12,60 @@ internal static class TenantSlugPolicy
         }
 
         var normalized = rawSlug.Trim().ToLowerInvariant();
-        if (
-            normalized.Length is < 3 or > 50
-            || normalized[0] == '-'
-            || normalized[^1] == '-'
-            || normalized.Contains("--", StringComparison.Ordinal)
-            || _reservedSlugs.Contains(normalized)
-        )
-        {
-            return TenancyErrors.InvalidSlug;
-        }
-
-        foreach (var ch in normalized)
-        {
-            if (!char.IsAsciiLetterLower(ch) && !char.IsAsciiDigit(ch) && ch != '-')
-            {
-                return TenancyErrors.InvalidSlug;
-            }
-        }
-
-        return normalized;
+        return IsSlugStructureValid(normalized) && ContainsOnlyValidSlugChars(normalized)
+            ? normalized
+            : TenancyErrors.InvalidSlug;
     }
 
     public static Result<string> NormalizeAndValidateSubsection(string? subsectionCode)
     {
-        if (string.IsNullOrWhiteSpace(subsectionCode))
+        return
+            !string.IsNullOrWhiteSpace(subsectionCode)
+            && TenantPolicyLookupData.EligibleSubsections.TryGetValue(
+                subsectionCode.Trim(),
+                out var canonical
+            )
+            ? canonical
+            : TenancyErrors.IneligibleTaxExemptSubsection;
+    }
+
+    public static Result<string> NormalizeAndValidateStateCode(string? rawStateCode)
+    {
+        if (string.IsNullOrWhiteSpace(rawStateCode))
         {
-            return TenancyErrors.IneligibleTaxExemptSubsection;
+            return TenancyErrors.InvalidStateCode;
         }
 
-        var normalized = subsectionCode.Trim();
-        return _eligibleSubsections.Contains(normalized)
-            ? "501(c)(3)"
-            : TenancyErrors.IneligibleTaxExemptSubsection;
+        var trimmed = rawStateCode.Trim().ToUpperInvariant();
+        return TenantPolicyLookupData.ValidUsJurisdictionCodes.Contains(trimmed)
+            ? trimmed
+            : TenancyErrors.InvalidStateCode;
+    }
+
+    public static Result<string> NormalizeAndValidateTimeZoneId(string? rawTimeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(rawTimeZoneId))
+        {
+            return "UTC";
+        }
+
+        var trimmed = rawTimeZoneId.Trim();
+        return trimmed.Length <= 100 && TimeZoneInfo.TryFindSystemTimeZoneById(trimmed, out _)
+            ? trimmed
+            : TenancyErrors.InvalidTimeZone;
+    }
+
+    public static Result<string> NormalizeAndValidateOnboardingUrl(string? rawUrl)
+    {
+        if (string.IsNullOrWhiteSpace(rawUrl))
+        {
+            return TenancyErrors.InvalidOnboardingUrls;
+        }
+
+        var trimmed = rawUrl.Trim();
+        return IsSafeRelativePath(trimmed) || IsHttpOrHttpsAbsoluteUrl(trimmed)
+            ? trimmed
+            : TenancyErrors.InvalidOnboardingUrls;
     }
 
     public static Result<string> NormalizeAndValidateHostname(
@@ -102,16 +79,10 @@ internal static class TenantSlugPolicy
         }
 
         var normalized = StripPort(rawHostname.Trim().ToLowerInvariant());
-        var isReservedOrInvalid =
-            normalized.Length is < 4 or > 253
-            || !normalized.Contains('.', StringComparison.Ordinal)
-            || normalized.StartsWith('.')
-            || normalized.EndsWith('.')
-            || string.Equals(normalized, "localhost", StringComparison.Ordinal)
-            || normalized.EndsWith($".{reservedBaseDomain}", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(normalized, reservedBaseDomain, StringComparison.OrdinalIgnoreCase);
-
-        return !isReservedOrInvalid && Uri.CheckHostName(normalized) == UriHostNameType.Dns
+        return
+            HasValidHostnameShape(normalized)
+            && !IsReservedDomain(normalized, reservedBaseDomain)
+            && Uri.CheckHostName(normalized) == UriHostNameType.Dns
             ? normalized
             : TenancyErrors.InvalidHostname;
     }
@@ -126,5 +97,66 @@ internal static class TenantSlugPolicy
         var trimmed = host.Trim().ToLowerInvariant();
         var colonIndex = trimmed.IndexOf(':', StringComparison.Ordinal);
         return colonIndex >= 0 ? trimmed[..colonIndex] : trimmed;
+    }
+
+    private static bool IsSlugStructureValid(string normalized)
+    {
+        return normalized.Length is >= 3 and <= 50
+            && normalized[0] != '-'
+            && normalized[^1] != '-'
+            && !normalized.Contains("--", StringComparison.Ordinal)
+            && !TenantPolicyLookupData.ReservedSlugs.Contains(normalized);
+    }
+
+    private static bool ContainsOnlyValidSlugChars(string normalized)
+    {
+        foreach (var ch in normalized)
+        {
+            if (!char.IsAsciiLetterLower(ch) && !char.IsAsciiDigit(ch) && ch != '-')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSafeRelativePath(string url)
+    {
+        return url.StartsWith('/')
+            && !url.StartsWith("//", StringComparison.Ordinal)
+            && !url.StartsWith("/\\", StringComparison.Ordinal);
+    }
+
+    private static bool IsHttpOrHttpsAbsoluteUrl(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var absolute)
+            && (
+                string.Equals(
+                    absolute.Scheme,
+                    Uri.UriSchemeHttps,
+                    StringComparison.OrdinalIgnoreCase
+                )
+                || string.Equals(
+                    absolute.Scheme,
+                    Uri.UriSchemeHttp,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
+    }
+
+    private static bool HasValidHostnameShape(string normalized)
+    {
+        return normalized.Length is >= 4 and <= 253
+            && normalized.Contains('.', StringComparison.Ordinal)
+            && !normalized.StartsWith('.')
+            && !normalized.EndsWith('.');
+    }
+
+    private static bool IsReservedDomain(string normalized, string reservedBaseDomain)
+    {
+        return string.Equals(normalized, "localhost", StringComparison.Ordinal)
+            || normalized.EndsWith($".{reservedBaseDomain}", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, reservedBaseDomain, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -2,12 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Npgsql;
-using Ruth.Modules.Identity.Contracts.Onboarding;
 using Ruth.Modules.Tenancy.Contracts.Hosts;
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.Modules.Tenancy.Domain;
 using Ruth.Modules.Tenancy.Infrastructure;
-using Ruth.Persistence.Outbox;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
 using Ruth.SharedKernel.Tenancy;
@@ -78,7 +76,8 @@ internal sealed class SignupTaxExemptTenantCommandHandler(
             return Result.Failure<SignupTaxExemptTenantResponse>(persisted.Errors);
         }
 
-        var bootstrapResult = await BootstrapTenantWorkspaceAsync(
+        var bootstrapResult = await TenantWorkspaceBootstrapper.BootstrapAsync(
+            _scopeFactory,
             tenant,
             command,
             cancellationToken
@@ -112,10 +111,10 @@ internal sealed class SignupTaxExemptTenantCommandHandler(
         {
             _ = await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (TryMapUniqueViolation(ex, out var conflictError))
         {
             _dbContext.ChangeTracker.Clear();
-            return TenancyErrors.SlugAlreadyTaken;
+            return conflictError;
         }
 
         _activeTenantRegistry.Invalidate();
@@ -139,71 +138,6 @@ internal sealed class SignupTaxExemptTenantCommandHandler(
             : Result.Success();
     }
 
-    private async Task<Result<Guid>> BootstrapTenantWorkspaceAsync(
-        Tenant tenant,
-        SignupTaxExemptTenantCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        using (
-            AmbientTenantContext.BeginScope(tenant.Id, tenant.Slug, TenantLifecycleStage.Sandbox)
-        )
-        {
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var adminId = Guid.Empty;
-
-            var onboardingHandler = scope.ServiceProvider.GetService<
-                ICommandHandler<CompleteOnboardingCommand, CompleteOnboardingResponse>
-            >();
-            if (onboardingHandler is not null)
-            {
-                var dispatcher = scope.ServiceProvider.GetRequiredService<ICommandDispatcher>();
-                var primaryBranch = string.IsNullOrWhiteSpace(command.PrimaryBranchName)
-                    ? "Headquarters"
-                    : command.PrimaryBranchName.Trim();
-                var onboardingResult = await dispatcher.SendAsync<
-                    CompleteOnboardingCommand,
-                    CompleteOnboardingResponse
-                >(
-                    new CompleteOnboardingCommand(
-                        tenant.DisplayName,
-                        tenant.TimeZoneId,
-                        primaryBranch,
-                        "HQ",
-                        command.AdminUserName,
-                        command.AdminEmail,
-                        command.AdminDisplayName,
-                        command.AdminPassword
-                    ),
-                    cancellationToken
-                );
-                if (onboardingResult.IsFailure)
-                {
-                    return Result.Failure<Guid>(onboardingResult.Errors);
-                }
-
-                adminId = onboardingResult.Value.AdminUserId;
-            }
-
-            var contributors = scope
-                .ServiceProvider.GetServices<ITenantSeedContributor>()
-                .OrderBy(static c => c.Order)
-                .ToArray();
-            foreach (var contributor in contributors)
-            {
-                await contributor.SeedTenantAsync(tenant.Id, cancellationToken);
-            }
-
-            var outboxDispatcher = scope.ServiceProvider.GetService<OutboxDispatcherService>();
-            if (outboxDispatcher is not null)
-            {
-                _ = await outboxDispatcher.ProcessPendingOnceAsync(cancellationToken);
-            }
-
-            return adminId;
-        }
-    }
-
     private async Task RollbackProvisionedTenantAsync(TenantId tenantId, string hostname)
     {
         await using var cleanupScope = _scopeFactory.CreateAsyncScope();
@@ -215,13 +149,25 @@ internal sealed class SignupTaxExemptTenantCommandHandler(
         _hostResolver.InvalidateHost(hostname);
     }
 
-    private static bool IsUniqueViolation(DbUpdateException exception)
+    private static bool TryMapUniqueViolation(DbUpdateException exception, out DomainError error)
     {
-        return exception.InnerException is PostgresException pg
+        if (
+            exception.InnerException is PostgresException pg
             && string.Equals(
                 pg.SqlState,
                 PostgresErrorCodes.UniqueViolation,
                 StringComparison.Ordinal
-            );
+            )
+        )
+        {
+            error =
+                pg.ConstraintName?.Contains("ein", StringComparison.OrdinalIgnoreCase) == true
+                    ? TenancyErrors.EinAlreadyRegistered
+                    : TenancyErrors.SlugAlreadyTaken;
+            return true;
+        }
+
+        error = default!;
+        return false;
     }
 }

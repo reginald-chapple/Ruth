@@ -23,6 +23,7 @@ public sealed class ScheduledJobExecutor
     private readonly IClock _clock;
     private readonly ILogger<ScheduledJobExecutor> _logger;
     private readonly ScheduledJobBookkeeper _bookkeeper;
+    private int _tenantRoundRobinCursor;
 
     /// <summary>Initializes a new <see cref="ScheduledJobExecutor" />.</summary>
     public ScheduledJobExecutor(
@@ -267,29 +268,32 @@ public sealed class ScheduledJobExecutor
             return await job.ExecuteAsync(cancellationToken);
         }
 
-        var tenants = await registry.GetActiveTenantIdsAsync(cancellationToken);
+        var tenants = await registry.GetActiveTenantsAsync(cancellationToken);
         if (tenants.Count == 0)
         {
-            return AmbientTenantContext.Instance.HasTenant
-                ? await job.ExecuteAsync(cancellationToken)
-                : JobExecutionResult.Success("No active tenants eligible for scheduled execution.");
+            return JobExecutionResult.Success(
+                "No active tenants eligible for scheduled execution."
+            );
         }
 
+        var startOffset = (int)(
+            unchecked((uint)Interlocked.Increment(ref _tenantRoundRobinCursor))
+            % (uint)tenants.Count
+        );
         var failedCount = 0;
         var warningCount = 0;
-        foreach (var tenantId in tenants)
+
+        for (var i = 0; i < tenants.Count; i++)
         {
-            using (AmbientTenantContext.BeginScope(tenantId))
+            var tenant = tenants[(startOffset + i) % tenants.Count];
+            var status = await ExecuteForSingleTenantSafelyAsync(job, tenant, cancellationToken);
+            if (status == JobExecutionStatus.Failed)
             {
-                var result = await job.ExecuteAsync(cancellationToken);
-                if (result.Status == JobExecutionStatus.Failed)
-                {
-                    failedCount++;
-                }
-                else if (result.Status == JobExecutionStatus.Warning)
-                {
-                    warningCount++;
-                }
+                failedCount++;
+            }
+            else if (status == JobExecutionStatus.Warning)
+            {
+                warningCount++;
             }
         }
 
@@ -300,6 +304,49 @@ public sealed class ScheduledJobExecutor
         return failedCount > 0 ? JobExecutionResult.Failed(summary)
             : warningCount > 0 ? JobExecutionResult.Warning(summary)
             : JobExecutionResult.Success(summary);
+    }
+
+    private async Task<JobExecutionStatus> ExecuteForSingleTenantSafelyAsync(
+        IScheduledJob job,
+        TenantExecutionState tenant,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            using (
+                AmbientTenantContext.BeginScope(
+                    tenant.TenantId,
+                    tenant.TenantSlug,
+                    tenant.LifecycleStage
+                )
+            )
+            {
+                var result = await job.ExecuteAsync(cancellationToken);
+                if (result.Status == JobExecutionStatus.Failed)
+                {
+                    SchedulerLog.TenantJobFailed(
+                        _logger,
+                        exception: null,
+                        job.JobKey,
+                        tenant.TenantId.Value,
+                        result.Message
+                    );
+                }
+
+                return result.Status;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var message = FormatExceptionMessage(ex);
+            SchedulerLog.TenantJobFailed(_logger, ex, job.JobKey, tenant.TenantId.Value, message);
+            return JobExecutionStatus.Failed;
+        }
     }
 
     internal static string FormatExceptionMessage(Exception exception)

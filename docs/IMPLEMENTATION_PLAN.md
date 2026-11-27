@@ -485,17 +485,29 @@ flowchart TD
 #### `W7-S1` — Complete Removal of `VirtualRooms`/`LiveKit`, `WalletPasses` & `Apache AGE` ✅ *(Completed)*
 * **Scope:** Delete `Ruth.Modules.VirtualRooms*`, `Ruth.Providers.LiveKit`, `Ruth.Providers.WalletPasses`, `Ruth.Modules.VirtualRooms.Tests`, `livekit` / `livekit-egress` Compose services, and `WalletPasses` slices/tables; replace `ApacheAgeCrmGraphService` with RLS-ready `RelationalCrmGraphService` over `crm` SQL tables; switch PostgreSQL 18 Dockerfile to standard `postgres:18` + `postgis` + `pgvector`.
 
-#### `W7-S2` — Governance Update, `TenantId` Primitives & `Tenancy` Control-Plane Module
+#### `W7-S2` — Governance Update, `TenantId` Primitives & `Tenancy` Control-Plane Module ✅ *(Completed)*
 * **Scope:** Update root/module `AGENTS.md` and `docs/IMPLEMENTATION_PLAN.md`; add `TenantId`, `ITenantScoped`, `ITenantContext`, `AmbientTenantContext`, `ITenantSeedContributor`, and CQRS `TenantGuard` decorators to `Ruth.SharedKernel`; create `Ruth.Modules.Tenancy.Contracts` and `Ruth.Modules.Tenancy` (`platform` schema) owning `Tenant` (`Sandbox`, `PendingVerification`, `Live`, `Suspended`), `TenantDomain`, `IrsExemptVerification`, `StripeConnectAccount`, and `PlatformOperator`.
+* **Acceptance & Tests:** Unit and PostgreSQL 18 integration tests verifying `TenantId` deterministic GUID derivation, `AmbientTenantContext` scope isolation, `TenantGuard` suspended/unauthenticated/cross-tenant rejection, and `platform` control-plane persistence & lifecycle invariants (`Ruth.SharedKernel.Tests`, `Ruth.Modules.Tenancy.Tests`).
+* **Authoring Skills:** `mcaf`, `architecture`, `modern-csharp`, `entity-framework-core`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S3` — Self-Serve Nonprofit Signup, IRS Exempt Verification & Mock Stripe Connect
+#### `W7-S3` — Self-Serve Nonprofit Signup, IRS Exempt Verification & Mock Stripe Connect ✅ *(Completed)*
 * **Scope:** Self-serve nonprofit registration wizard & Minimal APIs (Legal Name, EIN `XX-XXXXXXX`, state, 501(c)(3)/exempt subsection, sandbox host slug, initial tenant admin) provisioning an isolated `Sandbox` tenant + per-tenant module seeds (`ITenantSeedContributor`); `IIrsCharityVerificationProvider` (EIN validation + deterministic IRS EO BMF / Pub 78 lookup); `IStripeConnectProvider` + zero-config `MockStripeConnectProvider`; and Platform Operator Go-Live review/approval workflow.
+* **Acceptance & Tests:** Unit and PostgreSQL 18 integration tests verifying self-serve `Sandbox` provisioning, Primary `Branch` + `ITenantSeedContributor` bootstrap, IRS EIN / EO BMF verification & manual override gating, persistent mock Stripe Connect onboarding, DNS TXT custom domain verification, and Platform Operator Go-Live / return-to-Sandbox / suspension transitions (`Ruth.Modules.Tenancy.Tests`, `Ruth.Host.IntegrationTests`).
+* **Authoring Skills:** `architecture`, `modern-csharp`, `aspnet-core`, `dotnet-webapi`, `blazor`, `fluentui-blazor-usage`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S4` — Persistence RLS Engine, Dual DB Roles, Outbox & Scheduler Isolation
+#### `W7-S4` — Persistence RLS Engine, Dual DB Roles, Outbox & Scheduler Isolation ✅ *(Completed)*
 * **Scope:** PostgreSQL role separation (`ruth_migrator` vs non-superuser, non-`BYPASSRLS` `ruth_app`), `ModuleDbContext` `ITenantScoped` Global Query Filters + automatic composite `(tenant_id, ...)` unique index scoping, `AuditAndConcurrencySaveChangesInterceptor` `TenantId` stamping & cross-tenant mutation blocking, `TenantRlsConnectionInterceptor` (`set_config('app.current_tenant_id', ...)`), RLS DDL migration helpers (`ENABLE` + `FORCE ROW LEVEL SECURITY`), and per-tenant fair-share `OutboxModuleProcessor` & `ScheduledJobEngine` isolation.
+* **Acceptance & Tests:** Unit and PostgreSQL 18 integration tests verifying `ruth_migrator` (`NOSUPERUSER`, `NOBYPASSRLS`) vs `ruth_app` (`NOSUPERUSER`, `NOBYPASSRLS`) provisioning, 0-row fail-closed queries without GUC, GUC rollback reset safety across pooled connections, preserved index annotations (`NULLS NOT DISTINCT`), and fair-share active-tenant iteration in `OutboxModuleProcessor` & `ScheduledJobExecutor` (`Ruth.Persistence.Tests`).
+* **Authoring Skills:** `architecture`, `entity-framework-core`, `modern-csharp`, `blazing-fast-dotnet`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S5` — Core & Constituent Modules RLS Retrofit (`Identity`, `Core`, `Crm`, `Groups`, `CheckIn`, `Communication`)
+#### `W7-S5` — Core & Constituent Modules RLS Retrofit (`Identity`, `Core`, `Crm`, `Groups`, `CheckIn`, `Communication`) ✅ *(Completed)*
 * **Scope:** Clean multi-tenant + `FORCE ROW LEVEL SECURITY` baseline migrations across `identity`, `core`, `crm`, `groups`, `checkin`, and `comms` schemas; per-tenant deterministic system role IDs; tenant-partitioned `AclSnapshotCache` and `CoreReadCache` (`t:{TenantId}:...`); and `Live`-status gating on outbound bulk email/SMS.
+* **Acceptance & Tests:** Testcontainers PostgreSQL 18 `pg_class` `FORCE ROW LEVEL SECURITY` and `ruth_app` cross-tenant isolation tests across `Identity`, `Core`, `Crm`, `Groups`, `CheckIn`, and `Communication`, covering per-tenant deterministic system roles/entity types, `AclSnapshotCache` & `CoreReadCache` `t:{TenantId}:...` partitioning, `NULLS NOT DISTINCT` composite indexes, tenant-bound `PreferenceTokenSigner` & `InMemoryCommunicationSink`, and `Sandbox` vs `Live` outbound gating.
+* **Authoring Skills:** `architecture`, `entity-framework-core`, `modern-csharp`, `aspnet-core`, `blazing-fast-dotnet`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
 #### `W7-S6` — Operations & Portal Modules RLS Retrofit (`Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, `Reporting`, `Lms`, `Search`)
 * **Scope:** Clean multi-tenant + `FORCE ROW LEVEL SECURITY` baseline migrations across `finance`, `events`, `commerce`, `engage`, `workflow`, `cms`, `reporting`, `lms`, and `search` schemas; mandatory `tenants/{TenantId}/...` key prefixing inside `IStorageProvider`; tenant-scoped `DataView`, Star-Schema, and `tsvector` Search projections; and `Live`-status gating on live payment capture.

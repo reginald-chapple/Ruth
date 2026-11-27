@@ -7,7 +7,7 @@ namespace Ruth.Persistence.EntityFramework;
 
 /// <summary>
 /// Synchronizes the PostgreSQL app.current_tenant_id session GUC with <see cref="AmbientTenantContext.CurrentTenantId" />
-/// across pooled ADO.NET connections, EF Core commands, and raw SQL operations.
+/// across pooled ADO.NET connections, EF Core commands, raw SQL operations, and rolled-back transactions.
 /// </summary>
 public static class TenantRlsConnectionSynchronizer
 {
@@ -20,14 +20,25 @@ public static class TenantRlsConnectionSynchronizer
     private sealed class BoundTenantHolder
     {
         public string? Value { get; set; }
+
+        public bool SetInsideTransaction { get; set; }
+
+        public WeakReference<DbTransaction>? BoundTransaction { get; set; }
+
+        public void Reset()
+        {
+            Value = null;
+            SetInsideTransaction = false;
+            BoundTransaction = null;
+        }
     }
 
     /// <summary>Clears the cached GUC state for <paramref name="connection" /> (e.g. on open, close, or transaction rollback).</summary>
     public static void Invalidate(DbConnection? connection)
     {
-        if (connection is not null)
+        if (connection is not null && _boundTenants.TryGetValue(connection, out var holder))
         {
-            _ = _boundTenants.Remove(connection);
+            holder.Reset();
         }
     }
 
@@ -39,15 +50,16 @@ public static class TenantRlsConnectionSynchronizer
             return;
         }
 
+        var holder = GetOrRegisterHolder(connection);
         var desired = ResolveDesiredGucValue();
-        if (IsAlreadyBound(connection, desired))
+        if (IsAlreadyBound(holder, transaction, desired))
         {
             return;
         }
 
         using var command = CreateSetConfigCommand(connection, transaction, desired);
         _ = command.ExecuteScalar();
-        RecordBound(connection, desired);
+        RecordBound(holder, transaction, desired);
     }
 
     /// <summary>Asynchronously ensures app.current_tenant_id matches <see cref="AmbientTenantContext.CurrentTenantId" />.</summary>
@@ -62,15 +74,37 @@ public static class TenantRlsConnectionSynchronizer
             return;
         }
 
+        var holder = GetOrRegisterHolder(connection);
         var desired = ResolveDesiredGucValue();
-        if (IsAlreadyBound(connection, desired))
+        if (IsAlreadyBound(holder, transaction, desired))
         {
             return;
         }
 
         await using var command = CreateSetConfigCommand(connection, transaction, desired);
         _ = await command.ExecuteScalarAsync(cancellationToken);
-        RecordBound(connection, desired);
+        RecordBound(holder, transaction, desired);
+    }
+
+    private static BoundTenantHolder GetOrRegisterHolder(DbConnection connection)
+    {
+        return _boundTenants.GetValue(connection, static conn =>
+        {
+            var created = new BoundTenantHolder();
+            conn.StateChange += (_, e) =>
+            {
+                if (
+                    e.CurrentState
+                    is ConnectionState.Closed
+                        or ConnectionState.Broken
+                        or ConnectionState.Open
+                )
+                {
+                    created.Reset();
+                }
+            };
+            return created;
+        });
     }
 
     private static string ResolveDesiredGucValue()
@@ -79,16 +113,42 @@ public static class TenantRlsConnectionSynchronizer
         return tenantId.IsEmpty ? string.Empty : tenantId.ToString();
     }
 
-    private static bool IsAlreadyBound(DbConnection connection, string desired)
+    private static bool IsAlreadyBound(
+        BoundTenantHolder holder,
+        DbTransaction? transaction,
+        string desired
+    )
     {
-        return _boundTenants.TryGetValue(connection, out var holder)
-            && string.Equals(holder.Value, desired, StringComparison.Ordinal);
+        if (!string.Equals(holder.Value, desired, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (!holder.SetInsideTransaction)
+        {
+            return true;
+        }
+
+        // If the GUC was set inside a transaction, PostgreSQL reverts set_config(..., false) when
+        // that transaction rolls back (including uncommitted DisposeAsync). Only trust the cached
+        // value while executing inside that exact same live DbTransaction instance.
+        return transaction is not null
+            && holder.BoundTransaction is not null
+            && holder.BoundTransaction.TryGetTarget(out var boundTx)
+            && ReferenceEquals(boundTx, transaction);
     }
 
-    private static void RecordBound(DbConnection connection, string desired)
+    private static void RecordBound(
+        BoundTenantHolder holder,
+        DbTransaction? transaction,
+        string desired
+    )
     {
-        var holder = _boundTenants.GetOrCreateValue(connection);
         holder.Value = desired;
+        holder.SetInsideTransaction = transaction is not null;
+        holder.BoundTransaction = transaction is not null
+            ? new WeakReference<DbTransaction>(transaction)
+            : null;
     }
 
     private static DbCommand CreateSetConfigCommand(

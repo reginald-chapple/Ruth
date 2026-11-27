@@ -2,18 +2,20 @@ using System.Security.Cryptography;
 using System.Text;
 using Ruth.Modules.Communication.Contracts.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Domain.BulkCommunications;
 
 /// <summary>Stateless HMAC-SHA256 signer and verifier for recipient unsubscribe and Preference Center tokens.</summary>
 public static class PreferenceTokenSigner
 {
-    /// <summary>Mints a URL-safe signed preference token encoding channel, normalized destination, and optional person ID.</summary>
+    /// <summary>Mints a URL-safe signed preference token encoding channel, normalized destination, and optional person ID bound to the tenant.</summary>
     public static string Sign(
         CommunicationChannel channel,
         string normalizedDestination,
         Guid? personId,
-        string signingSecret
+        string signingSecret,
+        TenantId tenantId = default
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(normalizedDestination);
@@ -23,17 +25,17 @@ public static class PreferenceTokenSigner
             $"{channel}|{normalizedDestination.Trim()}|{(personId.HasValue && personId.Value != Guid.Empty ? personId.Value.ToString("D") : string.Empty)}";
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
         var payloadB64 = Base64UrlEncode(payloadBytes);
-        var macBytes = HMACSHA256.HashData(Encoding.UTF8.GetBytes(signingSecret), payloadBytes);
+        var macBytes = HMACSHA256.HashData(DeriveSigningKey(signingSecret, tenantId), payloadBytes);
         var macB64 = Base64UrlEncode(macBytes);
         return $"{payloadB64}.{macB64}";
     }
 
-    /// <summary>Verifies and decodes a signed preference token in constant time.</summary>
+    /// <summary>Verifies and decodes a signed preference token in constant time against the expected tenant.</summary>
     public static Result<(
         CommunicationChannel Channel,
         string NormalizedDestination,
         Guid? PersonId
-    )> Verify(string? token, string signingSecret)
+    )> Verify(string? token, string signingSecret, TenantId expectedTenantId = default)
     {
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(signingSecret))
         {
@@ -59,12 +61,22 @@ public static class PreferenceTokenSigner
             );
         }
 
-        var expectedMac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(signingSecret), payloadBytes);
+        var expectedMac = HMACSHA256.HashData(
+            DeriveSigningKey(signingSecret, expectedTenantId),
+            payloadBytes
+        );
         return !CryptographicOperations.FixedTimeEquals(expectedMac, providedMac)
             ? Result.Failure<(CommunicationChannel, string, Guid?)>(
                 BulkCommunicationErrors.PreferenceTokenInvalid
             )
             : ParsePayload(Encoding.UTF8.GetString(payloadBytes));
+    }
+
+    private static byte[] DeriveSigningKey(string signingSecret, TenantId tenantId)
+    {
+        return tenantId.IsEmpty
+            ? Encoding.UTF8.GetBytes(signingSecret)
+            : Encoding.UTF8.GetBytes($"{signingSecret}|tenant:{tenantId.Value:D}");
     }
 
     private static Result<(

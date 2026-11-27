@@ -1,4 +1,5 @@
 @page "/signup"
+@rendermode InteractiveServer
 @layout OnboardingLayout
 
 <PageTitle>Nonprofit Workspace Provisioning</PageTitle>
@@ -47,6 +48,7 @@
             <FluentCard Padding="@Padding.All4">
                 <EditForm Model="@Model" OnValidSubmit="@SubmitAsync">
                     <DataAnnotationsValidator />
+                    <ValidationSummary />
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                         <FluentTextInput Id="signup-legal-name" @bind-Value="Model.LegalName" Label="IRS Legal Organization Name" Required="true" Width="100%" />
                         <FluentTextInput Id="signup-display-name" @bind-Value="Model.DisplayName" Label="Public Display Name" Required="true" Width="100%" />

@@ -1,5 +1,8 @@
 @page "/ops"
+@rendermode InteractiveServer
 @using Ruth.Modules.Tenancy.Contracts.Operators
+@using Ruth.Modules.Tenancy.Contracts.Tenants
+@using Ruth.SharedKernel.Tenancy
 @layout OnboardingLayout
 
 <PageTitle>Platform Compliance Operations</PageTitle>
@@ -14,27 +17,48 @@
     else if (OperatorSession is null)
     {
         <FluentCard Padding="@Padding.All4">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <h1>Platform Compliance Console</h1>
-                @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
-                {
-                    <FluentMessageBar Intent="MessageBarIntent.Error" Title="Authentication failed" AllowDismiss="false">
-                        @FeedbackMessage
-                    </FluentMessageBar>
-                }
-                <FluentTextInput Id="ops-email" @bind-Value="OperatorEmail" TextInputType="TextInputType.Email" Label="Operator Email" Width="100%" />
-                <FluentTextInput Id="ops-password" @bind-Value="OperatorPassword" TextInputType="TextInputType.Password" Label="Operator Password" Width="100%" />
-                <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@SignInOperatorAsync">
-                    Sign In
-                </FluentButton>
-            </FluentStack>
+            <EditForm Model="@this" OnValidSubmit="@SignInOperatorAsync">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <h1>Platform Compliance Console</h1>
+                    @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
+                    {
+                        <FluentMessageBar Intent="MessageBarIntent.Error" Title="Authentication failed" AllowDismiss="false">
+                            @FeedbackMessage
+                        </FluentMessageBar>
+                    }
+                    <FluentTextInput Id="ops-email" @bind-Value="OperatorEmail" TextInputType="TextInputType.Email" Label="Operator Email" Required="true" Width="100%" />
+                    <FluentTextInput Id="ops-password" @bind-Value="OperatorPassword" TextInputType="TextInputType.Password" Label="Operator Password" Required="true" Width="100%" />
+                    <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" Loading="@IsBusy">
+                        Sign In
+                    </FluentButton>
+                </FluentStack>
+            </EditForm>
         </FluentCard>
     }
     else
     {
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-            <h1>Nonprofit Go-Live Verification Queue</h1>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <h1>Nonprofit Go-Live Verification Queue</h1>
+                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@SignOutOperator">
+                    Sign Out
+                </FluentButton>
+            </FluentStack>
             <p>Signed in as <strong>@OperatorSession.DisplayName</strong> (@OperatorSession.Email)</p>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12" Wrap="true">
+                <FluentSelect TOption="string"
+                              TValue="string"
+                              Id="ops-stage-filter"
+                              Items="@StageFilterOptions"
+                              OptionText="@(static s => s)"
+                              OptionValue="@(static s => s)"
+                              Value="@SelectedStageFilter"
+                              ValueChanged="@OnStageFilterChangedAsync"
+                              Label="Lifecycle Filter" />
+                <FluentTextInput Id="ops-review-notes" @bind-Value="ReviewNotes" Label="Compliance Review Notes" Placeholder="Optional determination or remediation note" />
+                <FluentCheckbox @bind-Value="ManualIrsOverrideApproved" Label="Approve manual IRS determination letter override" />
+            </FluentStack>
 
             @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
             {
@@ -46,7 +70,7 @@
             @if (Queue.Count == 0)
             {
                 <FluentCard Padding="@Padding.All4">
-                    <p>No organizations are currently awaiting Go-Live approval.</p>
+                    <p>No organizations match the selected compliance queue filter.</p>
                 </FluentCard>
             }
             else
@@ -55,7 +79,7 @@
                 {
                     <FluentCard @key="item.TenantId" Padding="@Padding.All4">
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                            <h2>@item.LegalName (@item.Slug)</h2>
+                            <h2>@item.LegalName (@item.Slug) &mdash; @item.LifecycleStage</h2>
                             <p>
                                 <strong>EIN:</strong> @item.Ein |
                                 <strong>Subsection:</strong> @item.IrsSubsectionCode |
@@ -63,15 +87,24 @@
                                 <strong>Stripe Ready:</strong> @(item.StripeChargesEnabled && item.StripePayoutsEnabled ? "Yes" : "No")
                             </p>
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
-                                <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ApproveLive))">
-                                    Approve Live
-                                </FluentButton>
-                                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ReturnToSandbox))">
-                                    Return to Sandbox
-                                </FluentButton>
-                                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.Suspend))">
-                                    Suspend
-                                </FluentButton>
+                                @if (item.LifecycleStage == TenantLifecycleStage.PendingVerification)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ApproveLive))">
+                                        Approve Live
+                                    </FluentButton>
+                                }
+                                @if (item.LifecycleStage is TenantLifecycleStage.PendingVerification or TenantLifecycleStage.Live)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.ReturnToSandbox))">
+                                        Return to Sandbox
+                                    </FluentButton>
+                                }
+                                @if (item.LifecycleStage != TenantLifecycleStage.Suspended)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@(() => ReviewAsync(item.TenantId, OperatorReviewDecision.Suspend))">
+                                        Suspend
+                                    </FluentButton>
+                                }
                             </FluentStack>
                         </FluentStack>
                     </FluentCard>

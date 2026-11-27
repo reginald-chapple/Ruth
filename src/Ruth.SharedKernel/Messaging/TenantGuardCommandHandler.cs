@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.SharedKernel.Messaging;
 
-/// <summary>CQRS decorator verifying tenant context and principal tenant binding before executing command handlers.</summary>
+/// <summary>CQRS decorator verifying tenant context, lifecycle eligibility, and principal tenant binding before executing command handlers.</summary>
 public sealed class TenantGuardCommandHandler<TCommand>(
     ICommandHandler<TCommand> inner,
     ITenantContext tenantContext,
@@ -14,6 +14,12 @@ public sealed class TenantGuardCommandHandler<TCommand>(
     private static readonly bool _isControlPlane =
         typeof(IPlatformControlPlaneRequest).IsAssignableFrom(typeof(TCommand));
 
+    private readonly ICommandHandler<TCommand> _inner = inner
+        ?? throw new ArgumentNullException(nameof(inner));
+    private readonly ITenantContext _tenantContext = tenantContext
+        ?? throw new ArgumentNullException(nameof(tenantContext));
+    private readonly IPrincipalTenantValidator? _principalValidator = principalValidator;
+
     /// <inheritdoc />
     public Task<Result> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
     {
@@ -21,21 +27,27 @@ public sealed class TenantGuardCommandHandler<TCommand>(
 
         if (!_isControlPlane)
         {
-            if (!tenantContext.HasTenant)
+            if (!_tenantContext.HasTenant)
             {
                 throw new TenantContextRequiredException(
                     $"Command '{typeof(TCommand).Name}' requires an active tenant context."
                 );
             }
 
-            principalValidator?.EnsurePrincipalMatchesTenant(tenantContext);
+            if (_tenantContext.LifecycleStage == TenantLifecycleStage.Suspended)
+            {
+                throw new CrossTenantAccessException(
+                    $"Command '{typeof(TCommand).Name}' cannot execute because tenant '{_tenantContext.TenantId}' is suspended."
+                );
+            }
         }
 
-        return inner.HandleAsync(command, cancellationToken);
+        _principalValidator?.EnsurePrincipalMatchesTenant(_tenantContext);
+        return _inner.HandleAsync(command, cancellationToken);
     }
 }
 
-/// <summary>CQRS decorator verifying tenant context and principal tenant binding before executing command handlers returning <typeparamref name="TResponse" />.</summary>
+/// <summary>CQRS decorator verifying tenant context, lifecycle eligibility, and principal tenant binding before executing command handlers returning <typeparamref name="TResponse" />.</summary>
 public sealed class TenantGuardCommandHandler<TCommand, TResponse>(
     ICommandHandler<TCommand, TResponse> inner,
     ITenantContext tenantContext,
@@ -45,6 +57,12 @@ public sealed class TenantGuardCommandHandler<TCommand, TResponse>(
 {
     private static readonly bool _isControlPlane =
         typeof(IPlatformControlPlaneRequest).IsAssignableFrom(typeof(TCommand));
+
+    private readonly ICommandHandler<TCommand, TResponse> _inner = inner
+        ?? throw new ArgumentNullException(nameof(inner));
+    private readonly ITenantContext _tenantContext = tenantContext
+        ?? throw new ArgumentNullException(nameof(tenantContext));
+    private readonly IPrincipalTenantValidator? _principalValidator = principalValidator;
 
     /// <inheritdoc />
     public Task<Result<TResponse>> HandleAsync(
@@ -56,16 +74,22 @@ public sealed class TenantGuardCommandHandler<TCommand, TResponse>(
 
         if (!_isControlPlane)
         {
-            if (!tenantContext.HasTenant)
+            if (!_tenantContext.HasTenant)
             {
                 throw new TenantContextRequiredException(
                     $"Command '{typeof(TCommand).Name}' requires an active tenant context."
                 );
             }
 
-            principalValidator?.EnsurePrincipalMatchesTenant(tenantContext);
+            if (_tenantContext.LifecycleStage == TenantLifecycleStage.Suspended)
+            {
+                throw new CrossTenantAccessException(
+                    $"Command '{typeof(TCommand).Name}' cannot execute because tenant '{_tenantContext.TenantId}' is suspended."
+                );
+            }
         }
 
-        return inner.HandleAsync(command, cancellationToken);
+        _principalValidator?.EnsurePrincipalMatchesTenant(_tenantContext);
+        return _inner.HandleAsync(command, cancellationToken);
     }
 }

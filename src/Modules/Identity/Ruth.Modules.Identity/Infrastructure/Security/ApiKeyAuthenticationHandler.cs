@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Identity.Domain;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
@@ -29,6 +30,14 @@ internal sealed class ApiKeyAuthenticationHandler(
             return AuthenticateResult.NoResult();
         }
 
+        var currentTenantId = AmbientTenantContext.CurrentTenantId;
+        if (AmbientTenantContext.Instance.IsPlatformOperatorHost || currentTenantId.IsEmpty)
+        {
+            return AuthenticateResult.Fail(
+                "Tenant workspace context is required for API key authentication."
+            );
+        }
+
         var utcNow = clock.UtcNow;
         var hash = tokenService.ComputeSha256Hash(rawKey);
         var keyEntity = await dbContext.RestApiKeys.FirstOrDefaultAsync(
@@ -36,7 +45,11 @@ internal sealed class ApiKeyAuthenticationHandler(
             Context.RequestAborted
         );
 
-        if (keyEntity is null || !keyEntity.IsValidAt(utcNow))
+        if (
+            keyEntity is null
+            || keyEntity.TenantId != currentTenantId
+            || !keyEntity.IsValidAt(utcNow)
+        )
         {
             return AuthenticateResult.Fail("Invalid or expired API key.");
         }

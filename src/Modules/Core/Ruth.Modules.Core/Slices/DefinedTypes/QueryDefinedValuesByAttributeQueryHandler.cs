@@ -24,11 +24,14 @@ internal sealed class QueryDefinedValuesByAttributeQueryHandler(CoreDbContext db
             }
         );
 
+        var tenantId = dbContext.CurrentTenantId.Value;
         var matches = await dbContext
             .DefinedValues.FromSqlInterpolated(
-                $"SELECT * FROM core.defined_values WHERE defined_type_id = {query.DefinedTypeId} AND attributes @> CAST({filterJson} AS jsonb) ORDER BY \"order\", value"
+                $"SELECT * FROM core.defined_values WHERE tenant_id = {tenantId} AND defined_type_id = {query.DefinedTypeId} AND attributes @> CAST({filterJson} AS jsonb)"
             )
             .AsNoTracking()
+            .OrderBy(static x => x.Order)
+            .ThenBy(static x => x.Value)
             .ToListAsync(cancellationToken);
 
         IReadOnlyList<DefinedValueResponse> results =

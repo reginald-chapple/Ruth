@@ -1,5 +1,6 @@
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.SharedKernel.Primitives;
+using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Tenancy.Domain;
 
@@ -41,24 +42,37 @@ public sealed class PlatformOperator
 
     public Guid ConcurrencyStamp { get; private set; }
 
-    public static PlatformOperator Create(
-        string email,
-        string displayName,
-        string passwordHash,
+    public static Result<PlatformOperator> Create(
+        string? email,
+        string? displayName,
+        string? passwordHash,
         DateTimeOffset nowUtc
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(email);
-        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
-
-        return new PlatformOperator(
-            PlatformOperatorId.Create(),
-            email.Trim().ToLowerInvariant(),
-            displayName.Trim(),
-            passwordHash,
-            nowUtc
-        );
+        return string.IsNullOrWhiteSpace(email)
+            || !email.Contains('@', StringComparison.Ordinal)
+            || email.Trim().Length > 256
+                ? DomainError.Validation(
+                    "Tenancy.InvalidOperatorEmail",
+                    "A valid platform operator email address is required."
+                )
+            : string.IsNullOrWhiteSpace(displayName) || displayName.Trim().Length > 200
+                ? DomainError.Validation(
+                    "Tenancy.InvalidOperatorDisplayName",
+                    "Platform operator display name is required (maximum 200 characters)."
+                )
+            : string.IsNullOrWhiteSpace(passwordHash)
+                ? DomainError.Validation(
+                    "Tenancy.InvalidOperatorPasswordHash",
+                    "Platform operator password hash is required."
+                )
+            : new PlatformOperator(
+                PlatformOperatorId.Create(),
+                email.Trim().ToLowerInvariant(),
+                displayName.Trim(),
+                passwordHash,
+                nowUtc
+            );
     }
 
     public void SetCreated(DateTimeOffset createdOnUtc)

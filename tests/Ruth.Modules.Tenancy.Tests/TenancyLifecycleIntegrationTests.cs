@@ -50,6 +50,94 @@ public sealed class TenancyLifecycleIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StripeConnectAccount_Persists_In_Platform_Schema_And_ManualReview_Override_And_Operator_Guard_Work()
+    {
+        await using var provider = await TenancyTestHostFactory.BuildMigratedProviderAsync(
+            _postgres,
+            []
+        );
+        var commands = provider.GetRequiredService<ICommandDispatcher>();
+
+        // EIN ending in 7777 triggers IrsVerificationStatus.ManualReviewRequired
+        var signup = await commands.SendAsync<
+            SignupTaxExemptTenantCommand,
+            SignupTaxExemptTenantResponse
+        >(
+            new SignupTaxExemptTenantCommand(
+                "Newly Formed Relief Trust",
+                "Relief Trust",
+                "relief-trust",
+                "52-1237777",
+                "501(c)(3)",
+                "VA",
+                "UTC",
+                "Main",
+                "trustadmin",
+                "admin@relieftrust.org",
+                "Trust Admin",
+                "StrongPass!2026#"
+            )
+        );
+        Assert.True(signup.IsSuccess);
+        var tenantId = TenantId.From(signup.Value.TenantId);
+
+        using (
+            AmbientTenantContext.BeginScope(tenantId, "relief-trust", TenantLifecycleStage.Sandbox)
+        )
+        {
+            var stripeDone = await commands.SendAsync<
+                CompleteMockStripeConnectCommand,
+                TenantComplianceStatusResponse
+            >(new CompleteMockStripeConnectCommand());
+            Assert.True(stripeDone.IsSuccess);
+
+            var submitted = await commands.SendAsync<
+                SubmitTenantForGoLiveCommand,
+                TenantComplianceStatusResponse
+            >(new SubmitTenantForGoLiveCommand());
+            Assert.True(submitted.IsSuccess);
+            Assert.Equal(IrsVerificationStatus.ManualReviewRequired, submitted.Value.IrsStatus);
+        }
+
+        await TenancyTestHostFactory.AssertPersistedStripeAndIrsRowsAsync(provider, tenantId);
+
+        using (AmbientTenantContext.BeginPlatformOperatorScope())
+        {
+            // Unregistered operator email MUST be rejected
+            var spoofAttempt = await commands.SendAsync<
+                ReviewTenantGoLiveCommand,
+                TenantComplianceStatusResponse
+            >(
+                new ReviewTenantGoLiveCommand(
+                    tenantId.Value,
+                    OperatorReviewDecision.ApproveLive,
+                    "forged@attacker.example",
+                    "Spoofed approval",
+                    ManualIrsOverrideApproved: true
+                )
+            );
+            Assert.True(spoofAttempt.IsFailure);
+            Assert.Equal("Tenancy.InvalidOperatorIdentity", spoofAttempt.PrimaryError.Code);
+
+            // Real active operator with ManualIrsOverrideApproved = true approves Live
+            var approved = await commands.SendAsync<
+                ReviewTenantGoLiveCommand,
+                TenantComplianceStatusResponse
+            >(
+                new ReviewTenantGoLiveCommand(
+                    tenantId.Value,
+                    OperatorReviewDecision.ApproveLive,
+                    "compliance@ops.localhost",
+                    "Determination letter inspected",
+                    ManualIrsOverrideApproved: true
+                )
+            );
+            Assert.True(approved.IsSuccess);
+            Assert.Equal(TenantLifecycleStage.Live, approved.Value.LifecycleStage);
+        }
+    }
+
+    [Fact]
     public async Task Revoked_Irs_Ein_Is_Rejected_On_GoLive_Submission()
     {
         await using var provider = await TenancyTestHostFactory.BuildMigratedProviderAsync(
@@ -214,7 +302,7 @@ public sealed class TenancyLifecycleIntegrationTests : IAsyncLifetime
             >(
                 new VerifyCustomDomainCommand(
                     domainReg.Value.Id,
-                    domainReg.Value.VerificationTxtValue!
+                    domainReg.Value.VerificationTxtValue
                 )
             );
             Assert.True(domainVerify.IsSuccess);

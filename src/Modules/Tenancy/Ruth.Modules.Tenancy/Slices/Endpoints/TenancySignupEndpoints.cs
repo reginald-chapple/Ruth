@@ -22,7 +22,10 @@ internal static class TenancySignupEndpoints
         _ = group
             .MapPost("/", SignupAsync)
             .WithName("SignupTaxExemptTenant")
-            .WithSummary("Provision a new Sandbox workspace for a tax-exempt organization");
+            .WithSummary("Provision a new Sandbox workspace for a tax-exempt organization")
+            .WithDescription(
+                "Validates IRS EIN and eligible tax-exempt subsection, creates an isolated Sandbox tenant and subdomain, and seeds initial workspace records."
+            );
 
         return endpoints;
     }
@@ -37,7 +40,7 @@ internal static class TenancySignupEndpoints
         CancellationToken cancellationToken
     )
     {
-        if (tenantContext.HasTenant)
+        if (tenantContext.HasTenant || tenantContext.IsPlatformOperatorHost)
         {
             return TypedResults.NotFound();
         }

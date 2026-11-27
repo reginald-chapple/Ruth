@@ -6,13 +6,15 @@ using Ruth.Modules.Tenancy.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
 using Ruth.SharedKernel.Tenancy;
+using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Tenancy.Slices.Compliance;
 
 internal sealed class StartStripeConnectOnboardingCommandHandler(
     TenancyDbContext dbContext,
     ITenantContext tenantContext,
-    IStripeConnectProvider stripeConnectProvider
+    IStripeConnectProvider stripeConnectProvider,
+    IClock clock
 ) : ICommandHandler<StartStripeConnectOnboardingCommand, StripeConnectOnboardingResponse>
 {
     private readonly TenancyDbContext _dbContext = dbContext
@@ -21,6 +23,7 @@ internal sealed class StartStripeConnectOnboardingCommandHandler(
         ?? throw new ArgumentNullException(nameof(tenantContext));
     private readonly IStripeConnectProvider _stripeConnectProvider = stripeConnectProvider
         ?? throw new ArgumentNullException(nameof(stripeConnectProvider));
+    private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
     public async Task<Result<StripeConnectOnboardingResponse>> HandleAsync(
         StartStripeConnectOnboardingCommand command,
@@ -29,15 +32,13 @@ internal sealed class StartStripeConnectOnboardingCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (
-            string.IsNullOrWhiteSpace(command.ReturnUrl)
-            || string.IsNullOrWhiteSpace(command.RefreshUrl)
-        )
+        var returnUrlResult = TenantSlugPolicy.NormalizeAndValidateOnboardingUrl(command.ReturnUrl);
+        var refreshUrlResult = TenantSlugPolicy.NormalizeAndValidateOnboardingUrl(
+            command.RefreshUrl
+        );
+        if (returnUrlResult.IsFailure || refreshUrlResult.IsFailure)
         {
-            return DomainError.Validation(
-                "Tenancy.InvalidOnboardingUrls",
-                "Stripe Connect return and refresh URLs are required."
-            );
+            return TenancyErrors.InvalidOnboardingUrls;
         }
 
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(
@@ -49,13 +50,17 @@ internal sealed class StartStripeConnectOnboardingCommandHandler(
             return TenancyErrors.TenantNotFound;
         }
 
+        var stripeEntity = await _dbContext.StripeConnectAccounts.FirstOrDefaultAsync(
+            x => x.TargetTenantId == tenant.Id,
+            cancellationToken
+        );
         var session = await _stripeConnectProvider.CreateOrResumeOnboardingAsync(
             tenant.Id,
-            tenant.StripeConnectAccountId,
+            stripeEntity?.ExternalAccountId ?? tenant.StripeConnectAccountId,
             tenant.LegalName,
             tenant.Ein,
-            command.ReturnUrl,
-            command.RefreshUrl,
+            returnUrlResult.Value,
+            refreshUrlResult.Value,
             cancellationToken
         );
         var accountStatus = await _stripeConnectProvider.GetAccountStatusAsync(
@@ -63,17 +68,34 @@ internal sealed class StartStripeConnectOnboardingCommandHandler(
             cancellationToken
         );
 
-        tenant.AttachStripeConnectAccount(
-            session.AccountId,
-            accountStatus.ChargesEnabled,
-            accountStatus.PayoutsEnabled
+        var upsertResult = StripeConnectPersistenceHelper.UpsertAccountAndAttachTenant(
+            _dbContext,
+            tenant,
+            stripeEntity,
+            accountStatus,
+            _stripeConnectProvider.IsMockMode,
+            session.OnboardingUrl,
+            session.ExpiresAtUtc,
+            _clock.UtcNow
         );
-        _ = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (upsertResult.IsFailure)
+        {
+            return Result.Failure<StripeConnectOnboardingResponse>(upsertResult.Errors);
+        }
 
+        _ = await _dbContext.SaveChangesAsync(cancellationToken);
+        return MapSessionResponse(session, _stripeConnectProvider.IsMockMode);
+    }
+
+    private static StripeConnectOnboardingResponse MapSessionResponse(
+        StripeConnectSessionResult session,
+        bool isMockMode
+    )
+    {
         return new StripeConnectOnboardingResponse(
             session.AccountId,
             session.OnboardingUrl,
-            _stripeConnectProvider.IsMockMode,
+            isMockMode,
             session.ExpiresAtUtc
         );
     }

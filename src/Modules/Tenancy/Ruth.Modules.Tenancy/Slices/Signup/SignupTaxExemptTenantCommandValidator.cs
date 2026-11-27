@@ -16,28 +16,63 @@ internal sealed class SignupTaxExemptTenantCommandValidator
         ArgumentNullException.ThrowIfNull(request);
         var errors = new List<DomainError>();
 
-        var slugResult = TenantSlugPolicy.NormalizeAndValidateSlug(request.Slug);
-        if (slugResult.IsFailure)
-        {
-            errors.AddRange(slugResult.Errors);
-        }
-
-        var einResult = EinFormatter.NormalizeAndValidate(request.Ein);
-        if (einResult.IsFailure)
-        {
-            errors.AddRange(einResult.Errors);
-        }
-
-        var subsectionResult = TenantSlugPolicy.NormalizeAndValidateSubsection(
-            request.IrsSubsectionCode
-        );
-        if (subsectionResult.IsFailure)
-        {
-            errors.AddRange(subsectionResult.Errors);
-        }
-
+        ValidateOrganizationInputs(request, errors);
         ValidateAdminInputs(request, errors);
         return ValueTask.FromResult<IReadOnlyList<DomainError>>(errors);
+    }
+
+    private static void ValidateOrganizationInputs(
+        SignupTaxExemptTenantCommand request,
+        List<DomainError> errors
+    )
+    {
+        if (string.IsNullOrWhiteSpace(request.LegalName) || request.LegalName.Trim().Length > 200)
+        {
+            errors.Add(
+                DomainError.Validation(
+                    "Tenancy.InvalidLegalName",
+                    "Legal organization name is required (maximum 200 characters)."
+                )
+            );
+        }
+
+        if (
+            !string.IsNullOrWhiteSpace(request.DisplayName)
+            && request.DisplayName.Trim().Length > 200
+        )
+        {
+            errors.Add(TenancyErrors.InvalidDisplayName);
+        }
+
+        if (
+            !string.IsNullOrWhiteSpace(request.PrimaryBranchName)
+            && request.PrimaryBranchName.Trim().Length > 160
+        )
+        {
+            errors.Add(
+                DomainError.Validation(
+                    "Tenancy.InvalidPrimaryBranchName",
+                    "Primary operating site name must not exceed 160 characters."
+                )
+            );
+        }
+
+        AddIfFailure(TenantSlugPolicy.NormalizeAndValidateSlug(request.Slug), errors);
+        AddIfFailure(EinFormatter.NormalizeAndValidate(request.Ein), errors);
+        AddIfFailure(
+            TenantSlugPolicy.NormalizeAndValidateSubsection(request.IrsSubsectionCode),
+            errors
+        );
+        AddIfFailure(TenantSlugPolicy.NormalizeAndValidateStateCode(request.StateCode), errors);
+        AddIfFailure(TenantSlugPolicy.NormalizeAndValidateTimeZoneId(request.TimeZoneId), errors);
+    }
+
+    private static void AddIfFailure<T>(Result<T> result, List<DomainError> errors)
+    {
+        if (result.IsFailure)
+        {
+            errors.AddRange(result.Errors);
+        }
     }
 
     private static void ValidateAdminInputs(
@@ -47,13 +82,13 @@ internal sealed class SignupTaxExemptTenantCommandValidator
     {
         if (
             string.IsNullOrWhiteSpace(request.AdminUserName)
-            || request.AdminUserName.Trim().Length < 3
+            || request.AdminUserName.Trim().Length is < 3 or > 100
         )
         {
             errors.Add(
                 DomainError.Validation(
                     "Tenancy.InvalidAdminUserName",
-                    "Administrator username must be at least 3 characters."
+                    "Administrator username must be between 3 and 100 characters."
                 )
             );
         }

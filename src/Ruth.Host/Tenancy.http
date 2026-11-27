@@ -1,0 +1,117 @@
+@signupUrl = http://signup.localhost:8080
+@sandboxUrl = http://helping-hands.sandbox.localhost:8080
+@opsUrl = http://ops.localhost:8080
+@tenantToken = REPLACE_WITH_TENANT_ADMIN_BEARER_TOKEN
+@domainId = 00000000-0000-0000-0000-000000000000
+@tenantId = 00000000-0000-0000-0000-000000000000
+
+### 1. Provision a new Sandbox workspace for an IRS-recognized 501(c)(3) charity
+POST {{signupUrl}}/api/v1/platform/signup
+Content-Type: application/json
+
+{
+  "legalName": "Helping Hands Community Relief Inc",
+  "displayName": "Helping Hands",
+  "slug": "helping-hands",
+  "ein": "52-1234567",
+  "irsSubsectionCode": "501(c)(3)",
+  "stateCode": "MD",
+  "timeZoneId": "America/New_York",
+  "primaryBranchName": "Baltimore Center",
+  "adminUserName": "orgadmin",
+  "adminEmail": "ops@helpinghands.org",
+  "adminDisplayName": "Relief Director",
+  "adminPassword": "TaxExemptStrong#2026!"
+}
+
+### 2. Negative test: Reject non-exempt 501(c)(7) social club on signup
+POST {{signupUrl}}/api/v1/platform/signup
+Content-Type: application/json
+
+{
+  "legalName": "Downtown Social Club",
+  "displayName": "Social Club",
+  "slug": "downtown-club",
+  "ein": "52-9876543",
+  "irsSubsectionCode": "501(c)(7)",
+  "stateCode": "VA",
+  "timeZoneId": "America/New_York",
+  "primaryBranchName": "Clubhouse",
+  "adminUserName": "clubadmin",
+  "adminEmail": "admin@club.org",
+  "adminDisplayName": "Club Admin",
+  "adminPassword": "TaxExemptStrong#2026!"
+}
+
+### 3. Get current organization compliance, IRS EO BMF, Stripe Connect, and domain status
+GET {{sandboxUrl}}/api/v1/tenancy/compliance
+Authorization: Bearer {{tenantToken}}
+
+### 4. Start or resume Stripe Connect Express onboarding session
+POST {{sandboxUrl}}/api/v1/tenancy/stripe-connect/onboarding
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "returnUrl": "/admin/compliance",
+  "refreshUrl": "/admin/compliance"
+}
+
+### 5. Complete simulated Stripe Connect payout readiness (when Tenancy:StripeMockMode=true)
+POST {{sandboxUrl}}/api/v1/tenancy/stripe-connect/mock-complete
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{}
+
+### 6. Register an organization-owned custom domain (returns 201 Created + DNS TXT challenge)
+POST {{sandboxUrl}}/api/v1/tenancy/domains
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "hostname": "giving.helpinghands.org",
+  "makePrimaryWhenVerified": true
+}
+
+### 7. Verify DNS TXT ownership for a registered custom domain
+POST {{sandboxUrl}}/api/v1/tenancy/domains/{{domainId}}/verify
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "observedTxtToken": "domain-verify-00000000000000000000000000000000"
+}
+
+### 8. Run IRS EO BMF verification and submit workspace for Platform Operator Go-Live approval
+POST {{sandboxUrl}}/api/v1/tenancy/go-live/submit
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{}
+
+### 9. Authenticate as a Platform Operator on the isolated operator host
+POST {{opsUrl}}/api/v1/platform/operators/authenticate
+Content-Type: application/json
+
+{
+  "email": "compliance@ops.localhost",
+  "password": "OperatorPass!2026#"
+}
+
+### 10. List organization tenants awaiting Go-Live verification
+GET {{opsUrl}}/api/v1/platform/operators/queue?stage=PendingVerification
+
+### 11. Approve a verified tax-exempt tenant for Live operations
+POST {{opsUrl}}/api/v1/platform/operators/review
+Content-Type: application/json
+
+{
+  "targetTenantId": "{{tenantId}}",
+  "decision": "ApproveLive",
+  "notes": "Verified active 501(c)(3) status in IRS EO BMF.",
+  "manualIrsOverrideApproved": false
+}
+
+### 12. Sign out of the Platform Operator session
+POST {{opsUrl}}/api/v1/platform/operators/logout

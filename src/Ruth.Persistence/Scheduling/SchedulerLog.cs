@@ -87,4 +87,17 @@ internal static partial class SchedulerLog
         Message = "Scheduled job engine initialization failed; will retry on next polling tick."
     )]
     public static partial void InitializationFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 4011,
+        Level = LogLevel.Error,
+        Message = "Scheduled job {JobKey} failed for tenant {TenantId}: {Message}"
+    )]
+    public static partial void TenantJobFailed(
+        ILogger logger,
+        Exception? exception,
+        string jobKey,
+        Guid tenantId,
+        string? message
+    );
 }

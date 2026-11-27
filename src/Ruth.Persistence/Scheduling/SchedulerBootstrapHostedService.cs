@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Persistence.Scheduling;
 
@@ -29,6 +30,16 @@ internal sealed partial class SchedulerBootstrapHostedService(
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SchedulerDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
+
+        var provisioner = scope.ServiceProvider.GetService<PostgresRlsRoleProvisioner>();
+        if (provisioner is not null)
+        {
+            await provisioner.LockDownControlPlaneSchemaAsync(
+                SchedulerDbContext.SchemaName,
+                cancellationToken
+            );
+        }
+
         LogMigrationsApplied(_logger);
     }
 

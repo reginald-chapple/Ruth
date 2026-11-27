@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.SharedKernel.Messaging;
@@ -9,6 +10,9 @@ namespace Ruth.Host.Components.Pages.Tenancy;
 /// <summary>Organization administrator compliance, custom domain, and Go-Live readiness studio.</summary>
 public sealed partial class TenantComplianceSettings : ComponentBase
 {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
     [Inject]
     private IQueryDispatcher QueryDispatcher { get; set; } = default!;
 
@@ -18,9 +22,16 @@ public sealed partial class TenantComplianceSettings : ComponentBase
     [Inject]
     private ITenantContext TenantContext { get; set; } = default!;
 
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     internal TenantComplianceStatusResponse? Status { get; private set; }
 
     internal string NewCustomHostname { get; set; } = string.Empty;
+
+    internal bool IsLoading { get; private set; } = true;
+
+    internal bool IsAuthorizedAdmin { get; private set; }
 
     internal bool IsBusy { get; private set; }
 
@@ -31,16 +42,39 @@ public sealed partial class TenantComplianceSettings : ComponentBase
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
-        if (!TenantContext.HasTenant)
+        try
         {
-            return;
-        }
+            if (!TenantContext.HasTenant)
+            {
+                return;
+            }
 
-        await ReloadAsync();
+            if (AuthenticationStateTask is not null)
+            {
+                var authState = await AuthenticationStateTask;
+                var user = authState.User;
+                if (user.Identity?.IsAuthenticated != true || !user.IsInRole("Administrators"))
+                {
+                    return;
+                }
+            }
+
+            IsAuthorizedAdmin = true;
+            await ReloadAsync();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     internal async Task ReloadAsync()
     {
+        if (!IsAuthorizedAdmin)
+        {
+            return;
+        }
+
         var result = await QueryDispatcher.QueryAsync<
             GetCurrentTenantComplianceQuery,
             TenantComplianceStatusResponse
@@ -48,12 +82,16 @@ public sealed partial class TenantComplianceSettings : ComponentBase
         if (result.IsSuccess)
         {
             Status = result.Value;
+            return;
         }
+
+        StatusBanner = result.PrimaryError.Description;
+        BannerIntent = MessageBarIntent.Error;
     }
 
     internal async Task CompleteMockStripeAsync()
     {
-        if (Status is null)
+        if (!IsAuthorizedAdmin || Status is null)
         {
             return;
         }
@@ -71,15 +109,23 @@ public sealed partial class TenantComplianceSettings : ComponentBase
                 return;
             }
 
+            var returnUrl = Navigation.ToAbsoluteUri("/admin/compliance").ToString();
             var onboarding = await CommandDispatcher.SendAsync<
                 StartStripeConnectOnboardingCommand,
                 StripeConnectOnboardingResponse
-            >(new StartStripeConnectOnboardingCommand("/admin/compliance", "/admin/compliance"));
-            StatusBanner = onboarding.IsSuccess
-                ? $"Stripe Connect account {onboarding.Value.AccountId} created."
-                : onboarding.PrimaryError.Description;
-            BannerIntent = onboarding.IsSuccess ? MessageBarIntent.Success : MessageBarIntent.Error;
+            >(new StartStripeConnectOnboardingCommand(returnUrl, returnUrl));
+            if (onboarding.IsFailure)
+            {
+                StatusBanner = onboarding.PrimaryError.Description;
+                BannerIntent = MessageBarIntent.Error;
+                return;
+            }
+
+            StatusBanner =
+                $"Redirecting to Stripe Connect onboarding ({onboarding.Value.AccountId})...";
+            BannerIntent = MessageBarIntent.Success;
             await ReloadAsync();
+            Navigation.NavigateTo(onboarding.Value.OnboardingUrl, forceLoad: true);
         }
         finally
         {
@@ -89,7 +135,7 @@ public sealed partial class TenantComplianceSettings : ComponentBase
 
     internal async Task RegisterDomainAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewCustomHostname))
+        if (!IsAuthorizedAdmin || string.IsNullOrWhiteSpace(NewCustomHostname))
         {
             return;
         }
@@ -121,18 +167,19 @@ public sealed partial class TenantComplianceSettings : ComponentBase
 
     internal async Task VerifyDomainAsync(TenantDomainResponse domain)
     {
+        if (!IsAuthorizedAdmin)
+        {
+            return;
+        }
+
         IsBusy = true;
         try
         {
+            var observedToken = Status?.StripeMockMode == true ? domain.VerificationTxtValue : null;
             var res = await CommandDispatcher.SendAsync<
                 VerifyCustomDomainCommand,
                 TenantDomainResponse
-            >(
-                new VerifyCustomDomainCommand(
-                    domain.Id,
-                    domain.VerificationTxtValue ?? string.Empty
-                )
-            );
+            >(new VerifyCustomDomainCommand(domain.Id, observedToken));
             StatusBanner = res.IsSuccess
                 ? $"Domain {res.Value.Hostname} verified."
                 : res.PrimaryError.Description;
@@ -147,6 +194,11 @@ public sealed partial class TenantComplianceSettings : ComponentBase
 
     internal async Task SubmitForGoLiveAsync()
     {
+        if (!IsAuthorizedAdmin)
+        {
+            return;
+        }
+
         IsBusy = true;
         try
         {

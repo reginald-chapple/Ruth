@@ -11,6 +11,7 @@
   - `SearchSnippetSanitizer` HTML-encodes `ts_headline` output before restoring safe `<mark>` spans, preventing XSS from indexed document bodies.
   - Nine modular `ISearchDocumentProvider` implementations index `Crm`, `Groups`, `Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, and `Lms` strictly through `*.Contracts` queries, paired with Outbox integration-event consumers and SHA-256 content-hash idempotency.
   - Query-time `IEntityAuthorizationService` ACL filtering evaluates every candidate hit before returning Spotlight or Public CMS results.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `search` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), and `PostgreSqlFullTextSearchEngine` binds `tenant_id` on every full-text and trigram query.
 
 ## Verification
 ```bash

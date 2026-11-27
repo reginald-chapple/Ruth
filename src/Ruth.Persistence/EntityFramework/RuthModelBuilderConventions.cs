@@ -1,6 +1,5 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ruth.SharedKernel;
 using Ruth.SharedKernel.Primitives;
@@ -74,15 +73,38 @@ internal static class RuthModelBuilderConventions
         ArgumentNullException.ThrowIfNull(modelBuilder);
         ArgumentNullException.ThrowIfNull(dbContext);
 
+        TenantModelIsolationHelper.PruneUnreachableImplicitTypes(modelBuilder);
+
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToArray())
         {
-            if (entityType.IsOwned() || entityType.BaseType is not null)
+            if (entityType.IsOwned())
             {
+                TenantModelIsolationHelper.ValidateOwnedEntityTablePlacement(
+                    dbContext,
+                    entityType,
+                    isTenantScopedSchema
+                );
+                continue;
+            }
+
+            if (entityType.BaseType is not null)
+            {
+                TenantModelIsolationHelper.ConfigureDerivedEntityIsolation(
+                    entityType,
+                    isTenantScopedSchema
+                );
                 continue;
             }
 
             if (!typeof(ITenantScoped).IsAssignableFrom(entityType.ClrType))
             {
+                if (isTenantScopedSchema)
+                {
+                    throw new InvalidOperationException(
+                        $"Entity '{entityType.ClrType.FullName}' in tenant-scoped '{dbContext.GetType().Name}' must implement '{nameof(ITenantScoped)}'."
+                    );
+                }
+
                 continue;
             }
 
@@ -92,7 +114,11 @@ internal static class RuthModelBuilderConventions
                 continue;
             }
 
-            ConfigureTenantScopedEntity(modelBuilder, dbContext, entityType);
+            TenantModelIsolationHelper.ConfigureTenantScopedEntity(
+                modelBuilder,
+                dbContext,
+                entityType
+            );
         }
     }
 
@@ -101,72 +127,6 @@ internal static class RuthModelBuilderConventions
     {
         ArgumentNullException.ThrowIfNull(builder);
         _ = builder.Property<uint>("RowVersion").IsRowVersion();
-    }
-
-    private static void ConfigureTenantScopedEntity(
-        ModelBuilder modelBuilder,
-        ModuleDbContext dbContext,
-        IMutableEntityType entityType
-    )
-    {
-        _ = modelBuilder
-            .Entity(entityType.ClrType)
-            .Property(nameof(ITenantScoped.TenantId))
-            .HasColumnName("tenant_id")
-            .IsRequired();
-
-        var tenantProperty = entityType.FindProperty(nameof(ITenantScoped.TenantId))!;
-        ScopeUniqueIndexesToTenant(entityType, tenantProperty);
-        EnsureLeadingTenantIndex(entityType, tenantProperty);
-        dbContext.ApplyTenantQueryFilterForClrType(modelBuilder, entityType.ClrType);
-    }
-
-    private static void ScopeUniqueIndexesToTenant(
-        IMutableEntityType entityType,
-        IMutableProperty tenantProperty
-    )
-    {
-        foreach (var index in entityType.GetIndexes().ToArray())
-        {
-            if (!index.IsUnique || index.Properties.Contains(tenantProperty))
-            {
-                continue;
-            }
-
-            var existingProperties = index.Properties.ToArray();
-            var filter = index.GetFilter();
-            _ = entityType.RemoveIndex(index);
-
-            IMutableProperty[] compositeProperties = [tenantProperty, .. existingProperties];
-            var replacement = entityType.AddIndex(compositeProperties);
-            replacement.IsUnique = true;
-            if (filter is not null)
-            {
-                replacement.SetFilter(filter);
-            }
-        }
-    }
-
-    private static void EnsureLeadingTenantIndex(
-        IMutableEntityType entityType,
-        IMutableProperty tenantProperty
-    )
-    {
-        var primaryKey = entityType.FindPrimaryKey();
-        if (primaryKey is not null && primaryKey.Properties[0] == tenantProperty)
-        {
-            return;
-        }
-
-        foreach (var index in entityType.GetIndexes())
-        {
-            if (index.Properties.Count > 0 && index.Properties[0] == tenantProperty)
-            {
-                return;
-            }
-        }
-
-        _ = entityType.AddIndex([tenantProperty]);
     }
 
     private static void ApplyStronglyTypedIdsFromAssembly(

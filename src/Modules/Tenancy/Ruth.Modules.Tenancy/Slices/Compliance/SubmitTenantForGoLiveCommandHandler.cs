@@ -44,8 +44,14 @@ internal sealed class SubmitTenantForGoLiveCommandHandler(
             return TenancyErrors.TenantNotFound;
         }
 
+        if (tenant.LifecycleStage != TenantLifecycleStage.Sandbox)
+        {
+            return TenancyErrors.InvalidLifecycleTransition;
+        }
+
         var nowUtc = _clock.UtcNow;
-        await SyncStripeAndRecordIrsAsync(tenant, nowUtc, cancellationToken);
+        await SyncStripeCapabilitiesAsync(tenant, nowUtc, cancellationToken);
+        await RecordIrsVerificationAsync(tenant, nowUtc, cancellationToken);
 
         var submitResult = tenant.SubmitForGoLive(nowUtc);
         _ = await _dbContext.SaveChangesAsync(cancellationToken);
@@ -64,25 +70,46 @@ internal sealed class SubmitTenantForGoLiveCommandHandler(
         return updated is not null ? updated : TenancyErrors.TenantNotFound;
     }
 
-    private async Task SyncStripeAndRecordIrsAsync(
+    private async Task SyncStripeCapabilitiesAsync(
         Tenant tenant,
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken
     )
     {
-        if (!string.IsNullOrWhiteSpace(tenant.StripeConnectAccountId))
+        var stripeEntity = await _dbContext.StripeConnectAccounts.FirstOrDefaultAsync(
+            x => x.TargetTenantId == tenant.Id,
+            cancellationToken
+        );
+        var accountId = stripeEntity?.ExternalAccountId ?? tenant.StripeConnectAccountId;
+        if (string.IsNullOrWhiteSpace(accountId))
         {
-            var stripeStatus = await _stripeProvider.GetAccountStatusAsync(
-                tenant.StripeConnectAccountId,
-                cancellationToken
-            );
-            tenant.AttachStripeConnectAccount(
-                stripeStatus.AccountId,
-                stripeStatus.ChargesEnabled,
-                stripeStatus.PayoutsEnabled
-            );
+            return;
         }
 
+        var stripeStatus =
+            _stripeProvider.IsMockMode
+            && stripeEntity is { IsMockAccount: true, ChargesEnabled: true, PayoutsEnabled: true }
+                ? await _stripeProvider.CompleteMockOnboardingAsync(accountId, cancellationToken)
+                : await _stripeProvider.GetAccountStatusAsync(accountId, cancellationToken);
+
+        _ = StripeConnectPersistenceHelper.UpsertAccountAndAttachTenant(
+            _dbContext,
+            tenant,
+            stripeEntity,
+            stripeStatus,
+            _stripeProvider.IsMockMode,
+            onboardingUrl: null,
+            expiresAtUtc: null,
+            nowUtc
+        );
+    }
+
+    private async Task RecordIrsVerificationAsync(
+        Tenant tenant,
+        DateTimeOffset nowUtc,
+        CancellationToken cancellationToken
+    )
+    {
         var irsResult = await _irsProvider.VerifyEinAsync(
             tenant.Ein,
             tenant.LegalName,
@@ -95,17 +122,20 @@ internal sealed class SubmitTenantForGoLiveCommandHandler(
             irsResult.DeductibilityCode,
             nowUtc
         );
-        _ = _dbContext.IrsVerificationRecords.Add(
-            IrsExemptVerificationRecord.Create(
-                tenant.Id,
-                irsResult.NormalizedEin,
-                irsResult.Status,
-                irsResult.OfficialOrganizationName,
-                irsResult.SubsectionCode,
-                irsResult.DeductibilityCode,
-                irsResult.DiagnosticSummary,
-                nowUtc
-            )
+
+        var verificationRecord = IrsExemptVerification.Create(
+            tenant.Id,
+            irsResult.NormalizedEin,
+            irsResult.Status,
+            irsResult.OfficialOrganizationName,
+            irsResult.SubsectionCode,
+            irsResult.DeductibilityCode,
+            irsResult.DiagnosticSummary,
+            nowUtc
         );
+        if (verificationRecord.IsSuccess)
+        {
+            _ = _dbContext.IrsExemptVerifications.Add(verificationRecord.Value);
+        }
     }
 }

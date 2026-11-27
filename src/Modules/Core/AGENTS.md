@@ -11,6 +11,7 @@
 - System `DefinedType`s, `DefinedValue`s, `Category` nodes, `AttributeDefinition`s, `Branch`es, `BinaryFileType`s, `BinaryFile`s, `Document`s, and `Tag`s cannot be deleted.
 - Category and Location hierarchies must reject self-parenting and ancestor cycles.
 - Signed `SignatureDocument` records are immutable once sealed with `SignatureVerificationHash`.
+- **Multi-Tenant & RLS Isolation (`W7-S5`, `W7-S6`):** Every table in `core` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), `EntityTypeDescriptor` derives deterministic per-tenant IDs (`CoreTenantSeedContributor`), `CoreReadCache` partitions all local and Redis keys under `t:{TenantId}:core:cache:{bucket}`, and `TenantScopedStorageProvider` prefixes every S3 object key under `tenants/{TenantId}/...`.
 
 ## Verification
 ```bash

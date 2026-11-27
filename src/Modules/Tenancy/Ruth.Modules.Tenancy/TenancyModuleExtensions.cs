@@ -55,6 +55,10 @@ public static class TenancyModuleExtensions
             SimulatedIrsEoBmfVerificationProvider
         >();
         services.TryAddSingleton<IStripeConnectProvider, MockStripeConnectProvider>();
+        services.TryAddSingleton<SimulatedDnsTxtVerificationProvider>();
+        services.TryAddSingleton<IDnsTxtVerificationProvider>(static sp =>
+            sp.GetRequiredService<SimulatedDnsTxtVerificationProvider>()
+        );
         _ = services.AddHostedService<TenancyBootstrapHostedService>();
 
         RegisterHandlers(services);

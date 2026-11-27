@@ -139,7 +139,7 @@ internal sealed partial class CoreReadCache(
 
     private static string BuildLocalKey(TenantId tenantId, string bucket)
     {
-        return $"{tenantId}:{bucket}";
+        return $"t:{tenantId}:core:cache:{bucket}";
     }
 
     private static string BuildRedisKey(TenantId tenantId, string bucket)

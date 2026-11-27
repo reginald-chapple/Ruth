@@ -26,6 +26,7 @@
   - `AssistanceProgram` and `AssistanceCase` enforce verified-document prerequisites, per-case award ceilings, program budget limits, and optional `InternalFeeWaiverCredit` direct settlement against open `Invoice`s.
 - **W4-S6 (`Campaigns`, `LeaderToolbox`, `PublicContributionPortal`):**
   - `FundraisingCampaign` pairs a `Groups` Group with a `FinancialAccount`, enforcing optional team and participant goal overrides, net-settled transaction progress calculation, and donor privacy modes (`PublicNameAndAmount`, `PublicNameHideAmount`, `AnonymousPublicly`, `PrivateStaffOnly`) across public portals vs. authorized `CampaignLeaderToolbox` views.
+- **Multi-Tenant RLS & `Live` Payment Gating (`W7-S6`):** Every table in `finance` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), check/remittance images store under `tenants/{TenantId}/...`, and live payment gateway capture requires `ITenantContext.IsLive`.
 
 ## Verification
 ```bash

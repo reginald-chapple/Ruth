@@ -15,6 +15,7 @@
   - `RegistrationCapacityAndPricingEngine` evaluates confirmed vs waitlisted seat allocation accounting for non-expired `RegistrationSession` holds, validates visible dynamic fields, enforces fee item caps, and calculates discounts and minimum initial deposits.
   - Cancelling a confirmed registrant or expiring a stale `RegistrationSession` hold (`ExpiredRegistrationSessionCleanupJob`) triggers FIFO waitlist promotion (`WaitlistPromotionService`) and stages `RegistrantPromotedFromWaitlistIntegrationEvent` in the `events` Outbox.
   - `EventsPersonMergedConsumer` idempotently repoints `EventItem`, `InteractiveSession`, `Registration`, and `RegistrationRegistrant` person references upon `PersonMergedIntegrationEvent`.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `events` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`) with per-tenant calendar seeding (`EventsTenantSeedContributor`).
 
 ## Verification
 ```bash

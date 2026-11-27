@@ -146,6 +146,11 @@ public sealed class SecurityRole
             return combined;
         }
 
+        if (IsSystem && !string.Equals(nameResult.Value, Name, StringComparison.Ordinal))
+        {
+            return IdentityErrors.SystemRoleProtected;
+        }
+
         Name = nameResult.Value;
         NormalizedName = nameResult.Value.ToUpperInvariant();
         Description = descriptionResult.Value;

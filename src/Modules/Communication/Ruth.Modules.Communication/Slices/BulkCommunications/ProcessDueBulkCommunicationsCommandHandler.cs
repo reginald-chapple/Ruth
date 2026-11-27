@@ -34,10 +34,7 @@ internal sealed class ProcessDueBulkCommunicationsCommandHandler(
 
         if (!tenantContext.IsLive)
         {
-            return DomainError.Validation(
-                "Communication.TenantNotLive",
-                "Outbound bulk email and SMS dispatch requires IRS tax-exempt verification and Live workspace approval."
-            );
+            return BulkCommunicationErrors.TenantNotLive;
         }
 
         var nowUtc = clock.UtcNow.ToUniversalTime();

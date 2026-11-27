@@ -9,6 +9,7 @@ using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Communication.Slices.TwoWaySms;
@@ -16,6 +17,7 @@ namespace Ruth.Modules.Communication.Slices.TwoWaySms;
 internal sealed class SendSmsConversationReplyCommandHandler(
     CommunicationDbContext dbContext,
     CommunicationTransportResolver transportResolver,
+    ITenantContext tenantContext,
     IClock clock
 ) : ICommandHandler<SendSmsConversationReplyCommand, SmsConversationMessageResponse>
 {
@@ -25,6 +27,13 @@ internal sealed class SendSmsConversationReplyCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (!tenantContext.IsLive)
+        {
+            return Result.Failure<SmsConversationMessageResponse>(
+                BulkCommunicationErrors.TenantNotLive
+            );
+        }
 
         var validated = await ValidateSenderAndOptOutAsync(command, cancellationToken);
         return validated.IsFailure

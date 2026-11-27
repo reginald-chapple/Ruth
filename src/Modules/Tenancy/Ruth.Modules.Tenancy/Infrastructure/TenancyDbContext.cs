@@ -25,8 +25,10 @@ public sealed class TenancyDbContext(DbContextOptions<TenancyDbContext> options)
     public DbSet<TenantDomain> TenantDomains => Set<TenantDomain>();
 
     /// <summary>Gets the IRS EO BMF verification audit records table.</summary>
-    public DbSet<IrsExemptVerificationRecord> IrsVerificationRecords =>
-        Set<IrsExemptVerificationRecord>();
+    public DbSet<IrsExemptVerification> IrsExemptVerifications => Set<IrsExemptVerification>();
+
+    /// <summary>Gets the Stripe Connect Express onboarding accounts table.</summary>
+    public DbSet<StripeConnectAccount> StripeConnectAccounts => Set<StripeConnectAccount>();
 
     /// <summary>Gets the internal platform operators table.</summary>
     public DbSet<PlatformOperator> PlatformOperators => Set<PlatformOperator>();
@@ -37,7 +39,8 @@ public sealed class TenancyDbContext(DbContextOptions<TenancyDbContext> options)
         ArgumentNullException.ThrowIfNull(modelBuilder);
         _ = modelBuilder.ApplyConfiguration(new TenantConfiguration());
         _ = modelBuilder.ApplyConfiguration(new TenantDomainConfiguration());
-        _ = modelBuilder.ApplyConfiguration(new IrsExemptVerificationRecordConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new IrsExemptVerificationConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new StripeConnectAccountConfiguration());
         _ = modelBuilder.ApplyConfiguration(new PlatformOperatorConfiguration());
     }
 }

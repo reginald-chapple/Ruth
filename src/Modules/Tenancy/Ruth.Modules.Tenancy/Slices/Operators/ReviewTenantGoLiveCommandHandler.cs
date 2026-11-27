@@ -38,6 +38,23 @@ internal sealed class ReviewTenantGoLiveCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        if (string.IsNullOrWhiteSpace(command.OperatorEmail))
+        {
+            return TenancyErrors.InvalidOperatorIdentity;
+        }
+
+        var normalizedOperator = command.OperatorEmail.Trim().ToLowerInvariant();
+        var activeOperatorExists = await _dbContext
+            .PlatformOperators.AsNoTracking()
+            .AnyAsync(
+                x => x.EmailNormalized == normalizedOperator && x.IsActive,
+                cancellationToken
+            );
+        if (!activeOperatorExists)
+        {
+            return TenancyErrors.InvalidOperatorIdentity;
+        }
+
         var tenantId = TenantId.From(command.TargetTenantId);
         var tenant = await _dbContext.Tenants.FirstOrDefaultAsync(
             x => x.Id == tenantId,
@@ -52,7 +69,7 @@ internal sealed class ReviewTenantGoLiveCommandHandler(
             .TenantDomains.Where(x => x.TargetTenantId == tenantId)
             .ToListAsync(cancellationToken);
 
-        var decisionResult = ApplyDecision(command, tenant, domains);
+        var decisionResult = ApplyDecision(command, normalizedOperator, tenant, domains);
         if (decisionResult.IsFailure)
         {
             return Result.Failure<TenantComplianceStatusResponse>(decisionResult.Errors);
@@ -70,18 +87,20 @@ internal sealed class ReviewTenantGoLiveCommandHandler(
 
     private Result ApplyDecision(
         ReviewTenantGoLiveCommand command,
+        string normalizedOperator,
         Tenant tenant,
         List<TenantDomain> domains
     )
     {
+        var nowUtc = _clock.UtcNow;
         switch (command.Decision)
         {
             case OperatorReviewDecision.ApproveLive:
                 var approveResult = tenant.ApproveLive(
-                    command.OperatorEmail,
+                    normalizedOperator,
                     command.Notes,
                     command.ManualIrsOverrideApproved,
-                    _clock.UtcNow
+                    nowUtc
                 );
                 if (approveResult.IsSuccess)
                 {
@@ -91,12 +110,20 @@ internal sealed class ReviewTenantGoLiveCommandHandler(
                 return approveResult;
 
             case OperatorReviewDecision.ReturnToSandbox:
-                tenant.ReturnToSandbox(command.OperatorEmail, command.Notes);
-                return Result.Success();
+                var returnResult = tenant.ReturnToSandbox(
+                    normalizedOperator,
+                    command.Notes,
+                    nowUtc
+                );
+                if (returnResult.IsSuccess)
+                {
+                    RestoreSandboxDomainPrimary(domains);
+                }
+
+                return returnResult;
 
             case OperatorReviewDecision.Suspend:
-                tenant.Suspend(command.OperatorEmail, command.Notes);
-                return Result.Success();
+                return tenant.Suspend(normalizedOperator, command.Notes, nowUtc);
 
             default:
                 return DomainError.Validation(
@@ -119,6 +146,20 @@ internal sealed class ReviewTenantGoLiveCommandHandler(
         foreach (var domain in domains)
         {
             domain.SetPrimary(domain.Id == verifiedCustom.Id);
+        }
+    }
+
+    private static void RestoreSandboxDomainPrimary(List<TenantDomain> domains)
+    {
+        var sandboxDomain = domains.FirstOrDefault(static d => !d.IsCustomDomain);
+        if (sandboxDomain is null)
+        {
+            return;
+        }
+
+        foreach (var domain in domains)
+        {
+            domain.SetPrimary(domain.Id == sandboxDomain.Id);
         }
     }
 }

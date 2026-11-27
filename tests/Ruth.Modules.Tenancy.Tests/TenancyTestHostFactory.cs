@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -96,5 +97,25 @@ internal static class TenancyTestHostFactory
         cmd.CommandText = "SELECT COUNT(*) FROM platform.tenants;";
         var ex = await Assert.ThrowsAsync<PostgresException>(cmd.ExecuteScalarAsync);
         Assert.Equal("42501", ex.SqlState);
+    }
+
+    public static async Task AssertPersistedStripeAndIrsRowsAsync(
+        ServiceProvider provider,
+        TenantId tenantId
+    )
+    {
+        await using var scope = provider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<Infrastructure.TenancyDbContext>();
+
+        var stripeRow = Assert.Single(
+            await db.StripeConnectAccounts.Where(x => x.TargetTenantId == tenantId).ToListAsync()
+        );
+        Assert.True(stripeRow.ChargesEnabled);
+        Assert.True(stripeRow.PayoutsEnabled);
+
+        var irsRow = Assert.Single(
+            await db.IrsExemptVerifications.Where(x => x.TargetTenantId == tenantId).ToListAsync()
+        );
+        Assert.Equal("52-1237777", irsRow.CheckedEin);
     }
 }

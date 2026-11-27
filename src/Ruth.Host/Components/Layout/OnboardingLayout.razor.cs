@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Ruth.Host.Middleware;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Host.Components.Layout;
 
@@ -22,6 +23,17 @@ public sealed partial class OnboardingLayout : LayoutComponentBase
 
     internal string BrandTitle =>
         Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle ?? "Workspace Setup";
+
+    internal string FooterSubtitle
+    {
+        get
+        {
+            var tenantContext = Services.GetService<ITenantContext>();
+            return tenantContext?.IsPlatformOperatorHost == true ? "Platform Compliance Operations"
+                : tenantContext?.HasTenant == false ? "Nonprofit Workspace Provisioning"
+                : "Initial Workspace Setup";
+        }
+    }
 
     /// <inheritdoc />
     protected override void OnParametersSet()

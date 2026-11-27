@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Communication.Contracts.Flows;
+using Ruth.Modules.Communication.Domain.BulkCommunications;
 using Ruth.Modules.Communication.Domain.Flows;
 using Ruth.Modules.Communication.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Communication.Slices.Flows;
@@ -11,6 +13,7 @@ namespace Ruth.Modules.Communication.Slices.Flows;
 internal sealed class ProcessDueCommunicationFlowsCommandHandler(
     CommunicationDbContext dbContext,
     FlowStepSenderCollaborator stepSender,
+    ITenantContext tenantContext,
     IClock clock
 ) : ICommandHandler<ProcessDueCommunicationFlowsCommand, FlowAdvancementBatchResultResponse>
 {
@@ -20,6 +23,11 @@ internal sealed class ProcessDueCommunicationFlowsCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (!tenantContext.IsLive)
+        {
+            return BulkCommunicationErrors.TenantNotLive;
+        }
 
         var evalNow = (command.EvaluationTimeOverrideUtc ?? clock.UtcNow).ToUniversalTime();
         var max = Math.Clamp(command.MaxRecipientsPerRun, 1, 500);

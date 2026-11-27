@@ -13,7 +13,7 @@ internal sealed class OrganizationSignupFormModel
     public string DisplayName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(63)]
+    [StringLength(50, MinimumLength = 3)]
     public string Slug { get; set; } = string.Empty;
 
     [Required]

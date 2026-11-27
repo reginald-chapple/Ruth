@@ -7,6 +7,7 @@ using Ruth.Modules.Communication.Domain.BulkCommunications;
 using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Slices.BulkCommunications;
 
@@ -30,7 +31,8 @@ internal sealed class BulkEmailComposerService(
             channel,
             normalizedDestination,
             personId,
-            _bulkOptions.PreferenceSigningSecret
+            _bulkOptions.PreferenceSigningSecret,
+            AmbientTenantContext.CurrentTenantId
         );
     }
 

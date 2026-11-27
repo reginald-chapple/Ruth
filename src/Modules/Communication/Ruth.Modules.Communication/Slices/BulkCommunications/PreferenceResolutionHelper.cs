@@ -4,6 +4,7 @@ using Ruth.Modules.Communication.Contracts.Transports;
 using Ruth.Modules.Communication.Domain.BulkCommunications;
 using Ruth.Modules.Communication.Infrastructure;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Slices.BulkCommunications;
 
@@ -24,7 +25,11 @@ internal sealed class PreferenceResolutionHelper(IOptions<CommunicationBulkOptio
     {
         if (!string.IsNullOrWhiteSpace(preferenceToken))
         {
-            return PreferenceTokenSigner.Verify(preferenceToken, _options.PreferenceSigningSecret);
+            return PreferenceTokenSigner.Verify(
+                preferenceToken,
+                _options.PreferenceSigningSecret,
+                AmbientTenantContext.CurrentTenantId
+            );
         }
 
         var normalized = CommunicationRecipient.NormalizeDestination(
@@ -47,7 +52,8 @@ internal sealed class PreferenceResolutionHelper(IOptions<CommunicationBulkOptio
             channel,
             normalizedDestination,
             entity?.PersonId ?? personId,
-            _options.PreferenceSigningSecret
+            _options.PreferenceSigningSecret,
+            AmbientTenantContext.CurrentTenantId
         );
         return new CommunicationPreferenceResponse(
             normalizedDestination,

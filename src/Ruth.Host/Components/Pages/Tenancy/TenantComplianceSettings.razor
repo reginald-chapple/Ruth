@@ -1,87 +1,102 @@
 @page "/admin/compliance"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = "Ruth.AdministratorsOnly")]
 @using Ruth.SharedKernel.Tenancy
 
 <PageTitle>Compliance, Domains &amp; Go-Live</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <h1>Organization Compliance, Custom Domains &amp; Go-Live</h1>
+<ErrorBoundary>
+    <ChildContent>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <h1>Organization Compliance, Custom Domains &amp; Go-Live</h1>
 
-    @if (!string.IsNullOrWhiteSpace(StatusBanner))
-    {
-        <FluentMessageBar Intent="@BannerIntent" Title="Compliance Update" AllowDismiss="false">
-            @StatusBanner
-        </FluentMessageBar>
-    }
+            @if (!string.IsNullOrWhiteSpace(StatusBanner))
+            {
+                <FluentMessageBar Intent="@BannerIntent" Title="Compliance Update" AllowDismiss="false">
+                    @StatusBanner
+                </FluentMessageBar>
+            }
 
-    @if (Status is null)
-    {
-        <FluentCard Padding="@Padding.All4">
-            <p>Sign in as an Organization Administrator to manage IRS verification, Stripe Connect, and custom domains.</p>
-        </FluentCard>
-    }
-    else
-    {
-        <FluentCard Padding="@Padding.All4">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-                <h2>Tax-Exempt Status &amp; Lifecycle</h2>
-                <p><strong>Legal Name:</strong> @Status.LegalName (@Status.IrsSubsectionCode &mdash; EIN @Status.Ein)</p>
-                <p><strong>Lifecycle Stage:</strong> @Status.LifecycleStage</p>
-                <p><strong>IRS EO BMF Status:</strong> @Status.IrsStatus (@(Status.IrsOfficialName ?? "Pending verification"))</p>
-                @if (!string.IsNullOrWhiteSpace(Status.ReviewNotes))
-                {
-                    <p><strong>Review Notes:</strong> @Status.ReviewNotes</p>
-                }
-            </FluentStack>
-        </FluentCard>
+            @if (IsLoading)
+            {
+                <FluentProgressBar />
+            }
+            else if (!IsAuthorizedAdmin || Status is null)
+            {
+                <FluentCard Padding="@Padding.All4">
+                    <p>Sign in as an Organization Administrator to manage IRS verification, Stripe Connect, and custom domains.</p>
+                </FluentCard>
+            }
+            else
+            {
+                <FluentCard Padding="@Padding.All4">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+                        <h2>Tax-Exempt Status &amp; Lifecycle</h2>
+                        <p><strong>Legal Name:</strong> @Status.LegalName (@Status.IrsSubsectionCode &mdash; EIN @Status.Ein)</p>
+                        <p><strong>Lifecycle Stage:</strong> @Status.LifecycleStage</p>
+                        <p><strong>IRS EO BMF Status:</strong> @Status.IrsStatus (@(Status.IrsOfficialName ?? "Pending verification"))</p>
+                        @if (!string.IsNullOrWhiteSpace(Status.ReviewNotes))
+                        {
+                            <p><strong>Review Notes:</strong> @Status.ReviewNotes</p>
+                        }
+                    </FluentStack>
+                </FluentCard>
 
-        <FluentCard Padding="@Padding.All4">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
-                <h2>Payout Readiness (Stripe Connect)</h2>
-                <p>
-                    <strong>Charges Enabled:</strong> @(Status.StripeChargesEnabled ? "Yes" : "No") |
-                    <strong>Payouts Enabled:</strong> @(Status.StripePayoutsEnabled ? "Yes" : "No")
-                </p>
-                @if (!Status.StripeChargesEnabled || !Status.StripePayoutsEnabled)
-                {
-                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@CompleteMockStripeAsync">
-                        @(Status.StripeMockMode ? "Complete Demo Stripe Connect" : "Start Stripe Connect Onboarding")
-                    </FluentButton>
-                }
-            </FluentStack>
-        </FluentCard>
+                <FluentCard Padding="@Padding.All4">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+                        <h2>Payout Readiness (Stripe Connect)</h2>
+                        <p>
+                            <strong>Charges Enabled:</strong> @(Status.StripeChargesEnabled ? "Yes" : "No") |
+                            <strong>Payouts Enabled:</strong> @(Status.StripePayoutsEnabled ? "Yes" : "No")
+                        </p>
+                        @if (!Status.StripeChargesEnabled || !Status.StripePayoutsEnabled)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@CompleteMockStripeAsync">
+                                @(Status.StripeMockMode ? "Complete Demo Stripe Connect" : "Start Stripe Connect Onboarding")
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </FluentCard>
 
-        <FluentCard Padding="@Padding.All4">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <h2>Isolated Domains</h2>
-                <ul>
-                    @foreach (var domain in Status.Domains)
-                    {
-                        <li @key="domain.Id">
-                            <code>@domain.Hostname</code> &mdash;
-                            @(domain.IsVerified ? "Verified" : $"Pending DNS TXT ({domain.VerificationTxtName} = {domain.VerificationTxtValue})")
-                            @if (!domain.IsVerified && !string.IsNullOrWhiteSpace(domain.VerificationTxtValue))
+                <FluentCard Padding="@Padding.All4">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                        <h2>Isolated Domains</h2>
+                        <ul>
+                            @foreach (var domain in Status.Domains)
                             {
-                                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@(() => VerifyDomainAsync(domain))">
-                                    Verify DNS Token
-                                </FluentButton>
+                                <li @key="domain.Id">
+                                    <code>@domain.Hostname</code> &mdash;
+                                    @(domain.IsVerified ? "Verified" : $"Pending DNS TXT ({domain.VerificationTxtName} = {domain.VerificationTxtValue})")
+                                    @if (!domain.IsVerified && !string.IsNullOrWhiteSpace(domain.VerificationTxtValue))
+                                    {
+                                        <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@(() => VerifyDomainAsync(domain))">
+                                            Verify DNS Token
+                                        </FluentButton>
+                                    }
+                                </li>
                             }
-                        </li>
-                    }
-                </ul>
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
-                    <FluentTextInput Id="custom-domain-host" @bind-Value="NewCustomHostname" Label="Custom Domain Hostname" Placeholder="giving.example.org" />
-                    <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" OnClick="@RegisterDomainAsync">
-                        Add Custom Domain
-                    </FluentButton>
-                </FluentStack>
-            </FluentStack>
-        </FluentCard>
+                        </ul>
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Wrap="true">
+                            <FluentTextInput Id="custom-domain-host" @bind-Value="NewCustomHostname" Label="Custom Domain Hostname" Placeholder="giving.example.org" />
+                            <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@RegisterDomainAsync">
+                                Add Custom Domain
+                            </FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                </FluentCard>
 
-        @if (Status.LifecycleStage == TenantLifecycleStage.Sandbox)
-        {
-            <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" OnClick="@SubmitForGoLiveAsync">
-                Run IRS Verification &amp; Submit for Go-Live Approval
-            </FluentButton>
-        }
-    }
-</FluentStack>
+                @if (Status.LifecycleStage == TenantLifecycleStage.Sandbox)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Primary" Disabled="@IsBusy" Loading="@IsBusy" OnClick="@SubmitForGoLiveAsync">
+                        Run IRS Verification &amp; Submit for Go-Live Approval
+                    </FluentButton>
+                }
+            }
+        </FluentStack>
+    </ChildContent>
+    <ErrorContent>
+        <FluentMessageBar Intent="MessageBarIntent.Error" Title="Compliance Error" AllowDismiss="false">
+            Unable to render organization compliance settings.
+        </FluentMessageBar>
+    </ErrorContent>
+</ErrorBoundary>

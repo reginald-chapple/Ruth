@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ruth.Modules.Identity.Contracts.Onboarding;
-using Ruth.Modules.Identity.Contracts.Security;
 using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.Modules.Identity.Infrastructure.Security;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
-using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Slices.Onboarding;
@@ -84,16 +82,11 @@ internal sealed class CompleteOnboardingCommandHandler(
     )
     {
         var tenantId = _dbContext.CurrentTenantId;
-        var adminRoleId = SecurityRole.GetAdministratorsRoleId(tenantId);
-        var existingRole = await _dbContext.SecurityRoles.FirstOrDefaultAsync(
-            role => role.Id == adminRoleId,
+        _ = await IdentityTenantSeedContributor.StageSystemAdministratorsIfMissingAsync(
+            _dbContext,
+            tenantId,
             cancellationToken
         );
-        if (existingRole is null)
-        {
-            _ = _dbContext.SecurityRoles.Add(SecurityRole.CreateSystemAdministrators(tenantId));
-            SeedAdministratorDefaultAclRules(adminRoleId);
-        }
 
         _ = _dbContext.UserAccounts.Add(admin);
         _ = _dbContext.OrganizationProfiles.Add(organization);
@@ -119,36 +112,6 @@ internal sealed class CompleteOnboardingCommandHandler(
             admin.Id.Value,
             organization.CompletedOnUtc
         );
-    }
-
-    private void SeedAdministratorDefaultAclRules(SecurityRoleId adminRoleId)
-    {
-        string[] actions =
-        [
-            AuthorizationActions.View,
-            AuthorizationActions.Edit,
-            AuthorizationActions.Delete,
-            AuthorizationActions.Administrate,
-            AuthorizationActions.Approve,
-            AuthorizationActions.Tag,
-        ];
-
-        foreach (var action in actions)
-        {
-            var rule = EntityAclRule.Create(
-                GlobalDefaultSecured.TypeKey,
-                Guid.Empty,
-                action,
-                order: 0,
-                AclRuleDecision.Allow,
-                SpecialRoleType.None,
-                adminRoleId
-            );
-            if (rule.IsSuccess)
-            {
-                _ = _dbContext.EntityAclRules.Add(rule.Value);
-            }
-        }
     }
 
     private static bool IsUniqueConstraintViolation(DbUpdateException exception)

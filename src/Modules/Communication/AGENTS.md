@@ -22,6 +22,7 @@
 - **W3-S7 (`Flows`, `DripAdvancementJob`, `FlowAnalytics`, `AttendanceConversions`):**
   - `CommunicationFlow` validates multi-step timed drip sequences (`CommunicationFlowStep`, `DelayMinutes`, `SendOnlyIfPreviousUnopened`), protects built-in system flows (`new-member-onboarding-drip`), and configures exit conditions (`RunAllSteps`, `ExitOnConversion`, `ExitOnConversionOrClick`, `ExitOnAnyEngagement`) and conversion goals (`AttendedSession`, `JoinedTargetGroup`, `ClickedGoalUrl`, `ManualOrExternalGoal`).
   - `CommunicationFlowInstance` and `CommunicationFlowInstanceRecipient` track cohort and rolling-enrollment progression via `CommunicationFlowAdvancementJob`, record `CommunicationFlowConversion` funnel attribution (including automatic attendance conversions via `FlowAttendanceConversionEvaluator` on `PersonAttendedIntegrationEvent`), and repoint `PersonId` references on `PersonMergedIntegrationEvent`.
+- **Multi-Tenant RLS & `Live` Outbound Gating (`W7-S5`):** Every table in `comms` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), `InMemoryCommunicationSink` and `PreferenceTokenSigner` isolate captured messages and signed unsubscribe tokens strictly per `TenantId`, and outbound bulk email/SMS approval/dispatch, drip `CommunicationFlow` step delivery, outbound two-way SMS replies, and live external gateway resolution (`CommunicationTransportResolver`) require `ITenantContext.IsLive` (`TenantLifecycleStage.Live`).
 
 ## Verification
 ```bash

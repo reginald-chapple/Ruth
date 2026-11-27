@@ -15,6 +15,9 @@ public sealed class TenancyOptions
     /// <summary>Gets or sets whether Stripe Connect runs in deterministic zero-config mock mode.</summary>
     public bool StripeMockMode { get; set; } = true;
 
+    /// <summary>Gets or sets whether custom domain DNS TXT verification runs in deterministic mock mode.</summary>
+    public bool DnsMockMode { get; set; } = true;
+
     /// <summary>Gets or sets an optional initial Platform Operator email seeded when Bootstrap:AutoMigrateAndSeed is enabled.</summary>
     public string? SeedOperatorEmail { get; set; }
 

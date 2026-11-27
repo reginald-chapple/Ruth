@@ -15,6 +15,7 @@
   - `MetricValue` validates required `MetricPartition` entity assignments; `MetricCalculationJob` executes DataView-backed and allowlisted SQL metrics.
   - `MetricChartRollupCalculator` computes `Day`/`Week`/`Month`/`Quarter` rollups, 3-bucket rolling averages, and period deltas.
   - `StarSchemaProjectionRefresher` + `StarSchemaRefreshJob` materialize `dim_date`, `dim_branch`, `dim_metric`, `fact_metric_daily`, `fact_revenue_monthly`, `fact_attendance_weekly`, and BI views (`vw_bi_metric_facts`, `vw_bi_revenue_summary`, `vw_bi_attendance_summary`).
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `reporting` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), and `DataView` SQL execution and Star-Schema views (`security_invoker = true` + `app.current_tenant_id` predicate) isolate rows strictly per tenant.
 
 ## Verification
 ```bash

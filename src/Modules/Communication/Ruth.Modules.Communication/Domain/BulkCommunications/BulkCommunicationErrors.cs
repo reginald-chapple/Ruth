@@ -129,4 +129,9 @@ public static class BulkCommunicationErrors
         "Communication.SmsRecipientOptedOut",
         "Recipient phone number has opted out of SMS messages."
     );
+
+    public static readonly DomainError TenantNotLive = DomainError.Validation(
+        "Communication.TenantNotLive",
+        "Outbound bulk email, drip flows, and SMS dispatch require IRS tax-exempt verification and Live workspace approval."
+    );
 }

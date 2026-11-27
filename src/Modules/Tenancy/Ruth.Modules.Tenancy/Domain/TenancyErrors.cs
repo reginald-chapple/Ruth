@@ -78,4 +78,39 @@ internal static class TenancyErrors
         "Tenancy.InvalidOperatorCredentials",
         "Invalid platform operator credentials."
     );
+
+    public static readonly DomainError InvalidOperatorIdentity = DomainError.Validation(
+        "Tenancy.InvalidOperatorIdentity",
+        "An authenticated active platform operator account is required to record compliance decisions."
+    );
+
+    public static readonly DomainError InvalidDisplayName = DomainError.Validation(
+        "Tenancy.InvalidDisplayName",
+        "Public display name must not exceed 200 characters."
+    );
+
+    public static readonly DomainError InvalidTimeZone = DomainError.Validation(
+        "Tenancy.InvalidTimeZone",
+        "Time zone must be a valid system or IANA time zone identifier."
+    );
+
+    public static readonly DomainError InvalidStripeAccountId = DomainError.Validation(
+        "Tenancy.InvalidStripeAccountId",
+        "Stripe Connect account identifier is required (maximum 128 characters)."
+    );
+
+    public static readonly DomainError InvalidOnboardingUrls = DomainError.Validation(
+        "Tenancy.InvalidOnboardingUrls",
+        "Stripe Connect return and refresh URLs must be root-relative paths or valid HTTP/HTTPS URIs."
+    );
+
+    public static readonly DomainError InvalidLifecycleTransition = DomainError.Conflict(
+        "Tenancy.InvalidLifecycleTransition",
+        "The requested lifecycle transition is not permitted from the organization's current compliance stage."
+    );
+
+    public static readonly DomainError UnauthorizedComplianceAccess = DomainError.Forbidden(
+        "Tenancy.UnauthorizedComplianceAccess",
+        "Only an authenticated Organization Administrator for this workspace may manage compliance settings."
+    );
 }

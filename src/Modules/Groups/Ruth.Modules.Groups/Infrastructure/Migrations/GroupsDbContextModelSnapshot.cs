@@ -200,6 +200,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.HasIndex("TenantId", "GroupId", "LocationId", "ScheduleId", "OccurrenceDate")
                         .IsUnique();
 
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "GroupId", "LocationId", "ScheduleId", "OccurrenceDate"), false);
+
                     b.ToTable("attendance_occurrences", "groups");
                 });
 
@@ -1101,6 +1103,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
                     b.HasIndex("TenantId", "GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId")
                         .IsUnique();
 
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "GroupId", "GroupTypeId", "GroupRequirementTypeId", "GroupRoleId"), false);
+
                     b.ToTable("group_requirements", "groups");
                 });
 
@@ -1286,6 +1290,8 @@ namespace Ruth.Modules.Groups.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "GroupMemberId", "LocationId", "ScheduleId")
                         .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "GroupMemberId", "LocationId", "ScheduleId"), false);
 
                     b.ToTable("group_member_assignments", "groups");
                 });

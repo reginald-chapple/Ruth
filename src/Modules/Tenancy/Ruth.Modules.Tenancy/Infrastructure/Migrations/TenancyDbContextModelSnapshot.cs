@@ -23,7 +23,7 @@ namespace Ruth.Modules.Tenancy.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.IrsExemptVerificationRecord", b =>
+            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.IrsExemptVerification", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -78,7 +78,7 @@ namespace Ruth.Modules.Tenancy.Infrastructure.Migrations
 
                     b.HasIndex("TargetTenantId", "CreatedOnUtc");
 
-                    b.ToTable("irs_exempt_verification_records", "platform");
+                    b.ToTable("irs_exempt_verifications", "platform");
                 });
 
             modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.PlatformOperator", b =>
@@ -128,6 +128,75 @@ namespace Ruth.Modules.Tenancy.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("platform_operators", "platform");
+                });
+
+            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.StripeConnectAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("ChargesEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("charges_enabled");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_on_utc");
+
+                    b.Property<bool>("DetailsSubmitted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("details_submitted");
+
+                    b.Property<string>("ExternalAccountId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_account_id");
+
+                    b.Property<bool>("IsMockAccount")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_mock_account");
+
+                    b.Property<string>("LastOnboardingUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("last_onboarding_url");
+
+                    b.Property<DateTimeOffset>("LastSyncedOnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_synced_on_utc");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_on_utc");
+
+                    b.Property<DateTimeOffset?>("OnboardingExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("onboarding_expires_at_utc");
+
+                    b.Property<bool>("PayoutsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("payouts_enabled");
+
+                    b.Property<Guid>("TargetTenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalAccountId")
+                        .IsUnique();
+
+                    b.HasIndex("TargetTenantId")
+                        .IsUnique();
+
+                    b.ToTable("stripe_connect_accounts", "platform");
                 });
 
             modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.Tenant", b =>
@@ -405,11 +474,20 @@ namespace Ruth.Modules.Tenancy.Infrastructure.Migrations
                     b.ToTable("outbox_messages", "platform");
                 });
 
-            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.IrsExemptVerificationRecord", b =>
+            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.IrsExemptVerification", b =>
                 {
                     b.HasOne("Ruth.Modules.Tenancy.Domain.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TargetTenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Ruth.Modules.Tenancy.Domain.StripeConnectAccount", b =>
+                {
+                    b.HasOne("Ruth.Modules.Tenancy.Domain.Tenant", null)
+                        .WithOne()
+                        .HasForeignKey("Ruth.Modules.Tenancy.Domain.StripeConnectAccount", "TargetTenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

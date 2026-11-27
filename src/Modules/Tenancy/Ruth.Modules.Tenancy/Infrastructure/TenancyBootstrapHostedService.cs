@@ -72,14 +72,18 @@ internal sealed partial class TenancyBootstrapHostedService(
         }
 
         var hash = PlatformOperatorPasswordHasher.HashPassword(_options.SeedOperatorPassword);
-        _ = dbContext.PlatformOperators.Add(
-            PlatformOperator.Create(
-                normalizedEmail,
-                _options.SeedOperatorDisplayName,
-                hash,
-                _clock.UtcNow
-            )
+        var operatorResult = PlatformOperator.Create(
+            normalizedEmail,
+            _options.SeedOperatorDisplayName,
+            hash,
+            _clock.UtcNow
         );
+        if (operatorResult.IsFailure)
+        {
+            return;
+        }
+
+        _ = dbContext.PlatformOperators.Add(operatorResult.Value);
         _ = await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -91,16 +95,25 @@ internal sealed partial class TenancyBootstrapHostedService(
             return;
         }
 
-        var tenantIds = await registry.GetActiveTenantIdsAsync(cancellationToken);
-        foreach (var tenantId in tenantIds)
+        var tenants = await registry.GetActiveTenantsAsync(cancellationToken);
+        foreach (var tenant in tenants)
         {
-            using (AmbientTenantContext.BeginScope(tenantId))
+            using (
+                AmbientTenantContext.BeginScope(
+                    tenant.TenantId,
+                    tenant.TenantSlug,
+                    tenant.LifecycleStage
+                )
+            )
             {
                 await using var scope = _serviceProvider.CreateAsyncScope();
-                var contributors = scope.ServiceProvider.GetServices<ITenantSeedContributor>();
+                var contributors = scope
+                    .ServiceProvider.GetServices<ITenantSeedContributor>()
+                    .OrderBy(static c => c.Order)
+                    .ToArray();
                 foreach (var contributor in contributors)
                 {
-                    await contributor.SeedTenantAsync(tenantId, cancellationToken);
+                    await contributor.SeedTenantAsync(tenant.TenantId, cancellationToken);
                 }
             }
         }

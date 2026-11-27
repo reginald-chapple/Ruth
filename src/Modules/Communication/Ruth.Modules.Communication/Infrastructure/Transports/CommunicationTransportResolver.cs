@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Communication.Contracts.Transports;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Infrastructure.Transports;
 
@@ -19,21 +20,89 @@ public sealed class CommunicationTransportResolver(
 
     public ICommunicationTransport ResolveForChannel(CommunicationChannel channel)
     {
-        var preferredKey = GetPreferredKey(channel);
-        var preferred = _transports.FirstOrDefault(t =>
-            t.Channel == channel
-            && t.IsConfigured
-            && string.Equals(t.TransportKey, preferredKey, StringComparison.OrdinalIgnoreCase)
-        );
-        if (preferred is not null)
+        if (AmbientTenantContext.Instance.HasTenant && !AmbientTenantContext.Instance.IsLive)
         {
-            return preferred;
+            var sandboxFallback = FindFallbackTransport(channel);
+            if (sandboxFallback is not null)
+            {
+                return sandboxFallback;
+            }
         }
 
-        var liveConfigured = _transports.FirstOrDefault(t =>
-            t.Channel == channel && t.IsConfigured && !IsFallbackTransport(t.TransportKey)
+        return FindPreferredTransport(channel)
+            ?? FindLiveConfiguredTransport(channel)
+            ?? FindFirstConfiguredTransport(channel);
+    }
+
+    private ICommunicationTransport? FindFallbackTransport(CommunicationChannel channel)
+    {
+        foreach (var transport in _transports)
+        {
+            if (
+                transport.Channel == channel
+                && transport.IsConfigured
+                && IsFallbackTransport(transport.TransportKey)
+            )
+            {
+                return transport;
+            }
+        }
+
+        return null;
+    }
+
+    private ICommunicationTransport? FindPreferredTransport(CommunicationChannel channel)
+    {
+        var preferredKey = GetPreferredKey(channel);
+        foreach (var transport in _transports)
+        {
+            if (
+                transport.Channel == channel
+                && transport.IsConfigured
+                && string.Equals(
+                    transport.TransportKey,
+                    preferredKey,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return transport;
+            }
+        }
+
+        return null;
+    }
+
+    private ICommunicationTransport? FindLiveConfiguredTransport(CommunicationChannel channel)
+    {
+        foreach (var transport in _transports)
+        {
+            if (
+                transport.Channel == channel
+                && transport.IsConfigured
+                && !IsFallbackTransport(transport.TransportKey)
+            )
+            {
+                return transport;
+            }
+        }
+
+        return null;
+    }
+
+    private ICommunicationTransport FindFirstConfiguredTransport(CommunicationChannel channel)
+    {
+        foreach (var transport in _transports)
+        {
+            if (transport.Channel == channel && transport.IsConfigured)
+            {
+                return transport;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"No configured communication transport was registered for channel '{channel}'."
         );
-        return liveConfigured ?? _transports.First(t => t.Channel == channel && t.IsConfigured);
     }
 
     private string GetPreferredKey(CommunicationChannel channel)

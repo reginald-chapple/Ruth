@@ -215,7 +215,7 @@ public sealed class CrossTenantRlsCanaryIntegrationTests(HostContainersFixture c
                 bearerToken: tokenA
             )
         );
-        Assert.Equal(HttpStatusCode.OK, regDomain.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, regDomain.StatusCode);
         using var domDoc = JsonDocument.Parse(await regDomain.Content.ReadAsStringAsync());
         var domainId = domDoc.RootElement.GetProperty("id").GetGuid();
         var txtToken = domDoc.RootElement.GetProperty("verificationTxtValue").GetString()

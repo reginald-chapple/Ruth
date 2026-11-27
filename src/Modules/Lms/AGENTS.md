@@ -12,6 +12,7 @@
   - `AssessmentAutoGrader` auto-awards points for Video/Article/Acknowledgment and objective answer-key Assessments, while routing FileUpload and subjective assessments to the Facilitator Grading Queue (`RequiresGrading = true`).
   - `LearningParticipant.RecalculateProgress` evaluates `LearningGradingSystem` scale thresholds and emits `LearningCourseCompletedIntegrationEvent` via Outbox upon first passing completion.
   - `LmsPersonMergedConsumer` idempotently repoints `PersonId` across enrollments and graded completions.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `lms` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`).
 
 ## Verification
 ```bash

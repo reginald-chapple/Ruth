@@ -17,7 +17,7 @@ internal static class CrossTenantCanaryTestHelper
         "crm",
         "groups",
         "checkin",
-        "comm",
+        "comms",
         "finance",
         "events",
         "commerce",
@@ -83,12 +83,19 @@ internal static class CrossTenantCanaryTestHelper
         _ = cmd.Parameters.AddWithValue("schemas", _tenantSchemas);
 
         var inspectedCount = 0;
+        var seenSchemas = new HashSet<string>(StringComparer.Ordinal);
         List<string> unprotected = [];
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             inspectedCount++;
             var table = reader.GetString(0);
+            var dotIndex = table.IndexOf('.', StringComparison.Ordinal);
+            if (dotIndex > 0)
+            {
+                _ = seenSchemas.Add(table[..dotIndex]);
+            }
+
             var rls = reader.GetBoolean(1);
             var forceRls = reader.GetBoolean(2);
             if (!rls || !forceRls)
@@ -96,6 +103,12 @@ internal static class CrossTenantCanaryTestHelper
                 unprotected.Add($"{table} (rls={rls}, force={forceRls})");
             }
         }
+
+        var missingSchemas = _tenantSchemas.Except(seenSchemas, StringComparer.Ordinal).ToArray();
+        Assert.True(
+            missingSchemas.Length == 0,
+            $"Expected every tenant schema to contain >= 1 table, missing: {string.Join(", ", missingSchemas)}"
+        );
 
         Assert.True(
             inspectedCount >= 80,

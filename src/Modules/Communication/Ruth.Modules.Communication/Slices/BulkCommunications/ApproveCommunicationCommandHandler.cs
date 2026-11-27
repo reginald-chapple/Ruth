@@ -4,11 +4,14 @@ using Ruth.Modules.Communication.Domain.BulkCommunications;
 using Ruth.Modules.Communication.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Slices.BulkCommunications;
 
-internal sealed class ApproveCommunicationCommandHandler(CommunicationDbContext dbContext)
-    : ICommandHandler<ApproveCommunicationCommand, CommunicationDetailResponse>
+internal sealed class ApproveCommunicationCommandHandler(
+    CommunicationDbContext dbContext,
+    ITenantContext tenantContext
+) : ICommandHandler<ApproveCommunicationCommand, CommunicationDetailResponse>
 {
     public async Task<Result<CommunicationDetailResponse>> HandleAsync(
         ApproveCommunicationCommand command,
@@ -16,6 +19,13 @@ internal sealed class ApproveCommunicationCommandHandler(CommunicationDbContext 
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (!tenantContext.IsLive)
+        {
+            return Result.Failure<CommunicationDetailResponse>(
+                BulkCommunicationErrors.TenantNotLive
+            );
+        }
 
         var id = CommunicationId.From(command.CommunicationId);
         var comm = await dbContext.Communications.FirstOrDefaultAsync(

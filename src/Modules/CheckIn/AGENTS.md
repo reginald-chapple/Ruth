@@ -19,6 +19,7 @@
   - `CheckInLabel` validates 203/300 DPI thermal layouts (`CheckInLabelLayoutSchema`) and protects built-in system definitions (`participant-safety-badge`, `guardian-pickup-receipt`) from deletion.
   - `ZplLabelCompiler` and `ZplTextSanitizer` escape all interpolated merge values using Zebra ZPL II `^FH_` hexadecimal encoding (`_5E`, `_7E`, `_5C`, `_5F`) to prevent ZPL command injection (`^XA`/`^XZ`/`~` control injection).
   - Server-side printing dispatches raw UTF-8 ZPL over TCP port `9100` (`IZplPrinterDispatcher` / `TcpRawSocketZplPrinterDispatcher`), while client kiosks use `wwwroot/ruth-label-print.js` (WebUSB bulk-OUT with HTML print fallback).
+- **Multi-Tenant & RLS Isolation (`W7-S5`):** Every table in `checkin` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), scoping `DailySecurityPickupCode` and `CheckInLabel` (`CheckInTenantSeedContributor`) uniqueness per tenant.
 
 ## Verification
 ```bash

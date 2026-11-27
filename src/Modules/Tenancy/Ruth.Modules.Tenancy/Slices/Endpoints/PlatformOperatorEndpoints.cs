@@ -27,22 +27,36 @@ internal static class PlatformOperatorEndpoints
         _ = authGroup
             .MapPost("/authenticate", AuthenticateAsync)
             .AllowAnonymous()
-            .WithName("AuthenticatePlatformOperator");
+            .WithName("AuthenticatePlatformOperator")
+            .WithSummary("Authenticate a Platform Operator on the isolated operator host")
+            .WithDescription(
+                "Validates Platform Operator credentials on ops.<platform-domain> and issues a host-only operator session cookie."
+            );
 
         _ = authGroup
             .MapPost("/logout", LogoutAsync)
             .AllowAnonymous()
-            .WithName("LogoutPlatformOperator");
+            .WithName("LogoutPlatformOperator")
+            .WithSummary("Sign out of the Platform Operator session")
+            .WithDescription("Clears the host-only Platform Operator authentication cookie.");
 
         _ = authGroup
             .MapGet("/queue", GetQueueAsync)
             .RequireAuthorization(OperatorAuthorizationPolicy)
-            .WithName("GetPendingGoLiveQueue");
+            .WithName("GetPendingGoLiveQueue")
+            .WithSummary("List organization tenants in the Platform Operator review queue")
+            .WithDescription(
+                "Returns registered tax-exempt tenants filtered by optional lifecycle stage on the isolated operator host."
+            );
 
         _ = authGroup
             .MapPost("/review", ReviewAsync)
             .RequireAuthorization(OperatorAuthorizationPolicy)
-            .WithName("ReviewTenantGoLive");
+            .WithName("ReviewTenantGoLive")
+            .WithSummary("Approve Live, return to Sandbox, or suspend a tenant")
+            .WithDescription(
+                "Records an authenticated Platform Operator's Go-Live review decision and updates custom domain routing."
+            );
 
         return endpoints;
     }
@@ -89,9 +103,11 @@ internal static class PlatformOperatorEndpoints
 
     private static async Task<Results<NoContent, NotFound>> LogoutAsync(
         ITenantContext tenantContext,
-        HttpContext httpContext
+        HttpContext httpContext,
+        CancellationToken cancellationToken
     )
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!tenantContext.IsPlatformOperatorHost)
         {
             return TypedResults.NotFound();
@@ -128,7 +144,7 @@ internal static class PlatformOperatorEndpoints
     private static async Task<
         Results<Ok<TenantComplianceStatusResponse>, NotFound, ProblemHttpResult>
     > ReviewAsync(
-        ReviewTenantGoLiveCommand command,
+        ReviewTenantGoLiveRequest request,
         ITenantContext tenantContext,
         ICommandDispatcher dispatcher,
         HttpContext httpContext,
@@ -140,10 +156,22 @@ internal static class PlatformOperatorEndpoints
             return TypedResults.NotFound();
         }
 
+        var authenticatedOperatorEmail = httpContext.User.FindFirstValue(ClaimTypes.Email)
+            ?? string.Empty;
+
         var result = await dispatcher.SendAsync<
             ReviewTenantGoLiveCommand,
             TenantComplianceStatusResponse
-        >(command, cancellationToken);
+        >(
+            new ReviewTenantGoLiveCommand(
+                request.TargetTenantId,
+                request.Decision,
+                authenticatedOperatorEmail,
+                request.Notes,
+                request.ManualIrsOverrideApproved
+            ),
+            cancellationToken
+        );
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : TenancyProblemResultMapper.ToProblem(result, httpContext);

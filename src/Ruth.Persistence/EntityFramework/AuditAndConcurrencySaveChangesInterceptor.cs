@@ -118,6 +118,11 @@ public sealed class AuditAndConcurrencySaveChangesInterceptor(
         AuditAndConcurrencyStamper.StampAuditMetadata(context, utcNow);
         AuditAndConcurrencyStamper.UpdateConcurrencyTokens(context, utcNow);
         CaptureOutboxAndStageEvents(context);
+
+        if (context is ModuleDbContext postOutboxModuleContext)
+        {
+            TenantWriteGuardStamper.EnforceAndStampTenant(postOutboxModuleContext);
+        }
     }
 
     private void CaptureOutboxAndStageEvents(DbContext context)

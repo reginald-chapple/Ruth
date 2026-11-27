@@ -18,20 +18,48 @@ internal static class TenantComplianceEndpoints
             .WithTags("Organization Compliance")
             .RequireAuthorization("Ruth.AdministratorsOnly");
 
-        _ = group.MapGet("/compliance", GetComplianceAsync).WithName("GetCurrentTenantCompliance");
+        _ = group
+            .MapGet("/compliance", GetComplianceAsync)
+            .WithName("GetCurrentTenantCompliance")
+            .WithSummary("Get current organization compliance and domain status")
+            .WithDescription(
+                "Returns IRS EO BMF verification status, Stripe Connect payout readiness, lifecycle stage, and registered domains for the active workspace."
+            );
         _ = group
             .MapPost("/stripe-connect/onboarding", StartStripeOnboardingAsync)
-            .WithName("StartStripeConnectOnboarding");
+            .WithName("StartStripeConnectOnboarding")
+            .WithSummary("Create or resume a Stripe Connect Express onboarding session")
+            .WithDescription(
+                "Creates or resumes a Stripe Connect Express account link for the active tax-exempt organization."
+            );
         _ = group
             .MapPost("/stripe-connect/mock-complete", CompleteMockStripeAsync)
-            .WithName("CompleteMockStripeConnect");
+            .WithName("CompleteMockStripeConnect")
+            .WithSummary("Complete simulated Stripe Connect payout readiness in mock mode")
+            .WithDescription(
+                "Marks charges and payouts enabled on the organization's mock Stripe Connect account when StripeMockMode is active."
+            );
         _ = group
             .MapPost("/domains", RegisterCustomDomainAsync)
-            .WithName("RegisterTenantCustomDomain");
+            .WithName("RegisterTenantCustomDomain")
+            .WithSummary("Register a custom organization domain")
+            .WithDescription(
+                "Registers an organization-owned custom domain and generates a DNS TXT ownership verification challenge."
+            );
         _ = group
             .MapPost("/domains/{domainId:guid}/verify", VerifyCustomDomainAsync)
-            .WithName("VerifyTenantCustomDomain");
-        _ = group.MapPost("/go-live/submit", SubmitGoLiveAsync).WithName("SubmitTenantForGoLive");
+            .WithName("VerifyTenantCustomDomain")
+            .WithSummary("Verify DNS TXT ownership for a custom domain")
+            .WithDescription(
+                "Checks DNS TXT records for the domain's verification challenge and promotes primary routing if the workspace is Live."
+            );
+        _ = group
+            .MapPost("/go-live/submit", SubmitGoLiveAsync)
+            .WithName("SubmitTenantForGoLive")
+            .WithSummary("Run IRS EO BMF verification and submit workspace for Go-Live approval")
+            .WithDescription(
+                "Verifies Stripe Connect payout readiness and IRS Exempt Organizations Business Master File status before queuing for Platform Operator approval."
+            );
 
         return endpoints;
     }
@@ -89,7 +117,7 @@ internal static class TenantComplianceEndpoints
     }
 
     private static async Task<
-        Results<Ok<TenantDomainResponse>, ProblemHttpResult>
+        Results<Created<TenantDomainResponse>, ProblemHttpResult>
     > RegisterCustomDomainAsync(
         RegisterCustomDomainCommand command,
         ICommandDispatcher dispatcher,
@@ -102,7 +130,7 @@ internal static class TenantComplianceEndpoints
             cancellationToken
         );
         return result.IsSuccess
-            ? TypedResults.Ok(result.Value)
+            ? TypedResults.Created($"/api/v1/tenancy/domains/{result.Value.Id:D}", result.Value)
             : TenancyProblemResultMapper.ToProblem(result, httpContext);
     }
 
@@ -110,14 +138,14 @@ internal static class TenantComplianceEndpoints
         Results<Ok<TenantDomainResponse>, ProblemHttpResult>
     > VerifyCustomDomainAsync(
         Guid domainId,
-        VerifyDomainTokenRequest request,
+        VerifyDomainTokenRequest? request,
         ICommandDispatcher dispatcher,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
         var result = await dispatcher.SendAsync<VerifyCustomDomainCommand, TenantDomainResponse>(
-            new VerifyCustomDomainCommand(domainId, request.ObservedTxtToken),
+            new VerifyCustomDomainCommand(domainId, request?.ObservedTxtToken),
             cancellationToken
         );
         return result.IsSuccess

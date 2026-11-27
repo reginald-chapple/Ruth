@@ -45,17 +45,30 @@ public sealed class OutboxRetentionCleanupJob(
         var maxSubtractable = nowUtc - DateTimeOffset.MinValue;
         var cutoffUtc = retention >= maxSubtractable ? DateTimeOffset.MinValue : nowUtc - retention;
         var totalDeleted = 0;
+        var failedSchemas = 0;
 
         foreach (var processor in _processors)
         {
-            totalDeleted += await processor.PruneProcessedAsync(cutoffUtc, cancellationToken);
+            try
+            {
+                totalDeleted += await processor.PruneProcessedAsync(cutoffUtc, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                failedSchemas++;
+            }
         }
 
-        return JobExecutionResult.Success(
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"Pruned {totalDeleted} processed Outbox message(s) older than {cutoffUtc:O}."
-            )
+        var summary = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Pruned {totalDeleted} processed Outbox message(s) older than {cutoffUtc:O}."
         );
+        return failedSchemas > 0
+            ? JobExecutionResult.Warning(summary)
+            : JobExecutionResult.Success(summary);
     }
 }

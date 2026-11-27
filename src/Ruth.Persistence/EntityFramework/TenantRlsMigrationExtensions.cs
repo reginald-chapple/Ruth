@@ -31,38 +31,13 @@ public static class TenantRlsMigrationExtensions
     /// <summary>Builds the idempotent SQL script enabling FORCE ROW LEVEL SECURITY on <paramref name="validatedSchema" />.</summary>
     public static string BuildEnableTenantRlsSql(string validatedSchema)
     {
-        var schema = SchemaValidator.Validate(validatedSchema);
-        return string.Join(
-            '\n',
-            "DO $$",
-            "DECLARE",
-            "    tbl record;",
-            "BEGIN",
-            "    FOR tbl IN",
-            "        SELECT c.relname AS table_name",
-            "        FROM pg_class c",
-            "        JOIN pg_namespace n ON n.oid = c.relnamespace",
-            "        JOIN pg_attribute a ON a.attrelid = c.oid",
-            $"        WHERE n.nspname = '{schema}'",
-            "          AND c.relkind IN ('r', 'p')",
-            "          AND a.attname = 'tenant_id'",
-            "          AND NOT a.attisdropped",
-            "    LOOP",
-            $"        EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY;', '{schema}', tbl.table_name);",
-            $"        EXECUTE format('ALTER TABLE %I.%I FORCE ROW LEVEL SECURITY;', '{schema}', tbl.table_name);",
-            $"        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I.%I;', '{schema}', tbl.table_name);",
-            $"        EXECUTE format('DROP POLICY IF EXISTS tenant_restrictive_guard ON %I.%I;', '{schema}', tbl.table_name);",
-            $"        EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I.%I AS PERMISSIVE FOR ALL USING (tenant_id = NULLIF(current_setting(''app.current_tenant_id'', true), '''')::uuid) WITH CHECK (tenant_id = NULLIF(current_setting(''app.current_tenant_id'', true), '''')::uuid);', '{schema}', tbl.table_name);",
-            $"        EXECUTE format('CREATE POLICY tenant_restrictive_guard ON %I.%I AS RESTRICTIVE FOR ALL USING (tenant_id = NULLIF(current_setting(''app.current_tenant_id'', true), '''')::uuid) WITH CHECK (tenant_id = NULLIF(current_setting(''app.current_tenant_id'', true), '''')::uuid);', '{schema}', tbl.table_name);",
-            "    END LOOP;",
-            "END",
-            "$$;"
-        );
+        return PostgresRlsSqlScripts.BuildStaticSchemaRlsDoBlock(validatedSchema);
     }
 
     /// <summary>
     /// Runs EF Core migrations for <typeparamref name="TContext" /> using the schema-owner migrator connection,
-    /// then provisions ruth_app DML grants and verifies FORCE ROW LEVEL SECURITY on tenant schemas.
+    /// then provisions ruth_app DML grants and verifies FORCE ROW LEVEL SECURITY on tenant schemas
+    /// (or locks down control-plane schemas against ruth_app access).
     /// </summary>
     public static async Task MigrateModuleSchemaAsync<TContext>(
         this IServiceProvider serviceProvider,
@@ -120,6 +95,10 @@ public static class TenantRlsMigrationExtensions
                 descriptor.Schema,
                 cancellationToken
             );
+        }
+        else
+        {
+            await provisioner.LockDownControlPlaneSchemaAsync(descriptor.Schema, cancellationToken);
         }
     }
 }

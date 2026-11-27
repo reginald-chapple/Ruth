@@ -63,6 +63,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__RuthDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-ruth};Username=${POSTGRES_USER:-ruth};Password=${POSTGRES_PASSWORD:-ruth_secret}
       Persistence__Rls__UseNonSuperuserAppRole: "true"
+      Persistence__Rls__MigratorRoleName: ruth_migrator
       Persistence__Rls__AppRoleName: ruth_app
       Persistence__Rls__AppRolePassword: ${RUTH_APP_DB_PASSWORD:-ruth_app_rls_local_dev_pw}
       Tenancy__SandboxBaseDomain: ${Tenancy__SandboxBaseDomain:-sandbox.localhost}

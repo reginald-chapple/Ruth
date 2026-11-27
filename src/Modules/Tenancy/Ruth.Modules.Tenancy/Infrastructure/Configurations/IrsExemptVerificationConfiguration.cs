@@ -4,12 +4,12 @@ using Ruth.Modules.Tenancy.Domain;
 
 namespace Ruth.Modules.Tenancy.Infrastructure.Configurations;
 
-internal sealed class IrsExemptVerificationRecordConfiguration
-    : IEntityTypeConfiguration<IrsExemptVerificationRecord>
+internal sealed class IrsExemptVerificationConfiguration
+    : IEntityTypeConfiguration<IrsExemptVerification>
 {
-    public void Configure(EntityTypeBuilder<IrsExemptVerificationRecord> builder)
+    public void Configure(EntityTypeBuilder<IrsExemptVerification> builder)
     {
-        _ = builder.ToTable("irs_exempt_verification_records");
+        _ = builder.ToTable("irs_exempt_verifications");
         _ = builder.HasKey(x => x.Id);
         _ = builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         _ = builder.Property(x => x.TargetTenantId).HasColumnName("target_tenant_id").IsRequired();

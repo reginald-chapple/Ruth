@@ -1,16 +1,17 @@
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.SharedKernel.Primitives;
+using Ruth.SharedKernel.Results;
 using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Tenancy.Domain;
 
 /// <summary>Immutable audit trail record of an IRS EO BMF / Publication 78 check for a <see cref="Tenant" />.</summary>
-public sealed class IrsExemptVerificationRecord : Entity<IrsVerificationRecordId>, IAuditableEntity
+public sealed class IrsExemptVerification : Entity<IrsExemptVerificationId>, IAuditableEntity
 {
-    private IrsExemptVerificationRecord() { }
+    private IrsExemptVerification() { }
 
-    private IrsExemptVerificationRecord(
-        IrsVerificationRecordId id,
+    private IrsExemptVerification(
+        IrsExemptVerificationId id,
         TenantId targetTenantId,
         string checkedEin,
         IrsVerificationStatus status,
@@ -50,26 +51,40 @@ public sealed class IrsExemptVerificationRecord : Entity<IrsVerificationRecordId
 
     public DateTimeOffset? ModifiedOnUtc { get; private set; }
 
-    public static IrsExemptVerificationRecord Create(
+    public static Result<IrsExemptVerification> Create(
         TenantId targetTenantId,
-        string checkedEin,
+        string? checkedEin,
         IrsVerificationStatus status,
         string? officialName,
         string? subsectionCode,
         string? deductibilityCode,
-        string diagnosticSummary,
+        string? diagnosticSummary,
         DateTimeOffset checkedOnUtc
     )
     {
-        return new IrsExemptVerificationRecord(
-            IrsVerificationRecordId.Create(),
+        if (targetTenantId.IsEmpty)
+        {
+            return TenancyErrors.TenantNotFound;
+        }
+
+        if (string.IsNullOrWhiteSpace(checkedEin))
+        {
+            return TenancyErrors.InvalidEin;
+        }
+
+        var summary = string.IsNullOrWhiteSpace(diagnosticSummary)
+            ? "IRS EO BMF verification recorded."
+            : diagnosticSummary.Trim();
+
+        return new IrsExemptVerification(
+            IrsExemptVerificationId.Create(),
             targetTenantId,
-            checkedEin,
+            checkedEin.Trim(),
             status,
-            officialName,
-            subsectionCode,
-            deductibilityCode,
-            diagnosticSummary,
+            string.IsNullOrWhiteSpace(officialName) ? null : officialName.Trim(),
+            string.IsNullOrWhiteSpace(subsectionCode) ? null : subsectionCode.Trim(),
+            string.IsNullOrWhiteSpace(deductibilityCode) ? null : deductibilityCode.Trim(),
+            summary,
             checkedOnUtc
         );
     }

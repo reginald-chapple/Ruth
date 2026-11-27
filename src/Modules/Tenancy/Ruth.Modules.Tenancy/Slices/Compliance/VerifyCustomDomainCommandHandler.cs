@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Tenancy.Contracts.Hosts;
 using Ruth.Modules.Tenancy.Contracts.Tenants;
+using Ruth.Modules.Tenancy.Contracts.Verification;
 using Ruth.Modules.Tenancy.Domain;
 using Ruth.Modules.Tenancy.Infrastructure;
 using Ruth.SharedKernel.Messaging;
@@ -14,6 +15,7 @@ internal sealed class VerifyCustomDomainCommandHandler(
     TenancyDbContext dbContext,
     ITenantContext tenantContext,
     ITenantHostResolver hostResolver,
+    IDnsTxtVerificationProvider dnsProvider,
     IClock clock
 ) : ICommandHandler<VerifyCustomDomainCommand, TenantDomainResponse>
 {
@@ -23,6 +25,8 @@ internal sealed class VerifyCustomDomainCommandHandler(
         ?? throw new ArgumentNullException(nameof(tenantContext));
     private readonly ITenantHostResolver _hostResolver = hostResolver
         ?? throw new ArgumentNullException(nameof(hostResolver));
+    private readonly IDnsTxtVerificationProvider _dnsProvider = dnsProvider
+        ?? throw new ArgumentNullException(nameof(dnsProvider));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
     public async Task<Result<TenantDomainResponse>> HandleAsync(
@@ -42,10 +46,22 @@ internal sealed class VerifyCustomDomainCommandHandler(
             return TenancyErrors.DomainNotFound;
         }
 
-        var verifyResult = domain.VerifyOwnership(command.ObservedTxtToken, _clock.UtcNow);
-        if (verifyResult.IsFailure)
+        if (!domain.IsVerified)
         {
-            return Result.Failure<TenantDomainResponse>(verifyResult.Errors);
+            var txtName = domain.VerificationTxtName ?? $"_org-verify.{domain.Hostname}";
+            var resolvedTxtRecords = await _dnsProvider.ResolveTxtRecordsAsync(
+                txtName,
+                command.ObservedTxtToken,
+                cancellationToken
+            );
+            var matchedToken = resolvedTxtRecords.FirstOrDefault(r =>
+                string.Equals(r, domain.VerificationTxtValue, StringComparison.Ordinal)
+            );
+            var verifyResult = domain.VerifyOwnership(matchedToken, _clock.UtcNow);
+            if (verifyResult.IsFailure)
+            {
+                return Result.Failure<TenantDomainResponse>(verifyResult.Errors);
+            }
         }
 
         if (domain.MakePrimaryWhenVerified && _tenantContext.IsLive)

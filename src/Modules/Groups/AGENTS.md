@@ -11,6 +11,7 @@
 - **W2-S7 (`Scheduling` & `RSVPs`):** `GroupLocationScheduleConfig` enforces `MinimumCapacity <= DesiredCapacity <= MaximumCapacity`. `ServingScheduleEvaluator` validates group scheduling enablement, `GroupScheduleExclusion` and `PersonScheduleExclusion` blackout windows, requirement eligibility, double-booking detection, and tokenized Accept/Decline RSVP state transitions.
 - **W2-S8 (`Attendance`, generalized in `W3-S0`):** `AttendanceOccurrence` enforces unique `(GroupId, LocationId, ScheduleId, OccurrenceDate)`, deterministic configurable `WeekEndDate` (`ReportingWeekCalculator`) and `OccurrenceDateKey`, `DidNotOccur` invariants, automatic `IsFirstTime` detection, branch/program metric summaries, and idempotent Transactional Outbox `PersonAttendedIntegrationEvent` emission.
 - **Cross-Module Merge:** `GroupsPersonMergedConsumer` idempotently repoints `PersonId` across memberships, history, requirements, blackouts, group coordinators/admins, and attendance records upon `PersonMergedIntegrationEvent`.
+- **Multi-Tenant & RLS Isolation (`W7-S5`):** Every table in `groups` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), preserving `NULLS NOT DISTINCT` composite `(tenant_id, ...)` uniqueness across `AttendanceOccurrence`, `GroupMemberAssignment`, and `GroupRequirement`.
 
 ## Verification
 ```bash

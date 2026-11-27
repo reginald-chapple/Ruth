@@ -16,6 +16,7 @@
   - `BookingSlotEngine` evaluates conflict-free slots honoring setup and teardown buffers (`[StartUtc - SetupBuffer, EndUtc + TeardownBuffer)`), lead-time/advance-horizon bounds, blackout windows, capacity limits, and non-expired `BookingSlotHold` TTL reservations (`ExpiredBookingSlotHoldCleanupJob`).
   - Confirming a booking settles member-free, member-discounted, punch-pass, invoice, or gateway payment via `Finance.Contracts` and stages `ServiceBookingConfirmedIntegrationEvent` in the `commerce` Outbox for downstream workflows.
   - `CommercePersonMergedConsumer` idempotently repoints person references across orders, punch passes, services, availability rules, holds, and bookings upon `PersonMergedIntegrationEvent`.
+- **Multi-Tenant & RLS Isolation (`W7-S6`):** Every table in `commerce` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`).
 
 ## Verification
 ```bash

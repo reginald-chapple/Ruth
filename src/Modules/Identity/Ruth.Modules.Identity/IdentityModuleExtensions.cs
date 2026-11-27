@@ -14,6 +14,7 @@ using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
 using Ruth.SharedKernel.Metadata;
 using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity;
 
@@ -114,6 +115,10 @@ public static class IdentityModuleExtensions
         services.TryAddScoped<IExternalOidcClient, HttpExternalOidcClient>();
 
         _ = services.AddIdentityAuthenticationAndAuthorization(configuration);
+        services.TryAddScoped<IdentityTenantSeedContributor>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ITenantSeedContributor, IdentityTenantSeedContributor>()
+        );
         _ = services.AddHostedService<IdentityBootstrapHostedService>();
 
         RegisterOnboardingHandlers(services);
