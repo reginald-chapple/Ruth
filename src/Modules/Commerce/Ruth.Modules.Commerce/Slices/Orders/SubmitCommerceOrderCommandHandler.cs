@@ -130,7 +130,7 @@ internal sealed class SubmitCommerceOrderCommandHandler(
             || plan.Lines.Any(static l => l.Product.Kind == ProductKind.PunchPassPack);
         if (!needsPerson)
         {
-            return command.BuyerPersonId;
+            return Result.Success(command.BuyerPersonId);
         }
 
         var res = await financeCollaborator.EnsureConstituentPersonAsync(

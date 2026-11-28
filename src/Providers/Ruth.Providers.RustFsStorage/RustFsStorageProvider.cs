@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Core.Contracts.Storage;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Providers.RustFsStorage;
@@ -38,7 +39,10 @@ public sealed class RustFsStorageProvider(
         var opts = optionsAccessor.Value;
         await EnsureBucketExistsAsync(opts, cancellationToken);
 
-        var normalizedKey = objectKey.TrimStart('/');
+        var normalizedKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            objectKey
+        );
         var targetUri = BuildObjectUri(opts, normalizedKey);
         using var buffer = new MemoryStream();
         await content.CopyToAsync(buffer, cancellationToken);
@@ -76,10 +80,10 @@ public sealed class RustFsStorageProvider(
         CancellationToken cancellationToken = default
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
-        var targetUri = BuildObjectUri(opts, objectKey.TrimStart('/'));
+        var targetUri = BuildObjectUri(opts, scopedKey);
         using var request = new HttpRequestMessage(HttpMethod.Get, targetUri);
         AwsSigV4Signer.SignRequest(
             request,
@@ -113,10 +117,10 @@ public sealed class RustFsStorageProvider(
         CancellationToken cancellationToken = default
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
-        var targetUri = BuildObjectUri(opts, objectKey.TrimStart('/'));
+        var targetUri = BuildObjectUri(opts, scopedKey);
         using var request = new HttpRequestMessage(HttpMethod.Head, targetUri);
         AwsSigV4Signer.SignRequest(
             request,
@@ -134,10 +138,10 @@ public sealed class RustFsStorageProvider(
     /// <inheritdoc />
     public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
-        var targetUri = BuildObjectUri(opts, objectKey.TrimStart('/'));
+        var targetUri = BuildObjectUri(opts, scopedKey);
         using var request = new HttpRequestMessage(HttpMethod.Delete, targetUri);
         AwsSigV4Signer.SignRequest(
             request,
@@ -162,8 +166,8 @@ public sealed class RustFsStorageProvider(
         CancellationToken cancellationToken = default
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
         cancellationToken.ThrowIfCancellationRequested();
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
         var nowUtc = clock.UtcNow;
@@ -171,7 +175,7 @@ public sealed class RustFsStorageProvider(
         var url = AwsSigV4Signer.CreatePresignedUrl(
             new Uri(opts.Endpoint),
             opts.BucketName,
-            objectKey,
+            scopedKey,
             "GET",
             opts.AccessKey,
             opts.SecretKey,
@@ -190,8 +194,8 @@ public sealed class RustFsStorageProvider(
         CancellationToken cancellationToken = default
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
         cancellationToken.ThrowIfCancellationRequested();
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
         var nowUtc = clock.UtcNow;
@@ -199,7 +203,7 @@ public sealed class RustFsStorageProvider(
         var url = AwsSigV4Signer.CreatePresignedUrl(
             new Uri(opts.Endpoint),
             opts.BucketName,
-            objectKey,
+            scopedKey,
             "PUT",
             opts.AccessKey,
             opts.SecretKey,

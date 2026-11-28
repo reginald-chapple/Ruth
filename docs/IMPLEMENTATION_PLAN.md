@@ -509,14 +509,23 @@ flowchart TD
 * **Authoring Skills:** `architecture`, `entity-framework-core`, `modern-csharp`, `aspnet-core`, `blazing-fast-dotnet`.
 * **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S6` — Operations & Portal Modules RLS Retrofit (`Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, `Reporting`, `Lms`, `Search`)
+#### `W7-S6` — Operations & Portal Modules RLS Retrofit (`Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, `Reporting`, `Lms`, `Search`) ✅ *(Completed)*
 * **Scope:** Clean multi-tenant + `FORCE ROW LEVEL SECURITY` baseline migrations across `finance`, `events`, `commerce`, `engage`, `workflow`, `cms`, `reporting`, `lms`, and `search` schemas; mandatory `tenants/{TenantId}/...` key prefixing inside `IStorageProvider`; tenant-scoped `DataView`, Star-Schema, and `tsvector` Search projections; and `Live`-status gating on live payment capture.
+* **Acceptance & Tests:** Testcontainers PostgreSQL 18 `pg_class` `FORCE ROW LEVEL SECURITY` and `ruth_app` isolation tests across `Finance`, `Events`, `Commerce`, `Engagement`, `Workflow`, `Cms`, `Reporting`, `Lms`, and `Search`, verifying `TenantStorageKeyScope` (`tenants/{TenantId}/...`) enforcement across `InMemoryStorageProvider`, `RustFsStorageProvider`, `BinaryFile`, `FinancialTransactionImage`, and statements; `Live`-stage gating on live charges, vaulting, recurring sync, refunds, and storefront checkout; tenant-partitioned `Events` SignalR groups & white-label iCal feeds; tenant-enveloped `Cms` buffered interaction flushes & Redis segment sets; `security_invoker` + GUC-filtered `Reporting` BI views & `@tenantId`-bound cross-schema SQL; and tenant-isolated `Search` `tsvector`/`pg_trgm` queries.
+* **Authoring Skills:** `architecture`, `entity-framework-core`, `modern-csharp`, `aspnet-core`, `blazing-fast-dotnet`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`.
 
-#### `W7-S7` — Stealth White-Label Routing, `__Host-` Cookies & Blazor Circuit Isolation
+#### `W7-S7` — Stealth White-Label Routing, `__Host-` Cookies & Blazor Circuit Isolation ✅ *(Completed)*
 * **Scope:** `TenantResolutionMiddleware` mapping custom domains and sandbox subdomains with neutral `404` on unknown hosts; `__Host-` / host-only neutral cookie names, stripped server/framework fingerprinting headers, zero `"Powered by Ruth"` public branding, immutable Blazor `InteractiveServer` circuit `TenantId` binding, and `ops.<platform-domain>` operator console isolation.
+* **Acceptance & Tests:** Integration and circuit isolation tests verifying `TenantResolutionMiddleware` custom/sandbox/operator/signup host routing with zero-byte `404` on unknown hosts, RFC 6265bis `__Host-sid` (`StealthHostCookieManager`) and `__Host-csrf` (`StealthResponseHeadersMiddleware`) enforcement + plain cookie-tossing rejection over HTTPS, stripped fingerprinting headers (`Server`, `X-Powered-By`, `X-AspNet-Version`, `X-AspNetMvc-Version`, `X-SourceFiles`), zero `"Powered by Ruth"` / `"Ruth"` public branding across pages/titles, write-once `TenantCircuitState` / `TenantCircuitHandler` + `TenantSignalRHubFilter` + `Routes.razor` cross-plane isolation, and `HttpContextPrincipalTenantValidator` `tid` / `platform_operator` enforcement across HTTP and WebSocket circuits (`Ruth.Host.IntegrationTests`).
+* **Authoring Skills:** `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `modern-csharp`, `architecture`.
+* **Verification Skills:** `csharpier`, `code-analysis`, `complexity`, `crap-score`, `biome`, `stylelint`.
 
-#### `W7-S8` — Automated Cross-Tenant Canary & `pg_class` RLS Enforcement Suite
+#### `W7-S8` — Automated Cross-Tenant Canary & `pg_class` RLS Enforcement Suite ✅ *(Completed)*
 * **Scope:** `TenantIsolationArchitectureTests` in `Ruth.ArchitectureTests` asserting 100% `ITenantScoped` coverage across tenant `ModuleDbContext`s, plus Testcontainers PostgreSQL 18 `pg_class` verification (`relrowsecurity = true` & `relforcerowsecurity = true` on every table in all 15 tenant schemas under `ruth_app`) and end-to-end Tenant A vs. Tenant B vs. Unset-Tenant isolation tests across HTTP, Blazor, Outbox, Caches, Search, and Storage.
+* **Acceptance & Tests:** `TenantIsolationArchitectureTests` verifying `ITenantScoped`, non-nullable `tenant_id`, Global Query Filters, composite `TenantId` inclusion on 100% of unique indexes, leading `TenantId` PK/indexes, and tenant-scoped `OutboxMessage`/`InboxMessage` across all 15 tenant `ModuleDbContext`s; plus Testcontainers PostgreSQL 18 + Redis 8 + RustFS canary tests verifying `pg_class` (`relrowsecurity` & `relforcerowsecurity`) and `PERMISSIVE` + `RESTRICTIVE` `pg_policies` across all 15 tenant schemas (`>= 150` tables), `ruth_app` 0-row fail-closed queries on every populated tenant table and `42501` privilege denial on `platform.tenants`, and end-to-end Tenant A vs. Tenant B vs. Unset-Tenant isolation across HTTP, Blazor circuits, Outbox, `CoreReadCache` / `AclSnapshotCache` / `RedisPersonalizationSegmentCache`, `tsvector` Search, and RustFS S3 storage (`Ruth.ArchitectureTests`, `Ruth.Host.IntegrationTests`).
+* **Authoring Skills:** `architecture`, `entity-framework-core`, `aspnet-core`, `blazor`, `modern-csharp`.
+* **Verification Skills:** `quality-ci`, `csharpier`, `format`, `code-analysis`, `complexity`, `crap-score`.
 
 ---
 

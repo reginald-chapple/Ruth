@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Core.Contracts.Files;
+using Ruth.Modules.Core.Contracts.Storage;
 using Ruth.Modules.Core.Domain;
 using Ruth.Modules.Core.Domain.Files;
 using Ruth.Modules.Core.Infrastructure;
@@ -7,6 +8,7 @@ using Ruth.Modules.Core.Infrastructure.Imaging;
 using Ruth.Modules.Core.Infrastructure.Storage;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Core.Slices.Files;
@@ -48,8 +50,12 @@ internal sealed class UploadBinaryFileCommandHandler(
         }
 
         var prepared = await PreparePayloadAsync(command, fileType, cancellationToken);
-        var objectKey =
+        var rawObjectKey =
             $"binary-files/{fileType.Id.Value:N}/{Guid.CreateVersion7():N}/{scrubbedName.Value}";
+        var objectKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            rawObjectKey
+        );
         var fileResult = CreateFileAggregate(
             command,
             fileType,

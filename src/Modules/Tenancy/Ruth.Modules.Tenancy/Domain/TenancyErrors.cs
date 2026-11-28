@@ -108,9 +108,4 @@ internal static class TenancyErrors
         "Tenancy.InvalidLifecycleTransition",
         "The requested lifecycle transition is not permitted from the organization's current compliance stage."
     );
-
-    public static readonly DomainError UnauthorizedComplianceAccess = DomainError.Forbidden(
-        "Tenancy.UnauthorizedComplianceAccess",
-        "Only an authenticated Organization Administrator for this workspace may manage compliance settings."
-    );
 }

@@ -129,6 +129,11 @@ internal static class FinanceErrors
         "No registered IPaymentGateway implementation matched the gateway provider key."
     );
 
+    public static readonly DomainError LiveChargeRequiresApprovedTenant = DomainError.Validation(
+        "Finance.LiveChargeRequiresApprovedTenant",
+        "Live payment gateway charges require IRS tax-exempt verification and Live workspace approval."
+    );
+
     public static readonly DomainError PaymentMethodPersonRequired = DomainError.Validation(
         "Finance.PaymentMethod.PersonRequired",
         "A saved payment method requires a valid Person identifier."

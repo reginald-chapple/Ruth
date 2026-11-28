@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Ruth.Host.Middleware;
 using Ruth.Modules.Cms.Contracts.Engine;
 using Ruth.SharedKernel.Messaging;
 
@@ -26,6 +27,24 @@ public sealed partial class CmsPageHost : ComponentBase
 
     [Inject]
     private RuthBlockComponentRegistry BlockRegistry { get; set; } = default!;
+
+    [Inject]
+    private IServiceProvider Services { get; set; } = default!;
+
+    private string ResolvePageTitle()
+    {
+        if (_resolved is not null)
+        {
+            var pageTitle = string.IsNullOrWhiteSpace(_resolved.Page.BrowserTitle)
+                ? _resolved.Page.PageTitle
+                : _resolved.Page.BrowserTitle;
+            return $"{pageTitle} — {_resolved.Site.Name}";
+        }
+
+        var brand = Services.GetService<TenantWorkspaceBrandingState>()?.BrandTitle
+            ?? "Organization Workspace";
+        return $"CMS Page — {brand}";
+    }
 
     protected override async Task OnParametersSetAsync()
     {

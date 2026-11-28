@@ -256,10 +256,7 @@ internal sealed class TransactionPostingCollaborator(
         return gateway is null ? FinanceErrors.GatewayNotFound
             : !gateway.IsActive ? FinanceErrors.GatewayInactive
             : !gateway.IsTestMode && !tenantContext.IsLive
-                ? DomainError.Validation(
-                    "Finance.LiveChargeRequiresApprovedTenant",
-                    "Live payment gateway charges require IRS tax-exempt verification and Live workspace approval."
-                )
+                ? FinanceErrors.LiveChargeRequiresApprovedTenant
             : !gatewayRegistry.TryGet(gateway.ProviderKey, out var provider)
                 ? FinanceErrors.GatewayProviderUnavailable
             : (gatewayId, gateway.IsTestMode, provider);

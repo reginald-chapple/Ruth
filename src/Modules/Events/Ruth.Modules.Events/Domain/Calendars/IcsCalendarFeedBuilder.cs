@@ -20,7 +20,7 @@ public static class IcsCalendarFeedBuilder
         var sb = new StringBuilder(capacity: 512 + (entries.Count * 256));
         AppendContentLine(sb, "BEGIN:VCALENDAR");
         AppendContentLine(sb, "VERSION:2.0");
-        AppendContentLine(sb, "PRODID:-//Ruth Platform//Event Calendars//EN");
+        AppendContentLine(sb, "PRODID:-//Calendar//Event Calendars//EN");
         AppendContentLine(sb, "CALSCALE:GREGORIAN");
         AppendContentLine(sb, "METHOD:PUBLISH");
         AppendContentLine(sb, $"X-WR-CALNAME:{EscapeText(calendarName)}");

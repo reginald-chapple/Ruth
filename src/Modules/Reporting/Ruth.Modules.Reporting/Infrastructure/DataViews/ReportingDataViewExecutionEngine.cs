@@ -1,12 +1,9 @@
 using System.Data.Common;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using Npgsql;
 using Ruth.Modules.Reporting.Contracts.DataViews;
 using Ruth.Modules.Reporting.Domain;
 using Ruth.Modules.Reporting.Domain.DataViews;
-using Ruth.Persistence.EntityFramework;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Reporting.Infrastructure.DataViews;
 
@@ -65,7 +62,12 @@ internal sealed class ReportingDataViewExecutionEngine(
                 ["Status"] = "status",
                 ["IsActive"] = "is_active",
             };
-        var compiled = DataViewSqlCompiler.Compile(rootFilter, colMap);
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        var compiled = DataViewSqlCompiler.CompileForTenant(tenantId, rootFilter, colMap);
+        if (tenantId.IsEmpty)
+        {
+            return ([], compiled.WhereClause);
+        }
 
         var candidates = await LoadCandidateRecordsAsync(dataView.EntityTypeKey, maxRows * 4, ct);
         var crossSets = await ResolveCrossModuleSetsAsync(rootFilter, ct);
@@ -107,6 +109,20 @@ internal sealed class ReportingDataViewExecutionEngine(
                 ),
                 _ => Task.FromResult<IReadOnlyList<DataViewEntityRecord>>([]),
             };
+    }
+
+    internal Task ReadTenantRowsAsync(
+        string sql,
+        Func<DbDataReader, Task> onRow,
+        CancellationToken ct
+    )
+    {
+        return ReportingCrossSchemaSqlRunner.ReadTenantRowsAsync(db, sql, onRow, ct);
+    }
+
+    internal Task<bool> TableExistsAsync(string qualifiedTableName, CancellationToken ct)
+    {
+        return ReportingCrossSchemaSqlRunner.TableExistsAsync(db, qualifiedTableName, ct);
     }
 
     private async Task<Dictionary<string, IReadOnlySet<Guid>>> ResolveCrossModuleSetsAsync(
@@ -180,23 +196,26 @@ internal sealed class ReportingDataViewExecutionEngine(
 
         return string.Equals(kind, "group", StringComparison.Ordinal)
             && Guid.TryParse(targetValue, out var groupId)
-                ? await QueryGuidColumnIfTableExistsAsync(
+                ? await ReportingCrossSchemaSqlRunner.QueryGuidSetIfTableExistsAsync(
+                    db,
                     "groups.group_members",
-                    "SELECT \"PersonId\" FROM groups.group_members WHERE \"GroupId\" = @p0 AND \"Status\" = 'Active'",
+                    "SELECT \"PersonId\" FROM groups.group_members WHERE tenant_id = @tenantId AND \"GroupId\" = @p0 AND \"Status\" = 'Active'",
                     parameter: groupId,
                     ct
                 )
             : string.Equals(kind, "finance", StringComparison.Ordinal)
-                ? await QueryGuidColumnIfTableExistsAsync(
+                ? await ReportingCrossSchemaSqlRunner.QueryGuidSetIfTableExistsAsync(
+                    db,
                     "finance.financial_transactions",
-                    "SELECT DISTINCT \"AuthorizedPersonId\" FROM finance.financial_transactions WHERE \"AuthorizedPersonId\" IS NOT NULL",
+                    "SELECT DISTINCT \"AuthorizedPersonId\" FROM finance.financial_transactions WHERE tenant_id = @tenantId AND \"AuthorizedPersonId\" IS NOT NULL",
                     parameter: null,
                     ct
                 )
             : string.Equals(kind, "attendance", StringComparison.Ordinal)
-                ? await QueryGuidColumnIfTableExistsAsync(
+                ? await ReportingCrossSchemaSqlRunner.QueryGuidSetIfTableExistsAsync(
+                    db,
                     "groups.attendances",
-                    "SELECT DISTINCT \"PersonId\" FROM groups.attendances WHERE \"DidAttend\" = TRUE",
+                    "SELECT DISTINCT \"PersonId\" FROM groups.attendances WHERE tenant_id = @tenantId AND \"DidAttend\" = TRUE",
                     parameter: null,
                     ct
                 )
@@ -216,9 +235,10 @@ internal sealed class ReportingDataViewExecutionEngine(
         const string sql =
             "SELECT \"Id\", \"FirstName\", \"LastName\", \"NickName\", \"Email\", \"RecordStatus\", \"ConnectionStatus\", "
             + "\"PrimaryBranchId\", \"IsDeceased\", \"CreatedOnUtc\", attributes::text "
-            + "FROM crm.people ORDER BY \"CreatedOnUtc\" DESC LIMIT @limit";
+            + "FROM crm.people WHERE tenant_id = @tenantId ORDER BY \"CreatedOnUtc\" DESC LIMIT @limit";
 
-        return await ExecuteRecordsQueryAsync(
+        return await ReportingCrossSchemaSqlRunner.ExecuteRecordsQueryAsync(
+            db,
             sql,
             maxRows,
             static reader =>
@@ -238,7 +258,9 @@ internal sealed class ReportingDataViewExecutionEngine(
                         ? null
                         : reader.GetFieldValue<DateTimeOffset>(9),
                 };
-                var attrs = ParseJsonbDictionary(reader.IsDBNull(10) ? null : reader.GetString(10));
+                var attrs = ReportingCrossSchemaSqlRunner.ParseJsonbDictionary(
+                    reader.IsDBNull(10) ? null : reader.GetString(10)
+                );
                 return new DataViewEntityRecord(id, "Ruth.Crm.Person", id, values, attrs);
             },
             ct
@@ -257,9 +279,10 @@ internal sealed class ReportingDataViewExecutionEngine(
 
         const string sql =
             "SELECT \"Id\", \"Name\", \"IsActive\", \"BranchId\", \"GroupCapacity\", \"CreatedOnUtc\", attributes::text "
-            + "FROM groups.groups ORDER BY \"Name\" LIMIT @limit";
+            + "FROM groups.groups WHERE tenant_id = @tenantId ORDER BY \"Name\" LIMIT @limit";
 
-        return await ExecuteRecordsQueryAsync(
+        return await ReportingCrossSchemaSqlRunner.ExecuteRecordsQueryAsync(
+            db,
             sql,
             maxRows,
             static reader =>
@@ -275,7 +298,9 @@ internal sealed class ReportingDataViewExecutionEngine(
                         ? null
                         : reader.GetFieldValue<DateTimeOffset>(5),
                 };
-                var attrs = ParseJsonbDictionary(reader.IsDBNull(6) ? null : reader.GetString(6));
+                var attrs = ReportingCrossSchemaSqlRunner.ParseJsonbDictionary(
+                    reader.IsDBNull(6) ? null : reader.GetString(6)
+                );
                 return new DataViewEntityRecord(
                     id,
                     "Ruth.Groups.Group",
@@ -300,9 +325,10 @@ internal sealed class ReportingDataViewExecutionEngine(
 
         const string sql =
             "SELECT \"Id\", \"AuthorizedPersonId\", \"CurrencyCode\", \"Status\", NULL::uuid, \"TransactionDateTimeUtc\" "
-            + "FROM finance.financial_transactions ORDER BY \"TransactionDateTimeUtc\" DESC LIMIT @limit";
+            + "FROM finance.financial_transactions WHERE tenant_id = @tenantId ORDER BY \"TransactionDateTimeUtc\" DESC LIMIT @limit";
 
-        return await ExecuteRecordsQueryAsync(
+        return await ReportingCrossSchemaSqlRunner.ExecuteRecordsQueryAsync(
+            db,
             sql,
             maxRows,
             static reader =>
@@ -328,132 +354,5 @@ internal sealed class ReportingDataViewExecutionEngine(
             },
             ct
         );
-    }
-
-    private Task<IReadOnlyList<DataViewEntityRecord>> ExecuteRecordsQueryAsync(
-        string sql,
-        int maxRows,
-        Func<DbDataReader, DataViewEntityRecord> mapRow,
-        CancellationToken ct
-    )
-    {
-        return WithTenantConnectionAsync<IReadOnlyList<DataViewEntityRecord>>(
-            async conn =>
-            {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
-                _ = cmd.Parameters.Add(new NpgsqlParameter("limit", Math.Clamp(maxRows, 1, 5000)));
-
-                List<DataViewEntityRecord> results = [];
-                await using var reader = await cmd.ExecuteReaderAsync(ct);
-                while (await reader.ReadAsync(ct))
-                {
-                    results.Add(mapRow(reader));
-                }
-
-                return results;
-            },
-            ct
-        );
-    }
-
-    private async Task<IReadOnlySet<Guid>> QueryGuidColumnIfTableExistsAsync(
-        string tableName,
-        string sql,
-        Guid? parameter,
-        CancellationToken ct
-    )
-    {
-        return !await TableExistsAsync(tableName, ct)
-            ? new HashSet<Guid>()
-            : await WithTenantConnectionAsync<IReadOnlySet<Guid>>(
-                async conn =>
-                {
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = sql;
-                    if (parameter.HasValue)
-                    {
-                        _ = cmd.Parameters.Add(new NpgsqlParameter("p0", parameter.Value));
-                    }
-
-                    var set = new HashSet<Guid>();
-                    await using var reader = await cmd.ExecuteReaderAsync(ct);
-                    while (await reader.ReadAsync(ct))
-                    {
-                        if (!await reader.IsDBNullAsync(0, ct))
-                        {
-                            _ = set.Add(reader.GetGuid(0));
-                        }
-                    }
-
-                    return set;
-                },
-                ct
-            );
-    }
-
-    internal Task<bool> TableExistsAsync(string qualifiedTableName, CancellationToken ct)
-    {
-        return WithTenantConnectionAsync(
-            async conn =>
-            {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT to_regclass(@name) IS NOT NULL";
-                _ = cmd.Parameters.Add(new NpgsqlParameter("name", qualifiedTableName));
-                var scalar = await cmd.ExecuteScalarAsync(ct);
-                return scalar is bool b && b;
-            },
-            ct
-        );
-    }
-
-    private async Task<T> WithTenantConnectionAsync<T>(
-        Func<DbConnection, Task<T>> action,
-        CancellationToken ct
-    )
-    {
-        var conn = db.Database.GetDbConnection();
-        var shouldClose = conn.State != System.Data.ConnectionState.Open;
-        if (shouldClose)
-        {
-            await db.Database.OpenConnectionAsync(ct);
-        }
-
-        try
-        {
-            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
-                conn,
-                db.Database.CurrentTransaction?.GetDbTransaction(),
-                ct
-            );
-            return await action(conn);
-        }
-        finally
-        {
-            if (shouldClose)
-            {
-                await db.Database.CloseConnectionAsync();
-            }
-        }
-    }
-
-    private static Dictionary<string, string?>? ParseJsonbDictionary(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<Dictionary<string, string?>>(json);
-            return parsed is null
-                ? null
-                : new Dictionary<string, string?>(parsed, StringComparer.OrdinalIgnoreCase);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
     }
 }

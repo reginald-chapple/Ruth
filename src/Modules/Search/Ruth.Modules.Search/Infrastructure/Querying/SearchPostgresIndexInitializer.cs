@@ -20,6 +20,8 @@ internal static class SearchPostgresIndexInitializer
             + "setweight(to_tsvector('english', COALESCE(\"Summary\", '')), 'C') || "
             + "setweight(to_tsvector('english', COALESCE(\"BodyText\", '')), 'D')"
             + ") STORED;",
+        "CREATE INDEX IF NOT EXISTS ix_search_documents_tenant_indexed_utc "
+            + "ON search.search_documents (tenant_id, \"IndexedDateTimeUtc\" DESC);",
         "CREATE INDEX IF NOT EXISTS ix_search_documents_search_vector_gin "
             + "ON search.search_documents USING GIN (search_vector);",
         "CREATE INDEX IF NOT EXISTS ix_search_documents_title_trgm_gin "

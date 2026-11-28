@@ -1,5 +1,6 @@
 using System.Globalization;
 using Ruth.Modules.Reporting.Contracts.DataViews;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Reporting.Domain.DataViews;
 
@@ -26,6 +27,35 @@ public static class DataViewSqlCompiler
         var parameters = new Dictionary<string, object?>(StringComparer.Ordinal);
         var sql = CompileNode(root, allowedColumnMap, parameters);
         return new CompiledSqlPredicate(string.IsNullOrWhiteSpace(sql) ? "TRUE" : sql, parameters);
+    }
+
+    public static CompiledSqlPredicate CompileForTenant(
+        TenantId tenantId,
+        DataViewFilterNodeDto root,
+        IReadOnlyDictionary<string, string> allowedColumnMap
+    )
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(allowedColumnMap);
+
+        if (tenantId.IsEmpty)
+        {
+            return new CompiledSqlPredicate(
+                "FALSE",
+                new Dictionary<string, object?>(StringComparer.Ordinal)
+            );
+        }
+
+        var parameters = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["@tenantId"] = tenantId.Value,
+        };
+        var sql = CompileNode(root, allowedColumnMap, parameters);
+        var whereClause =
+            string.IsNullOrWhiteSpace(sql) || string.Equals(sql, "TRUE", StringComparison.Ordinal)
+                ? "(tenant_id = @tenantId)"
+                : $"(tenant_id = @tenantId) AND ({sql})";
+        return new CompiledSqlPredicate(whereClause, parameters);
     }
 
     private static string CompileNode(

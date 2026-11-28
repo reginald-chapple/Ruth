@@ -17,7 +17,6 @@ using Ruth.Modules.Search;
 using Ruth.Modules.Tenancy;
 using Ruth.Modules.Workflow;
 using Ruth.Persistence.EntityFramework;
-using Ruth.SharedKernel.Tenancy;
 using Xunit;
 
 namespace Ruth.ArchitectureTests;
@@ -62,11 +61,27 @@ public sealed class TenantIsolationArchitectureTests
             }
 
             tenantCount++;
-            AssertTenantDbContextModel(context, isTenantScoped);
+            TenantDbContextModelInspector.AssertTenantDbContextModel(context, isTenantScoped);
         }
 
         Assert.Equal(15, tenantCount);
         Assert.Equal(1, platformCount);
+    }
+
+    [Fact]
+    public void All_Fifteen_Tenant_ModuleDbContexts_Scope_Every_UniqueIndex_And_LeadingIndex_By_TenantId()
+    {
+        foreach (var ctxType in GetAllModuleDbContextTypes())
+        {
+            if (string.Equals(ctxType.Name, "TenancyDbContext", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            using var context = (ModuleDbContext)
+                _instantiateMethod.MakeGenericMethod(ctxType).Invoke(obj: null, parameters: null)!;
+            TenantDbContextModelInspector.AssertTenantDbContextIndexesAndOutbox(context);
+        }
     }
 
     [Fact]
@@ -127,31 +142,6 @@ public sealed class TenantIsolationArchitectureTests
             SearchModuleAssembly.Instance,
             TenancyModuleAssembly.Instance,
         ];
-    }
-
-    private static void AssertTenantDbContextModel(ModuleDbContext context, bool isTenantScoped)
-    {
-        var contextName = context.GetType().Name;
-        Assert.True(isTenantScoped, $"{contextName} must have IsTenantScopedSchema = true.");
-
-        foreach (var entityType in context.Model.GetEntityTypes())
-        {
-            if (entityType.IsOwned() || entityType.BaseType is not null)
-            {
-                continue;
-            }
-
-            Assert.True(
-                typeof(ITenantScoped).IsAssignableFrom(entityType.ClrType),
-                $"{contextName} entity '{entityType.ClrType.FullName}' must implement ITenantScoped."
-            );
-
-            var tenantProp = entityType.FindProperty(nameof(ITenantScoped.TenantId));
-            Assert.NotNull(tenantProp);
-            Assert.Equal("tenant_id", tenantProp.GetColumnName());
-
-            Assert.NotEmpty(entityType.GetDeclaredQueryFilters());
-        }
     }
 
     private static void AssertAssemblyFreeOfForbiddenTokens(

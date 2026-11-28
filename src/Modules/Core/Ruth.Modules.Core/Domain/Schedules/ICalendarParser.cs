@@ -57,7 +57,7 @@ internal static partial class ICalendarParser
         var sb = new StringBuilder();
         _ = sb.AppendLine("BEGIN:VCALENDAR");
         _ = sb.AppendLine("VERSION:2.0");
-        _ = sb.AppendLine("PRODID:-//Ruth RMS//Schedule Engine//EN");
+        _ = sb.AppendLine("PRODID:-//Calendar//Schedule Engine//EN");
         _ = sb.AppendLine("BEGIN:VEVENT");
         var dtStartKey = string.IsNullOrWhiteSpace(timeZoneId)
             ? "DTSTART"

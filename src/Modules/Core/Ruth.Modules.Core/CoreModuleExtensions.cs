@@ -99,9 +99,7 @@ public static class CoreModuleExtensions
         services.TryAddSingleton<IFieldTypeRegistry, FieldTypeRegistry>();
         services.TryAddSingleton<ICoreReadCache, CoreReadCache>();
         services.TryAddSingleton<IImageProcessor, StbImageProcessor>();
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStorageProvider, InMemoryStorageProvider>()
-        );
+        RegisterFallbackStorageProvider(services);
         services.TryAddSingleton<IStorageProviderResolver, StorageProviderResolver>();
         _ = services.AddIdempotentIntegrationEventConsumer<
             PersonMergedIntegrationEvent,
@@ -123,5 +121,38 @@ public static class CoreModuleExtensions
         CoreLocationsAndSchedulesRegistration.RegisterBranchAndLocationHandlers(services);
         CoreFilesAndCollaborationRegistration.RegisterFilesHandlers(services);
         CoreFilesAndCollaborationRegistration.RegisterCollaborationHandlers(services);
+    }
+
+    private static void RegisterFallbackStorageProvider(IServiceCollection services)
+    {
+        if (
+            services.Any(static d =>
+                d.ServiceType == typeof(IStorageProvider)
+                && d.ImplementationType == typeof(InMemoryStorageProvider)
+            )
+        )
+        {
+            return;
+        }
+
+        var descriptor = ServiceDescriptor.Singleton<IStorageProvider, InMemoryStorageProvider>();
+        var existingIndex = -1;
+        for (var i = 0; i < services.Count; i++)
+        {
+            if (services[i].ServiceType == typeof(IStorageProvider))
+            {
+                existingIndex = i;
+                break;
+            }
+        }
+
+        if (existingIndex >= 0)
+        {
+            services.Insert(existingIndex, descriptor);
+        }
+        else
+        {
+            services.Add(descriptor);
+        }
     }
 }

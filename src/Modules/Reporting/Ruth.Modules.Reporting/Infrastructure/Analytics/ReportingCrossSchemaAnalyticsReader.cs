@@ -1,10 +1,6 @@
-using System.Globalization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using Ruth.Modules.Reporting.Contracts.Analytics;
 using Ruth.Modules.Reporting.Infrastructure.DataViews;
-using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Reporting.Infrastructure.Analytics;
 
@@ -20,36 +16,46 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
     {
         return sourceQueryKey.ToLowerInvariant() switch
         {
-            "people.total" => await ScalarDecimalIfExistsAsync(
+            "people.total" => await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                db,
                 "crm.people",
-                "SELECT COUNT(*)::numeric FROM crm.people WHERE \"IsDeceased\" = FALSE",
+                "SELECT COUNT(*)::numeric FROM crm.people WHERE tenant_id = @tenantId AND \"IsDeceased\" = FALSE",
                 ct
             ),
-            "groups.active" => await ScalarDecimalIfExistsAsync(
+            "groups.active" => await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                db,
                 "groups.groups",
-                "SELECT COUNT(*)::numeric FROM groups.groups WHERE \"IsActive\" = TRUE",
+                "SELECT COUNT(*)::numeric FROM groups.groups WHERE tenant_id = @tenantId AND \"IsActive\" = TRUE",
                 ct
             ),
-            "attendance.total" => await ScalarDecimalIfExistsAsync(
+            "attendance.total" => await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                db,
                 "groups.attendances",
-                "SELECT COUNT(*)::numeric FROM groups.attendances WHERE \"DidAttend\" = TRUE",
+                "SELECT COUNT(*)::numeric FROM groups.attendances WHERE tenant_id = @tenantId AND \"DidAttend\" = TRUE",
                 ct
             ),
-            "finance.deductible-total" => await ScalarDecimalIfExistsAsync(
-                "finance.financial_transaction_details",
-                "SELECT COALESCE(SUM(d.\"Amount\"), 0)::numeric FROM finance.financial_transaction_details d "
-                    + "INNER JOIN finance.financial_accounts a ON a.\"Id\" = d.\"AccountId\" WHERE a.\"IsTaxDeductible\" = TRUE",
-                ct
-            ),
-            "finance.non-deductible-total" => await ScalarDecimalIfExistsAsync(
-                "finance.financial_transaction_details",
-                "SELECT COALESCE(SUM(d.\"Amount\"), 0)::numeric FROM finance.financial_transaction_details d "
-                    + "INNER JOIN finance.financial_accounts a ON a.\"Id\" = d.\"AccountId\" WHERE a.\"IsTaxDeductible\" = FALSE",
-                ct
-            ),
-            "lms.completions" => await ScalarDecimalIfExistsAsync(
+            "finance.deductible-total" =>
+                await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                    db,
+                    "finance.financial_transaction_details",
+                    "SELECT COALESCE(SUM(d.\"Amount\"), 0)::numeric FROM finance.financial_transaction_details d "
+                        + "INNER JOIN finance.financial_accounts a ON a.tenant_id = d.tenant_id AND a.\"Id\" = d.\"AccountId\" "
+                        + "WHERE d.tenant_id = @tenantId AND a.\"IsTaxDeductible\" = TRUE",
+                    ct
+                ),
+            "finance.non-deductible-total" =>
+                await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                    db,
+                    "finance.financial_transaction_details",
+                    "SELECT COALESCE(SUM(d.\"Amount\"), 0)::numeric FROM finance.financial_transaction_details d "
+                        + "INNER JOIN finance.financial_accounts a ON a.tenant_id = d.tenant_id AND a.\"Id\" = d.\"AccountId\" "
+                        + "WHERE d.tenant_id = @tenantId AND a.\"IsTaxDeductible\" = FALSE",
+                    ct
+                ),
+            "lms.completions" => await ReportingCrossSchemaSqlRunner.ScalarDecimalIfExistsAsync(
+                db,
                 "lms.learning_participants",
-                "SELECT COUNT(*)::numeric FROM lms.learning_participants WHERE \"LearningCompletionStatus\" = 'Pass'",
+                "SELECT COUNT(*)::numeric FROM lms.learning_participants WHERE tenant_id = @tenantId AND \"LearningCompletionStatus\" = 'Pass'",
                 ct
             ),
             _ => 0m,
@@ -109,7 +115,7 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         var overview = await LoadRevenueAndImpactAsync(windowStart, nowUtc, branchId, ct);
         var priorOverview = await LoadRevenueAndImpactAsync(prevStart, windowStart, branchId, ct);
 
-        return BuildKpiCards(
+        return ExecutiveKpiCardBuilder.BuildKpiCards(
             clamped,
             totalPeople,
             activeGroups,
@@ -117,138 +123,6 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
             priorAttendance,
             overview,
             priorOverview
-        );
-    }
-
-    private static List<ExecutiveKpiCardDto> BuildKpiCards(
-        int windowDays,
-        decimal totalPeople,
-        decimal activeGroups,
-        int currentAttendance,
-        int priorAttendance,
-        RevenueAndImpactOverviewResponse overview,
-        RevenueAndImpactOverviewResponse priorOverview
-    )
-    {
-        var winLabel = windowDays.ToString(CultureInfo.InvariantCulture);
-        List<ExecutiveKpiCardDto> cards =
-        [
-            CreateKpi(
-                "constituents.total",
-                "Active Constituents",
-                totalPeople,
-                "People",
-                delta: null,
-                [totalPeople]
-            ),
-            CreateKpi(
-                "groups.active",
-                "Active Groups & Teams",
-                activeGroups,
-                "Groups",
-                delta: null,
-                [activeGroups]
-            ),
-            CreateKpi(
-                "attendance.window",
-                $"Attendance ({winLabel}d)",
-                currentAttendance,
-                "Check-Ins",
-                ComputeDelta(currentAttendance, priorAttendance),
-                [priorAttendance, currentAttendance]
-            ),
-        ];
-        cards.AddRange(BuildFinanceAndImpactKpis(winLabel, overview, priorOverview));
-        return cards;
-    }
-
-    private static IReadOnlyList<ExecutiveKpiCardDto> BuildFinanceAndImpactKpis(
-        string winLabel,
-        RevenueAndImpactOverviewResponse overview,
-        RevenueAndImpactOverviewResponse priorOverview
-    )
-    {
-        return
-        [
-            CreateCurrencyKpi(
-                "finance.deductible",
-                $"Tax-Deductible Giving ({winLabel}d)",
-                overview.TotalTaxDeductibleGiving,
-                "USD",
-                ComputeDelta(
-                    overview.TotalTaxDeductibleGiving,
-                    priorOverview.TotalTaxDeductibleGiving
-                ),
-                [priorOverview.TotalTaxDeductibleGiving, overview.TotalTaxDeductibleGiving]
-            ),
-            CreateCurrencyKpi(
-                "finance.dues-mrr",
-                "Monthly Recurring Revenue (MRR)",
-                overview.MonthlyRecurringRevenue,
-                "USD/mo",
-                delta: null,
-                [overview.MonthlyRecurringRevenue]
-            ),
-            new ExecutiveKpiCardDto(
-                "impact.retention",
-                "Contributor & Member Retention",
-                string.Create(CultureInfo.InvariantCulture, $"{overview.RetentionRatePercent:N1}%"),
-                overview.RetentionRatePercent,
-                "%",
-                DeltaPercent: null,
-                [overview.RetentionRatePercent]
-            ),
-            CreateKpi(
-                "impact.outcomes",
-                $"Program Outcomes ({winLabel}d)",
-                overview.ProgramCompletionsCount,
-                "Completions",
-                ComputeDelta(
-                    overview.ProgramCompletionsCount,
-                    priorOverview.ProgramCompletionsCount
-                ),
-                [priorOverview.ProgramCompletionsCount, overview.ProgramCompletionsCount]
-            ),
-        ];
-    }
-
-    private static ExecutiveKpiCardDto CreateKpi(
-        string key,
-        string title,
-        decimal value,
-        string unit,
-        decimal? delta,
-        IReadOnlyList<decimal> spark
-    )
-    {
-        return new ExecutiveKpiCardDto(
-            key,
-            title,
-            value.ToString("N0", CultureInfo.InvariantCulture),
-            value,
-            unit,
-            delta,
-            spark
-        );
-    }
-
-    private static ExecutiveKpiCardDto CreateCurrencyKpi(
-        string key,
-        string title,
-        decimal value,
-        string unit,
-        decimal? delta,
-        IReadOnlyList<decimal> spark
-    )
-    {
-        return new ExecutiveKpiCardDto(
-            key,
-            title,
-            string.Create(CultureInfo.InvariantCulture, $"${value:N2}"),
-            value,
-            unit,
-            delta,
-            spark
         );
     }
 
@@ -277,19 +151,23 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
             + "SUM(CASE WHEN a.\"IsTaxDeductible\" THEN d.\"Amount\" ELSE 0 END) AS deductible_sum, "
             + "SUM(CASE WHEN NOT a.\"IsTaxDeductible\" THEN d.\"Amount\" ELSE 0 END) AS non_deductible_sum "
             + "FROM finance.financial_transactions t "
-            + "INNER JOIN finance.financial_transaction_details d ON d.\"TransactionId\" = t.\"Id\" "
-            + "INNER JOIN finance.financial_accounts a ON a.\"Id\" = d.\"AccountId\" "
-            + "WHERE t.\"TransactionDateTimeUtc\" >= @startUtc AND t.\"TransactionDateTimeUtc\" <= @endUtc "
+            + "INNER JOIN finance.financial_transaction_details d ON d.tenant_id = t.tenant_id AND d.\"TransactionId\" = t.\"Id\" "
+            + "INNER JOIN finance.financial_accounts a ON a.tenant_id = t.tenant_id AND a.\"Id\" = d.\"AccountId\" "
+            + "WHERE t.tenant_id = @tenantId AND t.\"TransactionDateTimeUtc\" >= @startUtc AND t.\"TransactionDateTimeUtc\" <= @endUtc "
             + "AND (@branchId IS NULL OR a.\"BranchId\" = @branchId) GROUP BY 1 ORDER BY 1";
 
         List<RevenueAndImpactPeriodDto> periods = [];
         var deductibleTotal = 0m;
         var nonDeductibleTotal = 0m;
-        await ExecuteConnectionAsync(
-            async conn =>
+        await ReportingCrossSchemaSqlRunner.ExecuteWithTenantAsync(
+            db,
+            async (conn, tenantId) =>
             {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
+                await using var cmd = ReportingCrossSchemaSqlRunner.CreateTenantCommand(
+                    conn,
+                    sql,
+                    tenantId
+                );
                 _ = cmd.Parameters.Add(new NpgsqlParameter("startUtc", startUtc));
                 _ = cmd.Parameters.Add(new NpgsqlParameter("endUtc", endUtc));
                 _ = cmd.Parameters.Add(
@@ -330,14 +208,19 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
             + "WHEN 'BiWeekly' THEN s.\"Amount\" * 2.1667 WHEN 'TwiceMonthly' THEN s.\"Amount\" * 2.0 "
             + "WHEN 'Quarterly' THEN s.\"Amount\" / 3.0 WHEN 'Annual' THEN s.\"Amount\" / 12.0 ELSE s.\"Amount\" END), 0)::numeric, "
             + "COUNT(DISTINCT r.\"Id\")::int FROM finance.recurring_schedules r "
-            + "INNER JOIN finance.recurring_schedule_splits s ON s.\"ScheduleId\" = r.\"Id\" WHERE r.\"Status\" = 'Active'";
+            + "INNER JOIN finance.recurring_schedule_splits s ON s.tenant_id = r.tenant_id AND s.\"ScheduleId\" = r.\"Id\" "
+            + "WHERE r.tenant_id = @tenantId AND r.\"Status\" = 'Active'";
 
         var result = (Mrr: 0m, ActiveCount: 0);
-        await ExecuteConnectionAsync(
-            async conn =>
+        await ReportingCrossSchemaSqlRunner.ExecuteWithTenantAsync(
+            db,
+            async (conn, tenantId) =>
             {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
+                await using var cmd = ReportingCrossSchemaSqlRunner.CreateTenantCommand(
+                    conn,
+                    sql,
+                    tenantId
+                );
                 await using var reader = await cmd.ExecuteReaderAsync(ct);
                 if (await reader.ReadAsync(ct))
                 {
@@ -366,18 +249,22 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         var priorStart = startUtc - (endUtc - startUtc);
         const string sql =
             "WITH prior_people AS (SELECT DISTINCT \"AuthorizedPersonId\" FROM finance.financial_transactions "
-            + "WHERE \"AuthorizedPersonId\" IS NOT NULL AND \"TransactionDateTimeUtc\" >= @priorStart AND \"TransactionDateTimeUtc\" < @startUtc), "
+            + "WHERE tenant_id = @tenantId AND \"AuthorizedPersonId\" IS NOT NULL AND \"TransactionDateTimeUtc\" >= @priorStart AND \"TransactionDateTimeUtc\" < @startUtc), "
             + "curr_people AS (SELECT DISTINCT \"AuthorizedPersonId\" FROM finance.financial_transactions "
-            + "WHERE \"AuthorizedPersonId\" IS NOT NULL AND \"TransactionDateTimeUtc\" >= @startUtc AND \"TransactionDateTimeUtc\" <= @endUtc) "
+            + "WHERE tenant_id = @tenantId AND \"AuthorizedPersonId\" IS NOT NULL AND \"TransactionDateTimeUtc\" >= @startUtc AND \"TransactionDateTimeUtc\" <= @endUtc) "
             + "SELECT CASE WHEN (SELECT COUNT(*) FROM prior_people) = 0 THEN 100.0 "
             + "ELSE ROUND((SELECT COUNT(*) FROM prior_people p INNER JOIN curr_people c ON c.\"AuthorizedPersonId\" = p.\"AuthorizedPersonId\")::numeric * 100.0 / (SELECT COUNT(*) FROM prior_people), 2) END";
 
         var rate = 0m;
-        await ExecuteConnectionAsync(
-            async conn =>
+        await ReportingCrossSchemaSqlRunner.ExecuteWithTenantAsync(
+            db,
+            async (conn, tenantId) =>
             {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
+                await using var cmd = ReportingCrossSchemaSqlRunner.CreateTenantCommand(
+                    conn,
+                    sql,
+                    tenantId
+                );
                 _ = cmd.Parameters.Add(new NpgsqlParameter("priorStart", priorStart));
                 _ = cmd.Parameters.Add(new NpgsqlParameter("startUtc", startUtc));
                 _ = cmd.Parameters.Add(new NpgsqlParameter("endUtc", endUtc));
@@ -403,16 +290,20 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         }
 
         const string sql =
-            "SELECT COUNT(*)::int FROM groups.attendances WHERE \"DidAttend\" = TRUE "
+            "SELECT COUNT(*)::int FROM groups.attendances WHERE tenant_id = @tenantId AND \"DidAttend\" = TRUE "
             + "AND \"StartDateTimeUtc\" >= @startUtc AND \"StartDateTimeUtc\" <= @endUtc "
             + "AND (@branchId IS NULL OR \"BranchId\" = @branchId)";
 
         var total = 0;
-        await ExecuteConnectionAsync(
-            async conn =>
+        await ReportingCrossSchemaSqlRunner.ExecuteWithTenantAsync(
+            db,
+            async (conn, tenantId) =>
             {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
+                await using var cmd = ReportingCrossSchemaSqlRunner.CreateTenantCommand(
+                    conn,
+                    sql,
+                    tenantId
+                );
                 _ = cmd.Parameters.Add(new NpgsqlParameter("startUtc", startUtc));
                 _ = cmd.Parameters.Add(new NpgsqlParameter("endUtc", endUtc));
                 _ = cmd.Parameters.Add(
@@ -430,20 +321,21 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         return total;
     }
 
-    private async Task<decimal> LoadAssistanceDisbursementsAsync(
+    private Task<decimal> LoadAssistanceDisbursementsAsync(
         DateTimeOffset startUtc,
         DateTimeOffset endUtc,
         CancellationToken ct
     )
     {
-        return !await sourceReader.TableExistsAsync("finance.assistance_disbursements", ct)
-            ? 0m
-            : await ScalarDecimalWithRangeAsync(
-                "SELECT COALESCE(SUM(\"Amount\"), 0)::numeric FROM finance.assistance_disbursements WHERE \"DisbursedAtUtc\" >= @startUtc AND \"DisbursedAtUtc\" <= @endUtc",
-                startUtc,
-                endUtc,
-                ct
-            );
+        return ReportingCrossSchemaSqlRunner.ScalarDecimalWithRangeAsync(
+            db,
+            "finance.assistance_disbursements",
+            "SELECT COALESCE(SUM(\"Amount\"), 0)::numeric FROM finance.assistance_disbursements "
+                + "WHERE tenant_id = @tenantId AND \"DisbursedAtUtc\" >= @startUtc AND \"DisbursedAtUtc\" <= @endUtc",
+            startUtc,
+            endUtc,
+            ct
+        );
     }
 
     private async Task<int> LoadProgramCompletionsAsync(
@@ -452,120 +344,28 @@ internal sealed class ReportingCrossSchemaAnalyticsReader(
         CancellationToken ct
     )
     {
-        var total = 0;
-        if (await sourceReader.TableExistsAsync("engage.journey_completions", ct))
-        {
-            total += (int)
-                await ScalarDecimalWithRangeAsync(
-                    "SELECT COUNT(*)::numeric FROM engage.journey_completions WHERE \"CompletedDate\" IS NOT NULL AND \"CompletedDate\" >= @startUtc::date AND \"CompletedDate\" <= @endUtc::date",
-                    startUtc,
-                    endUtc,
-                    ct
-                );
-        }
-
-        if (await sourceReader.TableExistsAsync("lms.learning_participants", ct))
-        {
-            total += (int)
-                await ScalarDecimalWithRangeAsync(
-                    "SELECT COUNT(*)::numeric FROM lms.learning_participants WHERE \"LearningCompletionStatus\" = 'Pass' AND \"LearningCompletionDateTimeUtc\" >= @startUtc AND \"LearningCompletionDateTimeUtc\" <= @endUtc",
-                    startUtc,
-                    endUtc,
-                    ct
-                );
-        }
-
-        return total;
-    }
-
-    private async Task<decimal> ScalarDecimalIfExistsAsync(
-        string tableName,
-        string sql,
-        CancellationToken ct
-    )
-    {
-        if (!await sourceReader.TableExistsAsync(tableName, ct))
-        {
-            return 0m;
-        }
-
-        var result = 0m;
-        await ExecuteConnectionAsync(
-            async conn =>
-            {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
-                var val = await cmd.ExecuteScalarAsync(ct);
-                result = val is decimal d ? d : 0m;
-            },
-            ct
-        );
-
-        return result;
-    }
-
-    private async Task<decimal> ScalarDecimalWithRangeAsync(
-        string sql,
-        DateTimeOffset startUtc,
-        DateTimeOffset endUtc,
-        CancellationToken ct
-    )
-    {
-        var result = 0m;
-        await ExecuteConnectionAsync(
-            async conn =>
-            {
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
-                _ = cmd.Parameters.Add(new NpgsqlParameter("startUtc", startUtc));
-                _ = cmd.Parameters.Add(new NpgsqlParameter("endUtc", endUtc));
-                var val = await cmd.ExecuteScalarAsync(ct);
-                result = val is decimal d ? d : 0m;
-            },
-            ct
-        );
-
-        return result;
-    }
-
-    private async Task ExecuteConnectionAsync(
-        Func<System.Data.Common.DbConnection, Task> action,
-        CancellationToken ct
-    )
-    {
-        var conn = db.Database.GetDbConnection();
-        var shouldClose = conn.State != System.Data.ConnectionState.Open;
-        if (shouldClose)
-        {
-            await db.Database.OpenConnectionAsync(ct);
-        }
-
-        try
-        {
-            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
-                conn,
-                db.Database.CurrentTransaction?.GetDbTransaction(),
+        var journeys = (int)
+            await ReportingCrossSchemaSqlRunner.ScalarDecimalWithRangeAsync(
+                db,
+                "engage.journey_completions",
+                "SELECT COUNT(*)::numeric FROM engage.journey_completions "
+                    + "WHERE tenant_id = @tenantId AND \"CompletedDate\" IS NOT NULL "
+                    + "AND \"CompletedDate\" >= @startUtc::date AND \"CompletedDate\" <= @endUtc::date",
+                startUtc,
+                endUtc,
                 ct
             );
-            await action(conn);
-        }
-        finally
-        {
-            if (shouldClose)
-            {
-                await db.Database.CloseConnectionAsync();
-            }
-        }
-    }
-
-    private static decimal? ComputeDelta(decimal current, decimal previous)
-    {
-        return previous == 0m
-            ? null
-            : Math.Round(
-                (current - previous) / Math.Abs(previous) * 100m,
-                2,
-                MidpointRounding.AwayFromZero
+        var lms = (int)
+            await ReportingCrossSchemaSqlRunner.ScalarDecimalWithRangeAsync(
+                db,
+                "lms.learning_participants",
+                "SELECT COUNT(*)::numeric FROM lms.learning_participants "
+                    + "WHERE tenant_id = @tenantId AND \"LearningCompletionStatus\" = 'Pass' "
+                    + "AND \"LearningCompletionDateTimeUtc\" >= @startUtc AND \"LearningCompletionDateTimeUtc\" <= @endUtc",
+                startUtc,
+                endUtc,
+                ct
             );
+        return journeys + lms;
     }
 }

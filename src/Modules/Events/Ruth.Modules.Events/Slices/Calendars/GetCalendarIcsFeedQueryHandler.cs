@@ -191,7 +191,7 @@ internal sealed class GetCalendarIcsFeedQueryHandler(
         {
             var uid = string.Create(
                 CultureInfo.InvariantCulture,
-                $"{occ.Id.Value:D}-{slot.StartOnUtc.ToUnixTimeSeconds()}@ruth.events"
+                $"{occ.Id.Value:D}-{slot.StartOnUtc.ToUnixTimeSeconds()}@calendar.events"
             );
             entries.Add(
                 new IcsCalendarEventEntry(
@@ -232,7 +232,7 @@ internal sealed class GetCalendarIcsFeedQueryHandler(
         {
             entries.Add(
                 new IcsCalendarEventEntry(
-                    $"{occ.Id.Value:D}@ruth.events",
+                    $"{occ.Id.Value:D}@calendar.events",
                     item.Name,
                     startUtc,
                     endUtc,

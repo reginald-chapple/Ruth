@@ -7,12 +7,14 @@ using Ruth.Modules.Finance.Domain.Recurring;
 using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.Gateways;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Finance.Slices.Recurring;
 
 internal sealed class RecurringGatewaySyncHelper(
     FinanceDbContext dbContext,
-    IPaymentGatewayRegistry gatewayRegistry
+    IPaymentGatewayRegistry gatewayRegistry,
+    ITenantContext tenantContext
 )
 {
     public async Task<
@@ -29,6 +31,11 @@ internal sealed class RecurringGatewaySyncHelper(
         if (gateway is null || !gateway.IsActive || !gateway.SupportsRecurring)
         {
             return FinanceErrors.GatewayInactive;
+        }
+
+        if (!gateway.IsTestMode && !tenantContext.IsLive)
+        {
+            return FinanceErrors.LiveChargeRequiresApprovedTenant;
         }
 
         if (!gatewayRegistry.TryGet(gateway.ProviderKey, out var provider))

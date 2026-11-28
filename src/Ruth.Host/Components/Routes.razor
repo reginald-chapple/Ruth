@@ -1,6 +1,43 @@
-<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@using Ruth.Host.Components.Pages
+@using Ruth.Host.Middleware
+@using Ruth.Modules.Tenancy.Contracts.Hosts
+@inject IServiceProvider Services
+
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        @if (IsRoutePermittedForActivePlane(routeData.PageType))
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        }
+        else
+        {
+            <LayoutView Layout="typeof(Layout.OnboardingLayout)">
+                <NotFound />
+            </LayoutView>
+        }
     </Found>
 </Router>
+
+@code {
+    private bool IsRoutePermittedForActivePlane(Type pageType)
+    {
+        var hostKind =
+            Services.GetService<TenantWorkspaceBrandingState>()?.HostKind
+            ?? ResolvedHostKind.TenantWorkspace;
+
+        return hostKind switch
+        {
+            ResolvedHostKind.PlatformOperator =>
+                pageType == typeof(Pages.Tenancy.PlatformOperatorConsole)
+                || pageType == typeof(Pages.NotFound),
+            ResolvedHostKind.PlatformSignup =>
+                pageType == typeof(Pages.Tenancy.OrganizationSignup)
+                || pageType == typeof(Pages.NotFound),
+            ResolvedHostKind.TenantWorkspace =>
+                pageType != typeof(Pages.Tenancy.PlatformOperatorConsole)
+                && pageType != typeof(Pages.Tenancy.OrganizationSignup),
+            _ => false,
+        };
+    }
+}

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Ruth.Modules.Core.Contracts.Storage;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Core.Infrastructure.Storage;
@@ -22,12 +23,12 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
         CancellationToken cancellationToken = default
     )
     {
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         using var ms = new MemoryStream();
         await content.CopyToAsync(ms, cancellationToken);
         var bytes = ms.ToArray();
-        var normalizedKey = objectKey.TrimStart('/');
-        _objects[normalizedKey] = (bytes, contentType);
-        return new StorageObjectMetadata(normalizedKey, bytes.LongLength, contentType, ETag: null);
+        _objects[scopedKey] = (bytes, contentType);
+        return new StorageObjectMetadata(scopedKey, bytes.LongLength, contentType, ETag: null);
     }
 
     public Task<Stream?> OpenReadAsync(
@@ -36,9 +37,9 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var normalizedKey = objectKey.TrimStart('/');
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         return Task.FromResult<Stream?>(
-            _objects.TryGetValue(normalizedKey, out var entry)
+            _objects.TryGetValue(scopedKey, out var entry)
                 ? new MemoryStream(entry.Bytes, writable: false)
                 : null
         );
@@ -47,13 +48,15 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     public Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(_objects.ContainsKey(objectKey.TrimStart('/')));
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
+        return Task.FromResult(_objects.ContainsKey(scopedKey));
     }
 
     public Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _ = _objects.TryRemove(objectKey.TrimStart('/'), out _);
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
+        _ = _objects.TryRemove(scopedKey, out _);
         return Task.CompletedTask;
     }
 
@@ -64,11 +67,12 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         var expiresAt = clock.UtcNow.Add(expiresIn);
         var url = new Uri(
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"https://in-memory.ruth.local/{objectKey.TrimStart('/')}?expires={expiresAt.ToUnixTimeSeconds()}"
+                $"https://storage.internal.local/{scopedKey}?expires={expiresAt.ToUnixTimeSeconds()}"
             )
         );
         return Task.FromResult(new StoragePresignedUrl(url, expiresAt, "GET"));
@@ -82,11 +86,12 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         var expiresAt = clock.UtcNow.Add(expiresIn);
         var url = new Uri(
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"https://in-memory.ruth.local/{objectKey.TrimStart('/')}?method=PUT&expires={expiresAt.ToUnixTimeSeconds()}"
+                $"https://storage.internal.local/{scopedKey}?method=PUT&expires={expiresAt.ToUnixTimeSeconds()}"
             )
         );
         return Task.FromResult(new StoragePresignedUrl(url, expiresAt, "PUT"));

@@ -24,7 +24,8 @@ public sealed partial class BulkCampaignsAndComposer : ComponentBase
     private Guid _selectedTemplateId;
     private string _title = "Monthly Member & Community Digest";
     private string _topicKey = "community-digest";
-    private string _subject = "{{ OrganizationName | default:'Ruth' }} — Community Highlights";
+    private string _subject =
+        "{{ OrganizationName | default:'Community Organization' }} — Community Highlights";
     private string _heroHeading = "Hello {{ RecipientName | default:'Member' }}";
     private string _richBodyMarkup =
         "<p>Explore upcoming workshops, volunteer shifts, and community milestones this month.</p>";

@@ -27,7 +27,7 @@
 @code {
     private string _pipelineName = "Workshop Info Keyword";
     private string _keyword = "INFO";
-    private string _replyTemplate = "Visit {{ OrganizationName | default:'Ruth' }} online for upcoming sessions.";
+    private string _replyTemplate = "Visit {{ OrganizationName | default:'our website' }} online for upcoming sessions.";
 
     [Parameter]
     public IReadOnlyList<SmsPipelineResponse> Pipelines { get; set; } = [];

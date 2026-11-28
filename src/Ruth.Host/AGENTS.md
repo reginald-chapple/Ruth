@@ -8,6 +8,7 @@
 - Entry points: `Program.cs`, `HostAssembly.cs`
 - Primary Skills: `aspnet-core`, `blazor`, `fluentui-blazor-usage`, `dotnet-webapi`, `biome`, `stylelint`, `webhint`.
 - Local Risks: Never block async pipelines; preserve exact middleware ordering; fail fast in `Production` if default dev secrets remain configured.
+- **Stealth Cookie & Circuit Invariants (`W7-S7`):** HTTPS requests enforce RFC 6265bis `__Host-sid` (`StealthHostCookieManager`) and `__Host-csrf` (`StealthResponseHeadersMiddleware`) while rejecting unprefixed `sid`/`csrf` subdomain cookie-tossing; `TenantCircuitHandler` + `TenantCircuitState` and `TenantSignalRHubFilter` immutably bind handshake `TenantExecutionState` and propagate circuit `ClaimsPrincipal` into `HttpContextPrincipalTenantValidator` across inbound activities; `Routes.razor` blocks cross-plane component rendering between `TenantWorkspace`, `PlatformOperator`, and `PlatformSignup`.
 
 ## Verification
 ```bash

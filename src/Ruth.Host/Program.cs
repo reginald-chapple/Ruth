@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Ruth.Host.Components;
 using Ruth.Host.Components.Cms;
@@ -39,7 +40,10 @@ builder.WebHost.ConfigureKestrel(static options => options.AddServerHeader = fal
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IPrincipalTenantValidator, HttpContextPrincipalTenantValidator>();
 builder.Services.AddScoped<TenantWorkspaceBrandingState>();
+builder.Services.AddScoped<TenantCircuitState>();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
+builder.Services.AddSingleton<TenantSignalRHubFilter>();
+builder.Services.AddSignalR(static options => options.AddFilter<TenantSignalRHubFilter>());
 
 builder.Services.AddSharedKernel();
 builder.Services.AddRuthPersistence(builder.Configuration);
@@ -80,8 +84,9 @@ builder.Services.AddRuthRateLimiting();
 builder.Services.AddOutputCache();
 builder.Services.AddAntiforgery(static options =>
 {
-    options.Cookie.Name = "csrf";
+    options.Cookie.Name = StealthResponseHeadersMiddleware.PlainCsrfCookieName;
     options.Cookie.Domain = null;
+    options.Cookie.Path = "/";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;

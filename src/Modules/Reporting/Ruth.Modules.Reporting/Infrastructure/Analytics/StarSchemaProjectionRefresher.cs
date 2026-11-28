@@ -1,7 +1,5 @@
-using System.Data.Common;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Ruth.Modules.Reporting.Contracts.Analytics;
 using Ruth.Modules.Reporting.Contracts.Metrics;
 using Ruth.Modules.Reporting.Domain.Analytics;
@@ -107,8 +105,8 @@ internal sealed class StarSchemaProjectionRefresher(
         }
 
         _ = await db.DimBranches.ExecuteDeleteAsync(ct);
-        await ReadRowsAsync(
-            "SELECT id, name, short_code, is_active FROM core.branches",
+        await sourceReader.ReadTenantRowsAsync(
+            "SELECT id, name, short_code, is_active FROM core.branches WHERE tenant_id = @tenantId",
             async reader =>
             {
                 _ = db.DimBranches.Add(
@@ -217,11 +215,12 @@ internal sealed class StarSchemaProjectionRefresher(
             + "SUM(CASE WHEN NOT a.\"IsTaxDeductible\" THEN d.\"Amount\" ELSE 0 END) AS non_deductible_sum, "
             + "COUNT(DISTINCT t.\"Id\")::int AS tx_count "
             + "FROM finance.financial_transactions t "
-            + "INNER JOIN finance.financial_transaction_details d ON d.\"TransactionId\" = t.\"Id\" "
-            + "INNER JOIN finance.financial_accounts a ON a.\"Id\" = d.\"AccountId\" GROUP BY 1, 2";
+            + "INNER JOIN finance.financial_transaction_details d ON d.tenant_id = t.tenant_id AND d.\"TransactionId\" = t.\"Id\" "
+            + "INNER JOIN finance.financial_accounts a ON a.tenant_id = t.tenant_id AND a.\"Id\" = d.\"AccountId\" "
+            + "WHERE t.tenant_id = @tenantId GROUP BY 1, 2";
 
         var count = 0;
-        await ReadRowsAsync(
+        await sourceReader.ReadTenantRowsAsync(
             sql,
             async reader =>
             {
@@ -272,10 +271,11 @@ internal sealed class StarSchemaProjectionRefresher(
             "SELECT o.\"WeekEndDate\", a.\"BranchId\", COUNT(DISTINCT o.\"Id\")::int AS occ_count, "
             + "COUNT(a.\"Id\") FILTER (WHERE a.\"DidAttend\")::int AS attended_count "
             + "FROM groups.attendance_occurrences o "
-            + "LEFT JOIN groups.attendances a ON a.\"OccurrenceId\" = o.\"Id\" GROUP BY 1, 2";
+            + "LEFT JOIN groups.attendances a ON a.tenant_id = o.tenant_id AND a.\"OccurrenceId\" = o.\"Id\" "
+            + "WHERE o.tenant_id = @tenantId GROUP BY 1, 2";
 
         var count = 0;
-        await ReadRowsAsync(
+        await sourceReader.ReadTenantRowsAsync(
             sql,
             async reader =>
             {
@@ -301,43 +301,6 @@ internal sealed class StarSchemaProjectionRefresher(
 
         _ = await db.SaveChangesAsync(ct);
         return count;
-    }
-
-    private async Task ReadRowsAsync(
-        string sql,
-        Func<DbDataReader, Task> onRow,
-        CancellationToken ct
-    )
-    {
-        var conn = db.Database.GetDbConnection();
-        var shouldClose = conn.State != System.Data.ConnectionState.Open;
-        if (shouldClose)
-        {
-            await db.Database.OpenConnectionAsync(ct);
-        }
-
-        try
-        {
-            await TenantRlsConnectionSynchronizer.EnsureCurrentTenantAsync(
-                conn,
-                db.Database.CurrentTransaction?.GetDbTransaction(),
-                ct
-            );
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                await onRow(reader);
-            }
-        }
-        finally
-        {
-            if (shouldClose)
-            {
-                await db.Database.CloseConnectionAsync();
-            }
-        }
     }
 
     internal static int ToDateKey(DateOnly date)

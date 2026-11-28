@@ -7,6 +7,7 @@ using Ruth.Modules.Finance.Domain.Statements;
 using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.Statements;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Slices.Statements;
@@ -154,8 +155,14 @@ internal sealed class StatementGenerationCollaborator(
     )
     {
         var yearText = statement.PeriodEndDate.Year.ToString(CultureInfo.InvariantCulture);
-        var htmlKey = $"finance/statements/{yearText}/{statement.StatementNumber}.html";
-        var pdfKey = $"finance/statements/{yearText}/{statement.StatementNumber}.pdf";
+        var htmlKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            $"finance/statements/{yearText}/{statement.StatementNumber}.html"
+        );
+        var pdfKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            $"finance/statements/{yearText}/{statement.StatementNumber}.pdf"
+        );
 
         await using (var htmlStream = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent)))
         {

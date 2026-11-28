@@ -6,6 +6,7 @@ using Ruth.Modules.Finance.Contracts.Transactions;
 using Ruth.Modules.Finance.Domain;
 using Ruth.Modules.Finance.Domain.Transactions;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Finance.Infrastructure.CheckImages;
 
@@ -53,18 +54,27 @@ internal sealed class AesGcmCheckImageVault(
 
         var sha256Hex = Convert.ToHexStringLower(SHA256.HashData(plaintextBytes.Span));
         var sideKey = side.ToString();
-        var objectKey = $"finance/checks/{transactionId.Value:D}/{imageId.Value:D}-{sideKey}.enc";
+        var rawObjectKey =
+            $"finance/checks/{transactionId.Value:D}/{imageId.Value:D}-{sideKey}.enc";
+        var objectKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            rawObjectKey
+        );
 
         await using var stream = new MemoryStream(ciphertext, writable: false);
-        _ = await storageProvider.UploadAsync(
+        var uploaded = await storageProvider.UploadAsync(
             objectKey,
             stream,
             "application/octet-stream",
             cancellationToken
         );
+        var effectiveKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            uploaded.ObjectKey
+        );
 
         return (
-            objectKey,
+            effectiveKey,
             plaintextBytes.Length,
             sha256Hex,
             Convert.ToBase64String(nonce),

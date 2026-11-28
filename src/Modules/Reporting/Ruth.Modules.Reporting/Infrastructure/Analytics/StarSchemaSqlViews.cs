@@ -20,10 +20,12 @@ internal static class StarSchemaSqlViews
         + "m.\"MetricKey\" AS metric_key, m.\"Title\" AS metric_title, m.\"UnitLabel\" AS unit_label, "
         + "f.\"PartitionEntityId\" AS partition_entity_id, f.\"PartitionLabel\" AS partition_label, "
         + "f.\"MeasureSum\" AS measure_sum, f.\"GoalSum\" AS goal_sum, "
-        + "f.\"SampleCount\" AS sample_count, f.\"RefreshedAtUtc\" AS refreshed_at_utc "
+        + "f.\"SampleCount\" AS sample_count, f.\"RefreshedAtUtc\" AS refreshed_at_utc, "
+        + "f.tenant_id AS tenant_id "
         + "FROM reporting.fact_metric_daily f "
         + "LEFT JOIN reporting.dim_date d ON d.tenant_id = f.tenant_id AND d.\"DateKey\" = f.\"DateKey\" "
-        + "LEFT JOIN reporting.dim_metric m ON m.tenant_id = f.tenant_id AND m.\"MetricId\" = f.\"MetricId\";";
+        + "LEFT JOIN reporting.dim_metric m ON m.tenant_id = f.tenant_id AND m.\"MetricId\" = f.\"MetricId\" "
+        + "WHERE f.tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid;";
 
     private const string RevenueViewSql =
         "CREATE OR REPLACE VIEW reporting.vw_bi_revenue_summary WITH (security_invoker = true) AS "
@@ -32,18 +34,22 @@ internal static class StarSchemaSqlViews
         + "r.\"TaxDeductibleGiving\" AS tax_deductible_giving, "
         + "r.\"NonDeductibleDuesAndFees\" AS non_deductible_dues_and_fees, "
         + "(r.\"TaxDeductibleGiving\" + r.\"NonDeductibleDuesAndFees\") AS total_revenue, "
-        + "r.\"TransactionCount\" AS transaction_count, r.\"RefreshedAtUtc\" AS refreshed_at_utc "
+        + "r.\"TransactionCount\" AS transaction_count, r.\"RefreshedAtUtc\" AS refreshed_at_utc, "
+        + "r.tenant_id AS tenant_id "
         + "FROM reporting.fact_revenue_monthly r "
-        + "LEFT JOIN reporting.dim_branch b ON b.tenant_id = r.tenant_id AND b.\"BranchId\" = r.\"BranchId\";";
+        + "LEFT JOIN reporting.dim_branch b ON b.tenant_id = r.tenant_id AND b.\"BranchId\" = r.\"BranchId\" "
+        + "WHERE r.tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid;";
 
     private const string AttendanceViewSql =
         "CREATE OR REPLACE VIEW reporting.vw_bi_attendance_summary WITH (security_invoker = true) AS "
         + "SELECT a.\"WeekEndDateKey\" AS week_end_date_key, a.\"WeekEndDate\" AS week_end_date, a.\"BranchId\" AS branch_id, "
         + "COALESCE(b.\"BranchName\", 'Organization Wide') AS branch_name, "
         + "a.\"OccurrenceCount\" AS occurrence_count, a.\"AttendedCount\" AS attended_count, "
-        + "a.\"RefreshedAtUtc\" AS refreshed_at_utc "
+        + "a.\"RefreshedAtUtc\" AS refreshed_at_utc, "
+        + "a.tenant_id AS tenant_id "
         + "FROM reporting.fact_attendance_weekly a "
-        + "LEFT JOIN reporting.dim_branch b ON b.tenant_id = a.tenant_id AND b.\"BranchId\" = a.\"BranchId\";";
+        + "LEFT JOIN reporting.dim_branch b ON b.tenant_id = a.tenant_id AND b.\"BranchId\" = a.\"BranchId\" "
+        + "WHERE a.tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid;";
 
     public static async Task EnsureBiViewsAsync(
         PostgresRlsRoleProvisioner? provisioner,

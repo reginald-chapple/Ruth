@@ -8,6 +8,7 @@ using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.Gateways;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Slices.Transactions;
@@ -15,6 +16,7 @@ namespace Ruth.Modules.Finance.Slices.Transactions;
 internal sealed class RefundFinancialTransactionCommandHandler(
     FinanceDbContext dbContext,
     IPaymentGatewayRegistry gatewayRegistry,
+    ITenantContext tenantContext,
     IClock clock
 ) : ICommandHandler<RefundFinancialTransactionCommand, FinancialTransactionResponse>
 {
@@ -108,6 +110,11 @@ internal sealed class RefundFinancialTransactionCommandHandler(
         if (gateway is null || !gatewayRegistry.TryGet(gateway.ProviderKey, out var provider))
         {
             return FinanceErrors.GatewayProviderUnavailable;
+        }
+
+        if (!gateway.IsTestMode && !tenantContext.IsLive)
+        {
+            return FinanceErrors.LiveChargeRequiresApprovedTenant;
         }
 
         var gatewayRefund = await provider.RefundAsync(

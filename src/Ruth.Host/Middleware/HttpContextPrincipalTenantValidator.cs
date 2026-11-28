@@ -3,7 +3,7 @@ using Ruth.SharedKernel.Tenancy;
 namespace Ruth.Host.Middleware;
 
 /// <summary>
-/// Enforces that any authenticated HTTP security principal carries a tenant claim matching
+/// Enforces that any authenticated HTTP or Blazor circuit security principal carries a tenant claim matching
 /// the active <see cref="ITenantContext" /> before Application CQRS handlers execute.
 /// </summary>
 internal sealed class HttpContextPrincipalTenantValidator(IHttpContextAccessor httpContextAccessor)
@@ -16,7 +16,8 @@ internal sealed class HttpContextPrincipalTenantValidator(IHttpContextAccessor h
     {
         ArgumentNullException.ThrowIfNull(tenantContext);
 
-        var user = _httpContextAccessor.HttpContext?.User;
+        var user = _httpContextAccessor.HttpContext?.User
+            ?? AmbientCircuitSecurityContext.CurrentPrincipal;
         if (user?.Identity?.IsAuthenticated != true)
         {
             return;
@@ -49,15 +50,12 @@ internal sealed class HttpContextPrincipalTenantValidator(IHttpContextAccessor h
 
         var tidClaim = user.FindFirst("tid")?.Value;
         if (
-            tidClaim is not null
-            && (
-                !Guid.TryParse(tidClaim, out var claimGuid)
-                || claimGuid != tenantContext.TenantId.Value
-            )
+            !Guid.TryParse(tidClaim, out var claimGuid)
+            || claimGuid != tenantContext.TenantId.Value
         )
         {
             throw new CrossTenantAccessException(
-                "Authenticated principal tenant claim does not match the active workspace."
+                "Authenticated principal tenant claim is missing or does not match the active workspace."
             );
         }
     }

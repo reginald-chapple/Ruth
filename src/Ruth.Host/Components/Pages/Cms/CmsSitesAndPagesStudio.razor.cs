@@ -22,12 +22,12 @@ public sealed partial class CmsSitesAndPagesStudio : ComponentBase
     private string _brandAccentColor = "#0F6CBD";
     private string _siteName = "Public Community Portal";
     private string _siteSlug = "community-portal";
-    private string _siteDomain = "portal.ruth.local";
+    private string _siteDomain = "portal.example.org";
     private string _blockName = "Welcome Hero";
     private string _blockZone = "Hero";
     private string _blockTypeKey = "cms.html-content";
     private string _htmlMarkup =
-        "<h2>Welcome to {{ BlockName }}</h2><p>Member portal powered by Ruth CMS.</p>";
+        "<h2>Welcome to {{ BlockName }}</h2><p>Community member and supporter portal.</p>";
     private string _shortToken = "join";
     private string _shortTargetUrl = "/cms/preview/community-portal/";
     private string? _qrSvgPreview;

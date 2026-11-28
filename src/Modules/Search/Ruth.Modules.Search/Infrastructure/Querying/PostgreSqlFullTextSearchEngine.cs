@@ -7,6 +7,7 @@ using Ruth.Modules.Search.Domain;
 using Ruth.Modules.Search.Domain.Querying;
 using Ruth.Persistence.EntityFramework;
 using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Search.Infrastructure.Querying;
 
@@ -45,6 +46,13 @@ internal sealed class PostgreSqlFullTextSearchEngine(
         var limit = Math.Clamp(query.Limit, 1, 100);
         var sw = Stopwatch.StartNew();
 
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            sw.Stop();
+            return new SearchResultsResponse(rawText, 0, (int)sw.ElapsedMilliseconds, [], [], []);
+        }
+
         var collectionId = await ResolveCollectionIdAsync(query.CollectionKey, ct);
         if (!string.IsNullOrWhiteSpace(query.CollectionKey) && collectionId is null)
         {
@@ -53,6 +61,7 @@ internal sealed class PostgreSqlFullTextSearchEngine(
         }
 
         var candidates = await FetchCandidatesAsync(
+            tenantId,
             rawText,
             collectionId,
             query.ModuleNames,
@@ -92,6 +101,7 @@ internal sealed class PostgreSqlFullTextSearchEngine(
     }
 
     private async Task<List<CandidateRow>> FetchCandidatesAsync(
+        TenantId tenantId,
         string rawText,
         ContentCollectionId? collectionId,
         IReadOnlyList<string>? moduleNames,
@@ -123,6 +133,7 @@ internal sealed class PostgreSqlFullTextSearchEngine(
             cmd.CommandText = sql;
             PostgreSqlFullTextSqlBuilder.AddFilterParameters(
                 cmd,
+                tenantId,
                 rawText,
                 collectionId,
                 moduleNames,

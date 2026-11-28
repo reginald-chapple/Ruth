@@ -111,7 +111,7 @@ public sealed partial class CmsContentChannelsAndMedia : ComponentBase
                 _channels[0].Id,
                 _itemTitle,
                 _itemSlug,
-                "<p>Published content item from Ruth CMS Studio.</p>",
+                "<p>Published community story item.</p>",
                 Summary: "Community update"
             )
         );

@@ -39,7 +39,10 @@ internal static class IdentityAuthSetupExtensions
                 "JWT Bearer, REST API Key, or Cookie",
                 static options => options.ForwardDefaultSelector = SelectAuthenticationScheme
             )
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, ConfigureCookieOptions)
+            .AddCookie(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                StealthHostCookieManager.ConfigureCookieOptions
+            )
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 ConfigureJwtBearerOptions(options, jwtOptions)
             )
@@ -62,76 +65,6 @@ internal static class IdentityAuthSetupExtensions
 
         _ = services.AddScoped<IAuthorizationHandler, EntityAuthorizationHandler>();
         return services;
-    }
-
-    private static void ConfigureCookieOptions(CookieAuthenticationOptions options)
-    {
-        // Stealth white-label host-only session cookie name (zero framework/platform fingerprinting).
-        options.Cookie.Name = "sid";
-        options.Cookie.Domain = null;
-        options.Cookie.Path = "/";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.LoginPath = "/login";
-        options.LogoutPath = "/api/auth/cookie-logout";
-        options.AccessDeniedPath = "/login";
-        options.SlidingExpiration = true;
-        options.ExpireTimeSpan = TimeSpan.FromHours(12);
-        options.Events.OnValidatePrincipal = ValidateCookieTenantBindingAsync;
-        options.Events.OnRedirectToLogin = static context =>
-            HandleCookieRedirect(context, StatusCodes.Status401Unauthorized);
-        options.Events.OnRedirectToAccessDenied = static context =>
-            HandleCookieRedirect(context, StatusCodes.Status403Forbidden);
-    }
-
-    private static async Task ValidateCookieTenantBindingAsync(
-        CookieValidatePrincipalContext context
-    )
-    {
-        var state = AmbientTenantContext.CurrentState;
-        if (state.IsPlatformOperatorHost)
-        {
-            var isOp = context.Principal?.HasClaim(RuthClaimTypes.PlatformOperator, "true") == true;
-            if (!isOp)
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme
-                );
-            }
-
-            return;
-        }
-
-        if (state.TenantId.IsEmpty)
-        {
-            return;
-        }
-
-        var tokenTid = context.Principal?.FindFirst(RuthClaimTypes.TenantId)?.Value;
-        if (!Guid.TryParse(tokenTid, out var parsed) || parsed != state.TenantId.Value)
-        {
-            context.RejectPrincipal();
-            await context.HttpContext.SignOutAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme
-            );
-        }
-    }
-
-    private static Task HandleCookieRedirect(
-        RedirectContext<CookieAuthenticationOptions> context,
-        int apiStatusCode
-    )
-    {
-        if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
-        {
-            context.Response.StatusCode = apiStatusCode;
-            return Task.CompletedTask;
-        }
-
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
     }
 
     private static void ConfigureJwtBearerOptions(

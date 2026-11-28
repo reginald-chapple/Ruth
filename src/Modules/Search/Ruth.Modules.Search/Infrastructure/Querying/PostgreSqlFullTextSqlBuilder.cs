@@ -5,6 +5,7 @@ using NpgsqlTypes;
 using Ruth.Modules.Search.Contracts.Querying;
 using Ruth.Modules.Search.Domain;
 using Ruth.Modules.Search.Domain.Querying;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Search.Infrastructure.Querying;
 
@@ -25,7 +26,8 @@ internal static class PostgreSqlFullTextSqlBuilder
             + "GREATEST(similarity(d.\"Title\", @query), similarity(COALESCE(d.\"Subtitle\", ''), @query))::double precision) AS score, "
             + "d.\"IsPublic\", d.\"TagsText\", d.\"FacetsJson\"::text, d.\"SecurityEntityTypeKey\", d.\"SecurityEntityId\" "
             + "FROM search.search_documents d, q "
-            + "WHERE (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
+            + "WHERE d.tenant_id = @tenantId "
+            + "AND (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
             + "AND (@publicOnly = FALSE OR d.\"IsPublic\" = TRUE) "
             + "AND (@modules IS NULL OR d.\"ModuleName\" = ANY(@modules)) "
             + "AND (@entityTypes IS NULL OR d.\"EntityTypeKey\" = ANY(@entityTypes)) "
@@ -41,7 +43,8 @@ internal static class PostgreSqlFullTextSqlBuilder
             + "d.\"UrlPath\", 1.0::double precision AS score, "
             + "d.\"IsPublic\", d.\"TagsText\", d.\"FacetsJson\"::text, d.\"SecurityEntityTypeKey\", d.\"SecurityEntityId\" "
             + "FROM search.search_documents d "
-            + "WHERE (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
+            + "WHERE d.tenant_id = @tenantId "
+            + "AND (@collectionId IS NULL OR d.\"ContentCollectionId\" = @collectionId) "
             + "AND (@publicOnly = FALSE OR d.\"IsPublic\" = TRUE) "
             + "AND (@modules IS NULL OR d.\"ModuleName\" = ANY(@modules)) "
             + "AND (@entityTypes IS NULL OR d.\"EntityTypeKey\" = ANY(@entityTypes)) "
@@ -50,6 +53,7 @@ internal static class PostgreSqlFullTextSqlBuilder
 
     public static void AddFilterParameters(
         DbCommand cmd,
+        TenantId tenantId,
         string rawText,
         ContentCollectionId? collectionId,
         IReadOnlyList<string>? moduleNames,
@@ -58,6 +62,9 @@ internal static class PostgreSqlFullTextSqlBuilder
         int overReadLimit
     )
     {
+        _ = cmd.Parameters.Add(
+            new NpgsqlParameter("tenantId", tenantId.Value) { NpgsqlDbType = NpgsqlDbType.Uuid }
+        );
         _ = cmd.Parameters.Add(new NpgsqlParameter("query", rawText));
         _ = cmd.Parameters.Add(new NpgsqlParameter("likeQuery", $"%{rawText}%"));
         _ = cmd.Parameters.Add(

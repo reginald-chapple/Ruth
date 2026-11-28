@@ -15,7 +15,8 @@ internal sealed class PaymentGatewayRegistry : IPaymentGatewayRegistry
         var dict = new Dictionary<string, IPaymentGateway>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in providers)
         {
-            dict[provider.ProviderKey.Trim().ToLowerInvariant()] = provider;
+            dict[provider.ProviderKey.Trim().ToLowerInvariant()] =
+                new LiveTenantPaymentGatewayDecorator(provider);
         }
 
         _byKey = dict.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);

@@ -7,6 +7,7 @@ using Ruth.Modules.Core.Infrastructure.Imaging;
 using Ruth.Modules.Core.Infrastructure.Storage;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Core.Slices.Files;
@@ -94,8 +95,12 @@ internal sealed class CropBinaryFileImageCommandHandler(
         )
             ? ".jpg"
             : ".png";
-        var newObjectKey =
+        var rawObjectKey =
             $"binary-files/{file.BinaryFileTypeId.Value:N}/{Guid.CreateVersion7():N}/cropped{ext}";
+        var newObjectKey = TenantStorageKeyScope.ResolveKey(
+            AmbientTenantContext.Instance,
+            rawObjectKey
+        );
         await using var uploadStream = new MemoryStream(processed.Bytes, writable: false);
         _ = await provider.UploadAsync(
             newObjectKey,

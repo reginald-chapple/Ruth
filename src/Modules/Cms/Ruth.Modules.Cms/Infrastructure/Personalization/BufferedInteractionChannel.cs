@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ruth.Modules.Cms.Contracts.Personalization;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Cms.Infrastructure.Personalization;
 
@@ -13,8 +15,19 @@ internal sealed partial class BufferedInteractionChannel(
     private const int ChannelCapacity = 16384;
     private const int MaxBatchSize = 512;
 
-    private readonly Channel<TrackInteractionItemSpec> _channel =
-        Channel.CreateBounded<TrackInteractionItemSpec>(
+    private sealed class TenantInteractionCounters
+    {
+        public int PendingCount;
+        public long FlushedCount;
+    }
+
+    private readonly record struct BufferedInteractionEnvelope(
+        TenantExecutionState TenantState,
+        TrackInteractionItemSpec Spec
+    );
+
+    private readonly Channel<BufferedInteractionEnvelope> _channel =
+        Channel.CreateBounded<BufferedInteractionEnvelope>(
             new BoundedChannelOptions(ChannelCapacity)
             {
                 FullMode = BoundedChannelFullMode.Wait,
@@ -23,8 +36,11 @@ internal sealed partial class BufferedInteractionChannel(
             }
         );
 
+    private readonly ConcurrentDictionary<TenantId, TenantInteractionCounters> _tenantCounters =
+        new();
+
     private readonly SemaphoreSlim _flushLock = new(1, 1);
-    private int _pendingCount;
+    private int _totalPendingCount;
     private long _totalFlushedCount;
 
     public async ValueTask EnqueueAsync(
@@ -33,27 +49,54 @@ internal sealed partial class BufferedInteractionChannel(
     )
     {
         ArgumentNullException.ThrowIfNull(item);
-        await _channel.Writer.WriteAsync(item, cancellationToken);
-        _ = Interlocked.Increment(ref _pendingCount);
+        var state = AmbientTenantContext.CurrentState;
+        if (state.TenantId.IsEmpty)
+        {
+            throw new TenantContextRequiredException(
+                "CMS interaction buffering requires an active tenant context."
+            );
+        }
+
+        await _channel.Writer.WriteAsync(
+            new BufferedInteractionEnvelope(state, item),
+            cancellationToken
+        );
+        var counters = _tenantCounters.GetOrAdd(
+            state.TenantId,
+            static _ => new TenantInteractionCounters()
+        );
+        _ = Interlocked.Increment(ref counters.PendingCount);
+        _ = Interlocked.Increment(ref _totalPendingCount);
     }
 
     public InteractionBufferStatusResponse GetStatus(int enqueuedInCall = 0)
     {
-        return new InteractionBufferStatusResponse(
-            enqueuedInCall,
-            Math.Max(0, Volatile.Read(ref _pendingCount)),
-            Interlocked.Read(ref _totalFlushedCount)
-        );
+        var activeTenantId = AmbientTenantContext.CurrentTenantId;
+        return activeTenantId.IsEmpty
+                ? new InteractionBufferStatusResponse(
+                    enqueuedInCall,
+                    Math.Max(0, Volatile.Read(ref _totalPendingCount)),
+                    Interlocked.Read(ref _totalFlushedCount)
+                )
+            : _tenantCounters.TryGetValue(activeTenantId, out var counters)
+                ? new InteractionBufferStatusResponse(
+                    enqueuedInCall,
+                    Math.Max(0, Volatile.Read(ref counters.PendingCount)),
+                    Interlocked.Read(ref counters.FlushedCount)
+                )
+            : new InteractionBufferStatusResponse(enqueuedInCall, 0, 0);
     }
 
     public async Task<InteractionBufferStatusResponse> FlushAsync(
         CancellationToken cancellationToken = default
     )
     {
+        var callerTenantId = AmbientTenantContext.CurrentTenantId;
         await _flushLock.WaitAsync(cancellationToken);
         try
         {
-            var flushedNow = 0;
+            var flushedTotalNow = 0;
+            var flushedCallerNow = 0;
             while (true)
             {
                 var batch = DrainBatch();
@@ -62,21 +105,21 @@ internal sealed partial class BufferedInteractionChannel(
                     break;
                 }
 
-                await using var scope = scopeFactory.CreateAsyncScope();
-                var persister =
-                    scope.ServiceProvider.GetRequiredService<InteractionBatchPersister>();
-                await persister.PersistBatchAsync(batch, cancellationToken);
-
-                flushedNow += batch.Count;
-                _ = Interlocked.Add(ref _totalFlushedCount, batch.Count);
+                var callerDelta = await PersistGroupedByTenantAsync(
+                    batch,
+                    callerTenantId,
+                    cancellationToken
+                );
+                flushedTotalNow += batch.Count;
+                flushedCallerNow += callerDelta;
             }
 
-            if (flushedNow > 0)
+            if (flushedTotalNow > 0)
             {
-                LogFlushedBatch(logger, flushedNow);
+                LogFlushedBatch(logger, flushedTotalNow);
             }
 
-            return GetStatus(flushedNow);
+            return GetStatus(callerTenantId.IsEmpty ? flushedTotalNow : flushedCallerNow);
         }
         finally
         {
@@ -89,13 +132,58 @@ internal sealed partial class BufferedInteractionChannel(
         _flushLock.Dispose();
     }
 
-    private List<TrackInteractionItemSpec> DrainBatch()
+    private async Task<int> PersistGroupedByTenantAsync(
+        List<BufferedInteractionEnvelope> batch,
+        TenantId callerTenantId,
+        CancellationToken cancellationToken
+    )
     {
-        var batch = new List<TrackInteractionItemSpec>(Math.Min(MaxBatchSize, 64));
-        while (batch.Count < MaxBatchSize && _channel.Reader.TryRead(out var item))
+        var callerFlushed = 0;
+        foreach (var group in batch.GroupBy(static e => e.TenantState.TenantId))
         {
-            _ = Interlocked.Decrement(ref _pendingCount);
-            batch.Add(item);
+            var state = group.First().TenantState;
+            TrackInteractionItemSpec[] specs = [.. group.Select(static e => e.Spec)];
+            using (
+                AmbientTenantContext.BeginScope(
+                    state.TenantId,
+                    state.TenantSlug,
+                    state.LifecycleStage
+                )
+            )
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var persister =
+                    scope.ServiceProvider.GetRequiredService<InteractionBatchPersister>();
+                await persister.PersistBatchAsync(specs, cancellationToken);
+            }
+
+            var counters = _tenantCounters.GetOrAdd(
+                state.TenantId,
+                static _ => new TenantInteractionCounters()
+            );
+            _ = Interlocked.Add(ref counters.FlushedCount, specs.Length);
+            _ = Interlocked.Add(ref _totalFlushedCount, specs.Length);
+            if (!callerTenantId.IsEmpty && state.TenantId == callerTenantId)
+            {
+                callerFlushed += specs.Length;
+            }
+        }
+
+        return callerFlushed;
+    }
+
+    private List<BufferedInteractionEnvelope> DrainBatch()
+    {
+        var batch = new List<BufferedInteractionEnvelope>(Math.Min(MaxBatchSize, 64));
+        while (batch.Count < MaxBatchSize && _channel.Reader.TryRead(out var envelope))
+        {
+            _ = Interlocked.Decrement(ref _totalPendingCount);
+            if (_tenantCounters.TryGetValue(envelope.TenantState.TenantId, out var counters))
+            {
+                _ = Interlocked.Decrement(ref counters.PendingCount);
+            }
+
+            batch.Add(envelope);
         }
 
         return batch;

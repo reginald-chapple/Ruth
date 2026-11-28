@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Ruth.Modules.Events.Contracts.InteractiveSessions;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Events.Infrastructure.Realtime;
 
@@ -12,21 +13,49 @@ public sealed class InteractiveSessionHub(
     ICommandDispatcher commandDispatcher
 ) : Hub
 {
+    private const string CapturedTenantStateItemKey = "Events.Hub.TenantExecutionState";
+
     public const string StageProjectionUpdatedMethod = "StageProjectionUpdated";
 
-    public static string GetSessionGroupName(Guid sessionId)
+    public static string GetSessionGroupName(TenantId tenantId, Guid sessionId)
     {
-        return $"interactive-session:{sessionId:D}";
+        return tenantId.IsEmpty
+            ? throw new TenantContextRequiredException(
+                "Interactive session SignalR group requires an active tenant context."
+            )
+            : $"t:{tenantId}:interactive-session:{sessionId:D}";
     }
 
-    public static string GetJoinCodeGroupName(string joinCode)
+    public static string GetJoinCodeGroupName(TenantId tenantId, string joinCode)
     {
-        return $"interactive-code:{joinCode.Trim().ToUpperInvariant()}";
+        return tenantId.IsEmpty
+            ? throw new TenantContextRequiredException(
+                "Interactive session SignalR group requires an active tenant context."
+            )
+            : $"t:{tenantId}:interactive-code:{joinCode.Trim().ToUpperInvariant()}";
+    }
+
+    public override Task OnConnectedAsync()
+    {
+        var current = AmbientTenantContext.CurrentState;
+        if (current != TenantExecutionState.Unresolved)
+        {
+            Context.Items[CapturedTenantStateItemKey] = current;
+        }
+
+        return base.OnConnectedAsync();
     }
 
     public async Task<InteractiveStageProjectionResponse?> JoinSession(string sessionIdOrJoinCode)
     {
         if (string.IsNullOrWhiteSpace(sessionIdOrJoinCode))
+        {
+            return null;
+        }
+
+        using var scope = RestoreConnectionTenantScope();
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
         {
             return null;
         }
@@ -42,12 +71,12 @@ public sealed class InteractiveSessionHub(
 
         await Groups.AddToGroupAsync(
             Context.ConnectionId,
-            GetSessionGroupName(result.Value.SessionId),
+            GetSessionGroupName(tenantId, result.Value.SessionId),
             Context.ConnectionAborted
         );
         await Groups.AddToGroupAsync(
             Context.ConnectionId,
-            GetJoinCodeGroupName(result.Value.JoinCode),
+            GetJoinCodeGroupName(tenantId, result.Value.JoinCode),
             Context.ConnectionAborted
         );
         return result.Value;
@@ -55,16 +84,23 @@ public sealed class InteractiveSessionHub(
 
     public async Task LeaveSession(Guid sessionId, string? joinCode = null)
     {
+        using var scope = RestoreConnectionTenantScope();
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        if (tenantId.IsEmpty)
+        {
+            return;
+        }
+
         await Groups.RemoveFromGroupAsync(
             Context.ConnectionId,
-            GetSessionGroupName(sessionId),
+            GetSessionGroupName(tenantId, sessionId),
             Context.ConnectionAborted
         );
         if (!string.IsNullOrWhiteSpace(joinCode))
         {
             await Groups.RemoveFromGroupAsync(
                 Context.ConnectionId,
-                GetJoinCodeGroupName(joinCode),
+                GetJoinCodeGroupName(tenantId, joinCode),
                 Context.ConnectionAborted
             );
         }
@@ -75,10 +111,31 @@ public sealed class InteractiveSessionHub(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+        using var scope = RestoreConnectionTenantScope();
+        if (AmbientTenantContext.CurrentTenantId.IsEmpty)
+        {
+            return null;
+        }
+
         var result = await commandDispatcher.SendAsync<
             SubmitInteractiveResponseCommand,
             InteractiveStageProjectionResponse
         >(command, Context.ConnectionAborted);
         return result.IsSuccess ? result.Value : null;
+    }
+
+    private AmbientTenantContext.TenantScope? RestoreConnectionTenantScope()
+    {
+        return
+            AmbientTenantContext.CurrentState == TenantExecutionState.Unresolved
+            && Context.Items.TryGetValue(CapturedTenantStateItemKey, out var raw)
+            && raw is TenantExecutionState state
+            && !state.TenantId.IsEmpty
+            ? AmbientTenantContext.BeginScope(
+                state.TenantId,
+                state.TenantSlug,
+                state.LifecycleStage
+            )
+            : null;
     }
 }
