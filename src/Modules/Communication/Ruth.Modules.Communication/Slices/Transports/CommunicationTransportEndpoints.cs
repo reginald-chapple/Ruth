@@ -32,6 +32,21 @@ internal static class CommunicationTransportEndpoints
             .WithSummary("Inspect messages captured by the dev in-memory sink and push stub")
             .Produces<IReadOnlyList<InMemoryCapturedMessageResponse>>(StatusCodes.Status200OK);
 
+        _ = group
+            .MapGet("/configs", ListTransportConfigsAsync)
+            .WithName("CommunicationListTransportConfigs")
+            .WithSummary("List masked per-tenant communication transport configurations")
+            .Produces<IReadOnlyList<CommunicationTransportConfigResponse>>(StatusCodes.Status200OK);
+
+        _ = group
+            .MapPut("/configs/{transportKey}", UpsertTransportConfigAsync)
+            .WithName("CommunicationUpsertTransportConfig")
+            .WithSummary(
+                "Create or update per-tenant encrypted communication transport credentials"
+            )
+            .Produces<CommunicationTransportConfigResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
         return endpoints;
     }
 
@@ -71,6 +86,43 @@ internal static class CommunicationTransportEndpoints
             new GetInMemorySentMessagesQuery(channel, recipientFilter, limit ?? 50),
             cancellationToken
         );
+        return result.IsSuccess
+            ? TypedResults.Ok(result.Value)
+            : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);
+    }
+
+    private static async Task<
+        Results<Ok<IReadOnlyList<CommunicationTransportConfigResponse>>, ProblemHttpResult>
+    > ListTransportConfigsAsync(
+        CommunicationChannel? channel,
+        IQueryDispatcher dispatcher,
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await dispatcher.QueryAsync<
+            GetCommunicationTransportConfigsQuery,
+            IReadOnlyList<CommunicationTransportConfigResponse>
+        >(new GetCommunicationTransportConfigsQuery(channel), cancellationToken);
+        return result.IsSuccess
+            ? TypedResults.Ok(result.Value)
+            : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);
+    }
+
+    private static async Task<
+        Results<Ok<CommunicationTransportConfigResponse>, ProblemHttpResult>
+    > UpsertTransportConfigAsync(
+        string transportKey,
+        UpsertCommunicationTransportConfigCommand body,
+        ICommandDispatcher dispatcher,
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await dispatcher.SendAsync<
+            UpsertCommunicationTransportConfigCommand,
+            CommunicationTransportConfigResponse
+        >(body with { TransportKey = transportKey }, cancellationToken);
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);

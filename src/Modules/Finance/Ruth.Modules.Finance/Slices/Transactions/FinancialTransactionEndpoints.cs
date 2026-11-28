@@ -238,9 +238,26 @@ internal static class FinancialTransactionEndpoints
             DownloadDecryptedCheckImageQuery,
             DecryptedCheckImageResponse
         >(new DownloadDecryptedCheckImageQuery(id, imageId), cancellationToken);
-        return result.IsSuccess
-            ? TypedResults.Bytes(result.Value.PlaintextBytes, result.Value.ContentType)
-            : FinanceProblemResultMapper.ToProblemResult(result, httpContext);
+        if (!result.IsSuccess)
+        {
+            return FinanceProblemResultMapper.ToProblemResult(result, httpContext);
+        }
+
+        httpContext.Response.Headers.XContentTypeOptions = "nosniff";
+        httpContext.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+        httpContext.Response.Headers.CacheControl = "private, no-store";
+        var ext = result.Value.ContentType switch
+        {
+            "image/jpeg" => "jpg",
+            "image/tiff" => "tif",
+            "application/pdf" => "pdf",
+            _ => "png",
+        };
+        return TypedResults.Bytes(
+            result.Value.PlaintextBytes,
+            result.Value.ContentType,
+            fileDownloadName: $"check-{id:N}-{imageId:N}.{ext}"
+        );
     }
 
     private static async Task<

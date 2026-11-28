@@ -1,3 +1,4 @@
+@using Ruth.SharedKernel.Security
 @implements IRuthBlock
 @inject IMergeTemplateEngine MergeEngine
 
@@ -53,6 +54,11 @@
         }
 
         var rendered = await MergeEngine.RenderAsync(raw, ctx);
-        _renderedHtml = rendered.IsSuccess ? rendered.Value.RenderedContent : raw;
+        _renderedHtml = rendered.IsSuccess
+            ? AllowlistHtmlSanitizer.SanitizeFragment(
+                rendered.Value.RenderedContent,
+                allowMergeTokensInUrls: false
+            )
+            : string.Empty;
     }
 }

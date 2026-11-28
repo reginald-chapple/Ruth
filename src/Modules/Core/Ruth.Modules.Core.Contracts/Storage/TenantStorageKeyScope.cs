@@ -1,3 +1,4 @@
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Core.Contracts.Storage;
@@ -29,17 +30,15 @@ public static class TenantStorageKeyScope
             );
         }
 
-        foreach (var ch in rawKey)
+        var slashNormalized = rawKey.Replace('\\', '/');
+        if (FileContentSecurityInspector.HasStorageKeyTraversal(slashNormalized))
         {
-            if (char.IsControl(ch))
-            {
-                throw new CrossTenantAccessException(
-                    "Storage object key cannot contain control characters."
-                );
-            }
+            throw new CrossTenantAccessException(
+                "Storage object key cannot contain path traversal segments, backslashes, or control characters."
+            );
         }
 
-        var normalized = rawKey.Replace('\\', '/').Trim().TrimStart('/');
+        var normalized = CollapseSlashes(slashNormalized.Trim().TrimStart('/'));
         if (
             string.IsNullOrWhiteSpace(normalized)
             || normalized.Contains("..", StringComparison.Ordinal)
@@ -66,5 +65,13 @@ public static class TenantStorageKeyScope
                 $"Storage object key '{normalized}' belongs to a different tenant than '{tenantId}'."
             )
             : $"{expectedPrefix}{normalized}";
+    }
+
+    private static string CollapseSlashes(string value)
+    {
+        return string.Join(
+            '/',
+            value.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        );
     }
 }

@@ -62,10 +62,17 @@ internal sealed class StealthResponseHeadersMiddleware(RequestDelegate next)
         _ = headers.TryAdd("Cross-Origin-Opener-Policy", "same-origin");
         _ = headers.TryAdd("Cross-Origin-Resource-Policy", "same-origin");
         _ = headers.TryAdd("Permissions-Policy", PermissionsPolicyHeaderValue);
-        headers.ContentSecurityPolicy = BuildContentSecurityPolicy(
-            nonce,
-            httpContext.Request.IsHttps
-        );
+        if (
+            !headers
+                .ContentSecurityPolicy.ToString()
+                .Contains("sandbox", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            headers.ContentSecurityPolicy = BuildContentSecurityPolicy(
+                nonce,
+                httpContext.Request.IsHttps
+            );
+        }
 
         if (httpContext.Request.IsHttps)
         {

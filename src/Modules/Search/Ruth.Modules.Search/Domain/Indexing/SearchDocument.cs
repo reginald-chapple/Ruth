@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Ruth.Modules.Search.Contracts.Indexing;
+using Ruth.Modules.Search.Domain.Querying;
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
 
@@ -67,7 +68,7 @@ public sealed class SearchDocument : AggregateRoot<SearchDocumentId>, IAuditable
         var subtitle = TrimOrNull(spec.Subtitle);
         var summary = TrimOrNull(spec.Summary);
         var body = TrimOrNull(spec.BodyText);
-        var url = TrimOrNull(spec.UrlPath);
+        var url = SearchSnippetSanitizer.SanitizeUrlPath(spec.UrlPath);
         var hash = SearchTextNormalizer.ComputeContentHash(
             title,
             subtitle,
@@ -120,7 +121,7 @@ public sealed class SearchDocument : AggregateRoot<SearchDocumentId>, IAuditable
         var subtitle = TrimOrNull(spec.Subtitle);
         var summary = TrimOrNull(spec.Summary);
         var body = TrimOrNull(spec.BodyText);
-        var url = TrimOrNull(spec.UrlPath);
+        var url = SearchSnippetSanitizer.SanitizeUrlPath(spec.UrlPath);
         var hash = SearchTextNormalizer.ComputeContentHash(
             title,
             subtitle,

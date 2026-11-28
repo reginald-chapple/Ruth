@@ -4,6 +4,7 @@ using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
 
@@ -73,11 +74,18 @@ internal sealed class UpsertExternalAuthProviderCommandHandler(IdentityDbContext
         UpsertExternalAuthProviderCommand command
     )
     {
+        var effectiveSecret = string.Equals(
+            command.ClientSecret,
+            SensitiveSettingRedactor.RedactedMask,
+            StringComparison.Ordinal
+        )
+            ? null
+            : command.ClientSecret;
         var updated = existing.Update(
             command.DisplayName,
             command.Authority,
             command.ClientId,
-            command.ClientSecret,
+            effectiveSecret,
             command.Scopes,
             command.IsEnabled,
             command.AutoLinkByEmail,

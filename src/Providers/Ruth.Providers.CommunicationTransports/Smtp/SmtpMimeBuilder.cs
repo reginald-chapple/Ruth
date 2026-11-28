@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Ruth.Modules.Communication.Contracts.Transports;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Providers.CommunicationTransports.Smtp;
 
@@ -22,12 +23,16 @@ internal static class SmtpMimeBuilder
         AppendHeader(sb, "Date", utcNow.ToString("R", inv));
         AppendHeader(sb, "From", FormatAddress(fromAddress, fromDisplayName));
         AppendHeader(sb, "To", FormatAddress(message.ToAddress, message.ToDisplayName));
-        if (!string.IsNullOrWhiteSpace(message.ReplyToAddress))
+        if (
+            !string.IsNullOrWhiteSpace(message.ReplyToAddress)
+            && EmailHeaderSanitizer.TrySanitizeEmailAddress(message.ReplyToAddress, out var replyTo)
+        )
         {
-            AppendHeader(sb, "Reply-To", SanitizeHeader(message.ReplyToAddress));
+            AppendHeader(sb, "Reply-To", $"<{replyTo}>");
         }
 
-        AppendHeader(sb, "Subject", SanitizeHeader(message.Subject ?? "(No Subject)"));
+        var subject = EmailHeaderSanitizer.SanitizeHeaderValue(message.Subject);
+        AppendHeader(sb, "Subject", string.IsNullOrEmpty(subject) ? "(No Subject)" : subject);
         AppendHeader(sb, "MIME-Version", "1.0");
         AppendHeader(sb, "Content-Type", $"multipart/alternative; boundary=\"{boundary}\"");
         _ = sb.Append("\r\n");
@@ -45,20 +50,23 @@ internal static class SmtpMimeBuilder
 
     public static string SanitizeHeader(string value)
     {
-        return value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return EmailHeaderSanitizer.SanitizeHeaderValue(value);
     }
 
     private static string FormatAddress(string email, string? displayName)
     {
-        var cleanEmail = SanitizeHeader(email);
-        return string.IsNullOrWhiteSpace(displayName)
+        var cleanEmail = SanitizeHeader(email)
+            .Replace("<", string.Empty, StringComparison.Ordinal)
+            .Replace(">", string.Empty, StringComparison.Ordinal);
+        var cleanName = SanitizeHeader(displayName ?? string.Empty);
+        return string.IsNullOrWhiteSpace(cleanName)
             ? $"<{cleanEmail}>"
-            : $"\"{SanitizeHeader(displayName).Replace('"', '\'')}\" <{cleanEmail}>";
+            : $"\"{cleanName.Replace('"', '\'')}\" <{cleanEmail}>";
     }
 
     private static void AppendHeader(StringBuilder sb, string name, string value)
     {
-        _ = sb.Append(name).Append(": ").Append(value).Append("\r\n");
+        _ = sb.Append(name).Append(": ").Append(SanitizeHeader(value)).Append("\r\n");
     }
 
     private static void AppendMimePart(

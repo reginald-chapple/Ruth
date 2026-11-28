@@ -8,6 +8,7 @@ using Ruth.Modules.Core.Infrastructure.Imaging;
 using Ruth.Modules.Core.Infrastructure.Storage;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
@@ -49,9 +50,35 @@ internal sealed class UploadBinaryFileCommandHandler(
             return CoreDocumentErrors.StorageProviderNotFound;
         }
 
-        var prepared = await PreparePayloadAsync(command, fileType, cancellationToken);
+        var preparedResult = await InspectAndPreparePayloadAsync(
+            command,
+            scrubbedName.Value,
+            fileType,
+            cancellationToken
+        );
+        return preparedResult.IsFailure
+            ? Result.Failure<BinaryFileResponse>(preparedResult.Errors)
+            : await PersistValidatedBinaryFileAsync(
+                command,
+                fileType,
+                scrubbedName.Value,
+                provider,
+                preparedResult.Value,
+                cancellationToken
+            );
+    }
+
+    private async Task<Result<BinaryFileResponse>> PersistValidatedBinaryFileAsync(
+        UploadBinaryFileCommand command,
+        BinaryFileType fileType,
+        string scrubbedFileName,
+        IStorageProvider provider,
+        (byte[] Bytes, string MimeType, int? Width, int? Height) prepared,
+        CancellationToken cancellationToken
+    )
+    {
         var rawObjectKey =
-            $"binary-files/{fileType.Id.Value:N}/{Guid.CreateVersion7():N}/{scrubbedName.Value}";
+            $"binary-files/{fileType.Id.Value:N}/{Guid.CreateVersion7():N}/{scrubbedFileName}";
         var objectKey = TenantStorageKeyScope.ResolveKey(
             AmbientTenantContext.Instance,
             rawObjectKey
@@ -59,7 +86,7 @@ internal sealed class UploadBinaryFileCommandHandler(
         var fileResult = CreateFileAggregate(
             command,
             fileType,
-            scrubbedName.Value,
+            scrubbedFileName,
             provider.ProviderKey,
             objectKey,
             prepared
@@ -82,13 +109,11 @@ internal sealed class UploadBinaryFileCommandHandler(
         return Result.Success(FileMapper.ToResponse(fileResult.Value));
     }
 
-    private async Task<(
-        byte[] Bytes,
-        string MimeType,
-        int? Width,
-        int? Height
-    )> PreparePayloadAsync(
+    private async Task<
+        Result<(byte[] Bytes, string MimeType, int? Width, int? Height)>
+    > InspectAndPreparePayloadAsync(
         UploadBinaryFileCommand command,
+        string scrubbedFileName,
         BinaryFileType fileType,
         CancellationToken cancellationToken
     )
@@ -96,12 +121,24 @@ internal sealed class UploadBinaryFileCommandHandler(
         using var buffer = new MemoryStream();
         await command.Content.CopyToAsync(buffer, cancellationToken);
         var payload = buffer.ToArray();
-        var mimeType = string.IsNullOrWhiteSpace(command.MimeType)
-            ? "application/octet-stream"
-            : command.MimeType.Trim();
-        return mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
-            ? ProcessImagePayload(payload, mimeType, fileType)
-            : (payload, mimeType, null, null);
+
+        var inspection = FileContentSecurityInspector.InspectAndValidateUpload(
+            payload,
+            scrubbedFileName,
+            command.MimeType
+        );
+        if (!inspection.IsValid)
+        {
+            return DomainError.Validation(
+                inspection.FailureCode ?? "Core.BinaryFile.InvalidContent",
+                inspection.FailureReason ?? "Uploaded file failed content security validation."
+            );
+        }
+
+        var canonicalMime = inspection.CanonicalMimeType;
+        return canonicalMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+            ? ProcessImagePayload(payload, canonicalMime, fileType)
+            : (payload, canonicalMime, null, null);
     }
 
     private Result<BinaryFile> CreateFileAggregate(

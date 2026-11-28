@@ -34,7 +34,7 @@ internal sealed class GetBinaryFilePresignedUrlQueryHandler(
             return CoreDocumentErrors.StorageProviderNotFound;
         }
 
-        var boundedMinutes = Math.Clamp(query.ExpiresInMinutes, 1, 1440);
+        var boundedMinutes = Math.Clamp(query.ExpiresInMinutes, 1, 15);
         var presigned = await provider.CreatePresignedDownloadUrlAsync(
             file.ObjectKey,
             TimeSpan.FromMinutes(boundedMinutes),

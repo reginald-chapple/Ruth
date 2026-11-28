@@ -12,6 +12,7 @@ internal static class BinaryFileContentStreamer
         Guid id,
         CoreDbContext dbContext,
         IStorageProviderResolver providerResolver,
+        HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
@@ -31,8 +32,18 @@ internal static class BinaryFileContentStreamer
         }
 
         var stream = await provider.OpenReadAsync(file.ObjectKey, cancellationToken);
-        return stream is null
-            ? TypedResults.NotFound()
-            : TypedResults.Stream(stream, file.MimeType, file.FileName);
+        if (stream is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        httpContext.Response.Headers.XContentTypeOptions = "nosniff";
+        httpContext.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+        httpContext.Response.Headers.CacheControl = "private, no-store";
+
+        var safeFileName = string.IsNullOrWhiteSpace(file.FileName)
+            ? $"file-{file.Id.Value:N}.bin"
+            : file.FileName;
+        return TypedResults.Stream(stream, file.MimeType, safeFileName);
     }
 }

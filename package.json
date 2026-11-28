@@ -8,7 +8,8 @@
     "lint:css": "stylelint \"src/**/*.{css,scss}\" --allow-empty-input",
     "fix:css": "stylelint \"src/**/*.{css,scss}\" --fix --allow-empty-input",
     "audit:web": "hint",
-    "lint:html": "htmlhint \"artifacts/htmlhint/**/*.html\""
+    "lint:html": "htmlhint \"artifacts/htmlhint/**/*.html\"",
+    "sbom:generate": "node scripts/generate-sbom.mjs artifacts/sbom/ruth.cdx.json"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
@@ -16,5 +17,12 @@
     "htmlhint": "^1.9.2",
     "stylelint": "18.1.0",
     "stylelint-config-standard": "41.1.0"
+  },
+  "overrides": {
+    "image-size": "^2.2.0",
+    "puppeteer-core": "^25.19.0",
+    "tar": "^8.0.1",
+    "tar-fs": "^3.1.4",
+    "ws": "^8.23.1"
   }
 }

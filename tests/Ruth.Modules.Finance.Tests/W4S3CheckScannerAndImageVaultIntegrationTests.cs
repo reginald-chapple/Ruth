@@ -37,7 +37,18 @@ public sealed class W4S3CheckScannerAndImageVaultIntegrationTests(
             .Id;
 
         var donorId = Guid.CreateVersion7();
-        var samplePngBytes = Encoding.UTF8.GetBytes("PNG-FAKE-CHECK-IMAGE-PAYLOAD-FRONT-2026");
+        byte[] samplePngBytes =
+        [
+            0x89,
+            0x50,
+            0x4E,
+            0x47,
+            0x0D,
+            0x0A,
+            0x1A,
+            0x0A,
+            .. Encoding.UTF8.GetBytes("CHECK-IMAGE-PAYLOAD-FRONT-2026"),
+        ];
 
         var firstTxId = await IngestAndVerifyCheckMatchingAsync(
             commands,

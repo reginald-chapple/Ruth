@@ -8,6 +8,8 @@ namespace Ruth.Modules.Finance.Infrastructure.Configurations;
 internal sealed class FinancialGatewayEntityConfiguration
     : IEntityTypeConfiguration<FinancialGateway>
 {
+    public const string SettingsEncryptionPurpose = "finance.gateway.settings";
+
     public void Configure(EntityTypeBuilder<FinancialGateway> builder)
     {
         _ = builder.ToTable("financial_gateways");
@@ -18,10 +20,12 @@ internal sealed class FinancialGatewayEntityConfiguration
         _ = builder.Property(static x => x.Description).HasMaxLength(400);
         _ = builder.Property(static x => x.PublicTokenizerKey).HasMaxLength(200);
 
-        JsonbAttributeConventions.ConfigureJsonbStringMap(
+        TenantEncryptedValueConverters.ConfigureEncryptedJsonbStringMap(
             builder,
             static x => x.Settings,
-            columnName: "settings"
+            columnName: "settings",
+            purpose: SettingsEncryptionPurpose,
+            encryptAllValues: false
         );
 
         _ = builder.Ignore(static x => x.DomainEvents);

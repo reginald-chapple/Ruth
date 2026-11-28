@@ -6,12 +6,16 @@ services:
       context: ./deploy/docker/postgres
       dockerfile: Dockerfile
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ruth}
       POSTGRES_USER: ${POSTGRES_USER:-ruth}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ruth_secret}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - backing
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./deploy/init-scripts:/docker-entrypoint-initdb.d:ro
@@ -22,27 +26,41 @@ services:
       retries: 10
 
   redis:
-    image: redis:8-alpine
+    image: redis:8-alpine@sha256:5af80107c1eeecb484a2269b80a26d12bfa6521787da4663bd9f19f60a163483
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-ruth_redis_local_dev_pw}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    networks:
+      - backing
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=${REDIS_PASSWORD:-ruth_redis_local_dev_pw} redis-cli ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   rustfs:
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.7@sha256:69bd3c4d8d79b74723bfd68c9fbd9085155d4d4b44a5a136d87502f3075cc68c
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
     ports:
-      - "${RUSTFS_PORT:-9000}:9000"
-      - "${RUSTFS_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${RUSTFS_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
+    networks:
+      - backing
     volumes:
       - rustfs_data:/data
 
@@ -52,6 +70,15 @@ services:
       context: .
       dockerfile: deploy/docker/dotnet/Dockerfile
     restart: unless-stopped
+    user: "1654:1654"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,15 +96,27 @@ services:
       Tenancy__SandboxBaseDomain: ${Tenancy__SandboxBaseDomain:-sandbox.localhost}
       Tenancy__PlatformOperatorHost: ${Tenancy__PlatformOperatorHost:-ops.localhost}
       Tenancy__StripeMockMode: ${Tenancy__StripeMockMode:-true}
-      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:-ruth_redis_local_dev_pw},abortConnect=false
       Storage__RustFs__Endpoint: http://rustfs:9000
       Storage__RustFs__BucketName: ${RUSTFS_BUCKET:-ruth}
       Storage__RustFs__AccessKey: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
       Storage__RustFs__SecretKey: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       Authentication__Jwt__SigningKey: ${Authentication__Jwt__SigningKey:-replace-with-a-unique-random-32-plus-character-secret-in-production}
+      Security__CredentialEncryption__ActiveKeyId: ${Security__CredentialEncryption__ActiveKeyId:-k1}
+      Security__CredentialEncryption__MasterKey: ${Security__CredentialEncryption__MasterKey:-replace-with-a-unique-random-32-plus-character-kek-in-production}
       Bootstrap__AutoMigrateAndSeed: ${Bootstrap__AutoMigrateAndSeed:-true}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${RUTH_HTTP_PORT:-8080}:8080"
+    networks:
+      - edge
+      - backing
+
+networks:
+  edge:
+    driver: bridge
+  backing:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data:

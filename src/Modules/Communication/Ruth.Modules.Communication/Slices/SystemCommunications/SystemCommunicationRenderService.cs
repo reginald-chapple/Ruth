@@ -3,6 +3,7 @@ using Ruth.Modules.Communication.Contracts.Templates;
 using Ruth.Modules.Communication.Domain.SystemCommunications;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Communication.Slices.SystemCommunications;
 
@@ -45,10 +46,18 @@ internal sealed class SystemCommunicationRenderService(
             return Result.Failure<RenderedNotificationBundle>(bodyFragmentResult.Errors);
         }
 
+        var sanitizedSubject = EmailHeaderSanitizer.SanitizeHeaderValue(
+            subjectResult.Value.RenderedContent
+        );
+        var sanitizedBodyFragment = AllowlistHtmlSanitizer.SanitizeFragment(
+            bodyFragmentResult.Value.RenderedContent,
+            allowMergeTokensInUrls: false
+        );
+
         var fullHtmlResult = await WrapInRazorLayoutIfConfiguredAsync(
             template,
-            subjectResult.Value.RenderedContent,
-            bodyFragmentResult.Value.RenderedContent,
+            sanitizedSubject,
+            sanitizedBodyFragment,
             context,
             cancellationToken
         );
@@ -56,9 +65,9 @@ internal sealed class SystemCommunicationRenderService(
             ? Result.Failure<RenderedNotificationBundle>(fullHtmlResult.Errors)
             : await BuildFinalBundleAsync(
                 template,
-                subjectResult.Value.RenderedContent,
+                sanitizedSubject,
                 fullHtmlResult.Value,
-                bodyFragmentResult.Value.RenderedContent,
+                sanitizedBodyFragment,
                 context,
                 cancellationToken
             );

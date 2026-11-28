@@ -1090,6 +1090,59 @@ namespace Ruth.Modules.Communication.Infrastructure.Migrations
                     b.ToTable("template_snippets", "comms");
                 });
 
+            modelBuilder.Entity("Ruth.Modules.Communication.Domain.Transports.CommunicationTransportConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Credentials")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("credentials");
+
+                    b.Property<string>("DefaultFromAddress")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<string>("DefaultFromName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ModifiedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TransportKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "TransportKey")
+                        .IsUnique();
+
+                    b.ToTable("communication_transport_configs", "comms");
+                });
+
             modelBuilder.Entity("Ruth.Modules.Communication.Domain.TwoWaySms.CommunicationResponse", b =>
                 {
                     b.Property<Guid>("Id")

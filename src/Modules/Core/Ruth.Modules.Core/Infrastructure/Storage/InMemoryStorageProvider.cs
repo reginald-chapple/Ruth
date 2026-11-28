@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Ruth.Modules.Core.Contracts.Storage;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
@@ -10,6 +11,8 @@ namespace Ruth.Modules.Core.Infrastructure.Storage;
 internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
 {
     public const string Key = "in-memory";
+
+    private const int MaxPresignedLifetimeSeconds = 900;
 
     private readonly ConcurrentDictionary<string, (byte[] Bytes, string ContentType)> _objects =
         new(StringComparer.Ordinal);
@@ -23,6 +26,16 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
         CancellationToken cancellationToken = default
     )
     {
+        if (
+            !string.IsNullOrWhiteSpace(contentType)
+            && contentType.Contains("svg", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            throw new InvalidOperationException(
+                "Uploading active SVG content to object storage is prohibited."
+            );
+        }
+
         var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         using var ms = new MemoryStream();
         await content.CopyToAsync(ms, cancellationToken);
@@ -68,11 +81,16 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
         var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
-        var expiresAt = clock.UtcNow.Add(expiresIn);
+        var boundedSeconds = Math.Clamp(
+            (int)Math.Ceiling(expiresIn.TotalSeconds),
+            1,
+            MaxPresignedLifetimeSeconds
+        );
+        var expiresAt = clock.UtcNow.AddSeconds(boundedSeconds);
         var url = new Uri(
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"https://storage.internal.local/{scopedKey}?expires={expiresAt.ToUnixTimeSeconds()}"
+                $"https://storage.internal.local/{scopedKey}?expires={expiresAt.ToUnixTimeSeconds()}&response-content-disposition=attachment"
             )
         );
         return Task.FromResult(new StoragePresignedUrl(url, expiresAt, "GET"));
@@ -86,8 +104,20 @@ internal sealed class InMemoryStorageProvider(IClock clock) : IStorageProvider
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (FileContentSecurityInspector.IsBlockedActiveMimeType(contentType))
+        {
+            throw new InvalidOperationException(
+                "Presigned upload URLs cannot be minted for active HTML, SVG, or script MIME types."
+            );
+        }
+
         var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
-        var expiresAt = clock.UtcNow.Add(expiresIn);
+        var boundedSeconds = Math.Clamp(
+            (int)Math.Ceiling(expiresIn.TotalSeconds),
+            1,
+            MaxPresignedLifetimeSeconds
+        );
+        var expiresAt = clock.UtcNow.AddSeconds(boundedSeconds);
         var url = new Uri(
             string.Create(
                 CultureInfo.InvariantCulture,

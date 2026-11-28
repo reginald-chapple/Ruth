@@ -249,6 +249,7 @@ public sealed class Wave4FinanceEndpointsIntegrationTests(HostContainersFixture 
         );
         Assert.Equal(HttpStatusCode.Created, txResp.StatusCode);
 
+        byte[] validCheckPng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, .. "CHECK-2040"u8];
         using var scanResp = await SendAuthJsonAsync(
             client,
             token,
@@ -263,7 +264,7 @@ public sealed class Wave4FinanceEndpointsIntegrationTests(HostContainersFixture 
                 currencyCode = "USD",
                 accountId,
                 overridePersonId = personId,
-                frontImageBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("FAKE-PNG-CHECK")),
+                frontImageBase64 = Convert.ToBase64String(validCheckPng),
             }
         );
         Assert.Equal(HttpStatusCode.Created, scanResp.StatusCode);

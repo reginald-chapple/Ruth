@@ -2,6 +2,7 @@ using Ruth.Modules.Communication.Contracts.Templates;
 using Ruth.Modules.Communication.Domain.Templates;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Communication.Slices.Templates;
 
@@ -29,12 +30,22 @@ internal sealed class PreviewMergeTemplateCommandHandler(IMergeTemplateEngine me
             options,
             cancellationToken
         );
-        return rendered.IsFailure
-            ? Result.Failure<TemplatePreviewResponse>(rendered.Errors)
-            : new TemplatePreviewResponse(
-                rendered.Value.RenderedContent,
-                rendered.Value.MissingTokens,
-                rendered.Value.SnippetsExpanded
-            );
+        if (rendered.IsFailure)
+        {
+            return Result.Failure<TemplatePreviewResponse>(rendered.Errors);
+        }
+
+        var content =
+            command.OutputMode == TemplateOutputMode.Html
+                ? AllowlistHtmlSanitizer.SanitizeFragment(
+                    rendered.Value.RenderedContent,
+                    allowMergeTokensInUrls: false
+                )
+                : rendered.Value.RenderedContent;
+        return new TemplatePreviewResponse(
+            content,
+            rendered.Value.MissingTokens,
+            rendered.Value.SnippetsExpanded
+        );
     }
 }

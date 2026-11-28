@@ -12,6 +12,7 @@
 - Category and Location hierarchies must reject self-parenting and ancestor cycles.
 - Signed `SignatureDocument` records are immutable once sealed with `SignatureVerificationHash`.
 - **Multi-Tenant & RLS Isolation (`W7-S5`, `W7-S6`):** Every table in `core` enforces `ITenantScoped` + PostgreSQL 18 `ENABLE` + `FORCE ROW LEVEL SECURITY` (`ruth_app`), `EntityTypeDescriptor` derives deterministic per-tenant IDs (`CoreTenantSeedContributor`), `CoreReadCache` partitions all local and Redis keys under `t:{TenantId}:core:cache:{bucket}`, and `TenantScopedStorageProvider` prefixes every S3 object key under `tenants/{TenantId}/...`.
+- **Upload Content Inspection & Private Attachment Delivery (`W8-S4`):** `BinaryFileNamePolicy`, `UploadBinaryFileCommandHandler`, and `RustFsStorageProvider` enforce path-traversal rejection, magic-byte MIME verification, SVG/HTML/executable/polyglot blocking (`FileContentSecurityInspector`), `x-amz-acl: private` + `PublicAccessBlock`, `<= 15m` presigned URL clamping (`response-content-disposition=attachment`), and `Content-Disposition: attachment` + `Content-Security-Policy: default-src 'none'; sandbox` on streamed downloads.
 
 ## Verification
 ```bash

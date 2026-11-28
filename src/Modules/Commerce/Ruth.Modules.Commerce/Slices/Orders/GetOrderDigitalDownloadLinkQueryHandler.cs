@@ -39,7 +39,7 @@ internal sealed class GetOrderDigitalDownloadLinkQueryHandler(
             return CommerceErrors.DigitalDownloadNotEligible;
         }
 
-        var minutes = Math.Clamp(query.ExpiresInMinutes, 1, 120);
+        var minutes = Math.Clamp(query.ExpiresInMinutes, 1, 15);
         var urlRes = await queryDispatcher.QueryAsync<
             GetBinaryFilePresignedUrlQuery,
             StoragePresignedUrl

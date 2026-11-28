@@ -1,13 +1,18 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Core.Contracts.Storage;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Providers.RustFsStorage;
 
-/// <summary>S3-compatible <see cref="IStorageProvider" /> backed by RustFS with SigV4 streaming and presigned URLs.</summary>
+/// <summary>
+/// Hardened S3-compatible <see cref="IStorageProvider" /> backed by RustFS with private-by-default buckets,
+/// short-lived presigned URLs, active-content blocking, and non-inline attachment headers.
+/// </summary>
 public sealed class RustFsStorageProvider(
     IHttpClientFactory httpClientFactory,
     IOptions<RustFsStorageOptions> optionsAccessor,
@@ -19,6 +24,20 @@ public sealed class RustFsStorageProvider(
 
     /// <summary>Canonical provider key registered for RustFS storage.</summary>
     public const string Key = "rustfs";
+
+    private const string PublicAccessBlockXml =
+        "<PublicAccessBlockConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">"
+        + "<BlockPublicAcls>true</BlockPublicAcls>"
+        + "<IgnorePublicAcls>true</IgnorePublicAcls>"
+        + "<BlockPublicPolicy>true</BlockPublicPolicy>"
+        + "<RestrictPublicBuckets>true</RestrictPublicBuckets>"
+        + "</PublicAccessBlockConfiguration>";
+
+    private static readonly IReadOnlyDictionary<string, string> _attachmentDownloadQuery =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["response-content-disposition"] = "attachment",
+        };
 
     private volatile bool _bucketVerified;
 
@@ -35,6 +54,13 @@ public sealed class RustFsStorageProvider(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
         ArgumentNullException.ThrowIfNull(content);
+
+        if (IsProhibitedSvgContentType(contentType))
+        {
+            throw new InvalidOperationException(
+                "Uploading active SVG content to S3/RustFS object storage is prohibited."
+            );
+        }
 
         var opts = optionsAccessor.Value;
         await EnsureBucketExistsAsync(opts, cancellationToken);
@@ -53,6 +79,14 @@ public sealed class RustFsStorageProvider(
         request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(
             string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType
         );
+        request.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue(
+            "attachment"
+        );
+        if (opts.EnforcePrivateBucket)
+        {
+            request.Headers.Add("x-amz-acl", "private");
+        }
+
         AwsSigV4Signer.SignRequest(
             request,
             opts.AccessKey,
@@ -170,8 +204,9 @@ public sealed class RustFsStorageProvider(
         var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
 
         var opts = optionsAccessor.Value;
+        var maxSeconds = ResolveMaxPresignedSeconds(opts);
+        var seconds = ClampPresignedSeconds(expiresIn, maxSeconds);
         var nowUtc = clock.UtcNow;
-        var seconds = Math.Clamp((int)Math.Ceiling(expiresIn.TotalSeconds), 1, 604_800);
         var url = AwsSigV4Signer.CreatePresignedUrl(
             new Uri(opts.Endpoint),
             opts.BucketName,
@@ -181,7 +216,9 @@ public sealed class RustFsStorageProvider(
             opts.SecretKey,
             opts.Region,
             nowUtc,
-            seconds
+            seconds,
+            maxSeconds,
+            _attachmentDownloadQuery
         );
         return Task.FromResult(new StoragePresignedUrl(url, nowUtc.AddSeconds(seconds), "GET"));
     }
@@ -195,11 +232,18 @@ public sealed class RustFsStorageProvider(
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
+        if (FileContentSecurityInspector.IsBlockedActiveMimeType(contentType))
+        {
+            throw new InvalidOperationException(
+                "Presigned upload URLs cannot be minted for active HTML, SVG, or script MIME types."
+            );
+        }
 
+        var scopedKey = TenantStorageKeyScope.ResolveKey(AmbientTenantContext.Instance, objectKey);
         var opts = optionsAccessor.Value;
+        var maxSeconds = ResolveMaxPresignedSeconds(opts);
+        var seconds = ClampPresignedSeconds(expiresIn, maxSeconds);
         var nowUtc = clock.UtcNow;
-        var seconds = Math.Clamp((int)Math.Ceiling(expiresIn.TotalSeconds), 1, 604_800);
         var url = AwsSigV4Signer.CreatePresignedUrl(
             new Uri(opts.Endpoint),
             opts.BucketName,
@@ -209,7 +253,8 @@ public sealed class RustFsStorageProvider(
             opts.SecretKey,
             opts.Region,
             nowUtc,
-            seconds
+            seconds,
+            maxSeconds
         );
         return Task.FromResult(new StoragePresignedUrl(url, nowUtc.AddSeconds(seconds), "PUT"));
     }
@@ -236,13 +281,32 @@ public sealed class RustFsStorageProvider(
             clock.UtcNow
         );
         using var headRes = await client.SendAsync(headReq, cancellationToken);
-        if (headRes.IsSuccessStatusCode)
+        if (!headRes.IsSuccessStatusCode)
         {
-            _bucketVerified = true;
-            return;
+            await CreatePrivateBucketAsync(client, bucketUri, opts, cancellationToken);
         }
 
+        if (opts.EnforcePrivateBucket)
+        {
+            await ApplyPublicAccessBlockBestEffortAsync(client, bucketUri, opts, cancellationToken);
+        }
+
+        _bucketVerified = true;
+    }
+
+    private async Task CreatePrivateBucketAsync(
+        HttpClient client,
+        Uri bucketUri,
+        RustFsStorageOptions opts,
+        CancellationToken cancellationToken
+    )
+    {
         using var putReq = new HttpRequestMessage(HttpMethod.Put, bucketUri);
+        if (opts.EnforcePrivateBucket)
+        {
+            putReq.Headers.Add("x-amz-acl", "private");
+        }
+
         AwsSigV4Signer.SignRequest(
             putReq,
             opts.AccessKey,
@@ -251,14 +315,52 @@ public sealed class RustFsStorageProvider(
             clock.UtcNow
         );
         using var putRes = await client.SendAsync(putReq, cancellationToken);
-        if (putRes.IsSuccessStatusCode || putRes.StatusCode == HttpStatusCode.Conflict)
-        {
-            _bucketVerified = true;
-        }
-        else
+        if (!putRes.IsSuccessStatusCode && putRes.StatusCode != HttpStatusCode.Conflict)
         {
             _ = putRes.EnsureSuccessStatusCode();
         }
+    }
+
+    private async Task ApplyPublicAccessBlockBestEffortAsync(
+        HttpClient client,
+        Uri bucketUri,
+        RustFsStorageOptions opts,
+        CancellationToken cancellationToken
+    )
+    {
+        var blockUri = new Uri($"{bucketUri}?publicAccessBlock=");
+        using var blockReq = new HttpRequestMessage(HttpMethod.Put, blockUri)
+        {
+            Content = new StringContent(PublicAccessBlockXml, Encoding.UTF8, "application/xml"),
+        };
+        AwsSigV4Signer.SignRequest(
+            blockReq,
+            opts.AccessKey,
+            opts.SecretKey,
+            opts.Region,
+            clock.UtcNow
+        );
+        using var _ = await client.SendAsync(blockReq, cancellationToken);
+    }
+
+    private static int ResolveMaxPresignedSeconds(RustFsStorageOptions opts)
+    {
+        return Math.Clamp(
+            opts.MaxPresignedUrlLifetimeSeconds,
+            60,
+            RustFsStorageOptions.DefaultMaxPresignedLifetimeSeconds
+        );
+    }
+
+    private static int ClampPresignedSeconds(TimeSpan expiresIn, int maxSeconds)
+    {
+        return Math.Clamp((int)Math.Ceiling(expiresIn.TotalSeconds), 1, maxSeconds);
+    }
+
+    private static bool IsProhibitedSvgContentType(string? contentType)
+    {
+        return !string.IsNullOrWhiteSpace(contentType)
+            && contentType.Contains("svg", StringComparison.OrdinalIgnoreCase);
     }
 
     private static Uri BuildBucketUri(RustFsStorageOptions opts)

@@ -32,6 +32,12 @@ using Ruth.Providers.RustFsStorage;
 using Ruth.SharedKernel.DependencyInjection;
 using Ruth.SharedKernel.Tenancy;
 
+if (HostContainerHealthProbe.IsHealthCheckInvocation(args))
+{
+    Environment.ExitCode = await HostContainerHealthProbe.ExecuteAsync();
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(static options => options.AddServerHeader = false);

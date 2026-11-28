@@ -3,6 +3,7 @@ using Ruth.Modules.Finance.Domain;
 using Ruth.Modules.Finance.Domain.Transactions;
 using Ruth.Modules.Finance.Infrastructure.CheckImages;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Slices.Transactions;
@@ -62,6 +63,12 @@ internal sealed class ScannedCheckImageAttacher(ICheckImageVault checkImageVault
             return FinanceErrors.CheckImageInvalid;
         }
 
+        var validation = FileContentSecurityInspector.ValidateCheckImage(raw, contentType);
+        if (!validation.IsValid)
+        {
+            return FinanceErrors.CheckImageInvalid;
+        }
+
         var imgId = FinancialTransactionImageId.Create();
         var stored = await checkImageVault.EncryptAndUploadAsync(
             tx.Id,
@@ -79,7 +86,7 @@ internal sealed class ScannedCheckImageAttacher(ICheckImageVault checkImageVault
             imgId,
             side,
             stored.Value.StorageObjectKey,
-            string.IsNullOrWhiteSpace(contentType) ? "image/png" : contentType.Trim(),
+            validation.CanonicalMimeType,
             stored.Value.ByteLength,
             stored.Value.Sha256Hex,
             stored.Value.NonceBase64,

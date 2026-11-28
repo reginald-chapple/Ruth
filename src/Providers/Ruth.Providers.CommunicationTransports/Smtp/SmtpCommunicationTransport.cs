@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Communication.Contracts.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Providers.CommunicationTransports.Smtp;
@@ -37,19 +38,25 @@ public sealed class SmtpCommunicationTransport(IOptions<SmtpTransportOptions> op
             );
         }
 
-        var now = clock.UtcNow;
-        var fromEmail = string.IsNullOrWhiteSpace(message.FromAddress)
-            ? _options.DefaultFromEmail
-            : message.FromAddress;
-        var fromName = message.FromDisplayName ?? _options.DefaultFromName;
-        var mime = SmtpMimeBuilder.BuildMimePayload(message, fromEmail, fromName, now);
+        var addresses = ResolveAndSanitizeAddresses(message);
+        if (addresses.IsFailure)
+        {
+            return Result.Failure<TransportDeliveryReceipt>(addresses.Errors);
+        }
+
+        var (cleanTo, fromEmail) = addresses.Value;
+        var safeMessage = message with { ToAddress = cleanTo };
+        var fromName = EmailHeaderSanitizer.SanitizeHeaderValue(
+            message.FromDisplayName ?? _options.DefaultFromName
+        );
+        var mime = SmtpMimeBuilder.BuildMimePayload(safeMessage, fromEmail, fromName, clock.UtcNow);
 
         try
         {
             var delivered = await SmtpProtocolSession.DeliverOverTcpAsync(
                 _options,
                 fromEmail,
-                message.ToAddress,
+                cleanTo,
                 mime,
                 message.MessageId,
                 cancellationToken
@@ -71,5 +78,26 @@ public sealed class SmtpCommunicationTransport(IOptions<SmtpTransportOptions> op
                 $"SMTP delivery failed: {ex.Message}"
             );
         }
+    }
+
+    private Result<(string CleanTo, string FromEmail)> ResolveAndSanitizeAddresses(
+        OutboundTransportMessage message
+    )
+    {
+        var rawFrom = string.IsNullOrWhiteSpace(message.FromAddress)
+            ? _options.DefaultFromEmail
+            : message.FromAddress;
+        return
+            !EmailHeaderSanitizer.TrySanitizeEmailAddress(message.ToAddress, out var cleanTo)
+            || !EmailHeaderSanitizer.TrySanitizeEmailAddress(rawFrom, out var fromEmail)
+            || (
+                !string.IsNullOrWhiteSpace(message.ReplyToAddress)
+                && !EmailHeaderSanitizer.TrySanitizeEmailAddress(message.ReplyToAddress, out _)
+            )
+            ? DomainError.Validation(
+                "Smtp.HeaderInjectionBlocked",
+                "Email address contains prohibited CR/LF or SMTP command injection characters."
+            )
+            : (cleanTo, fromEmail);
     }
 }

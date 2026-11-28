@@ -5,6 +5,7 @@ using Ruth.Modules.Communication.Domain.PersonalDevices;
 using Ruth.Modules.Communication.Domain.PhoneNumbers;
 using Ruth.Modules.Communication.Domain.SystemCommunications;
 using Ruth.Modules.Communication.Domain.Templates;
+using Ruth.Modules.Communication.Domain.Transports;
 using Ruth.Modules.Communication.Domain.TwoWaySms;
 using Ruth.Modules.Communication.Infrastructure.Configurations;
 using Ruth.Persistence.EntityFramework;
@@ -74,6 +75,10 @@ public sealed class CommunicationDbContext(DbContextOptions<CommunicationDbConte
     public DbSet<CommunicationFlowConversion> CommunicationFlowConversions =>
         Set<CommunicationFlowConversion>();
 
+    /// <summary>Gets the per-tenant encrypted communication transport credential configurations table.</summary>
+    public DbSet<CommunicationTransportConfig> CommunicationTransportConfigs =>
+        Set<CommunicationTransportConfig>();
+
     /// <inheritdoc />
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,5 +98,6 @@ public sealed class CommunicationDbContext(DbContextOptions<CommunicationDbConte
         _ = modelBuilder.ApplyConfiguration(new CommunicationFlowInstanceConfiguration());
         _ = modelBuilder.ApplyConfiguration(new CommunicationFlowInstanceRecipientConfiguration());
         _ = modelBuilder.ApplyConfiguration(new CommunicationFlowConversionConfiguration());
+        _ = modelBuilder.ApplyConfiguration(new CommunicationTransportConfigConfiguration());
     }
 }

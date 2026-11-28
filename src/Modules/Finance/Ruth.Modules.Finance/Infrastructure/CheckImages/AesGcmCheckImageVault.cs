@@ -41,11 +41,12 @@ internal sealed class AesGcmCheckImageVault(
             return FinanceErrors.CheckImageInvalid;
         }
 
+        var tenantId = RequireTenantId();
         var keyBytes = securityOptions.Value.GetCheckImageAes256KeyBytes();
         var nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
         var tag = new byte[TagSizeBytes];
         var ciphertext = new byte[plaintextBytes.Length];
-        var aad = BuildAssociatedData(transactionId, imageId, side);
+        var aad = BuildAssociatedData(tenantId, transactionId, imageId, side);
 
         using (var aes = new AesGcm(keyBytes, TagSizeBytes))
         {
@@ -105,10 +106,16 @@ internal sealed class AesGcmCheckImageVault(
 
         try
         {
+            var tenantId = RequireTenantId();
             var nonce = Convert.FromBase64String(metadata.EncryptionNonceBase64);
             var tag = Convert.FromBase64String(metadata.EncryptionTagBase64);
             var plaintext = new byte[ciphertext.Length];
-            var aad = BuildAssociatedData(metadata.TransactionId, metadata.Id, metadata.ImageSide);
+            var aad = BuildAssociatedData(
+                tenantId,
+                metadata.TransactionId,
+                metadata.Id,
+                metadata.ImageSide
+            );
 
             using var aes = new AesGcm(
                 securityOptions.Value.GetCheckImageAes256KeyBytes(),
@@ -135,13 +142,26 @@ internal sealed class AesGcmCheckImageVault(
         }
     }
 
+    private static TenantId RequireTenantId()
+    {
+        var tenantId = AmbientTenantContext.CurrentTenantId;
+        return tenantId.IsEmpty
+            ? throw new TenantContextRequiredException(
+                "Check image encryption and decryption require an active TenantId."
+            )
+            : tenantId;
+    }
+
     private static byte[] BuildAssociatedData(
+        TenantId tenantId,
         FinancialTransactionId txId,
         FinancialTransactionImageId imgId,
         CheckImageSide side
     )
     {
         var sideText = side.ToString();
-        return Encoding.UTF8.GetBytes($"{txId.Value:D}:{imgId.Value:D}:{sideText}");
+        return Encoding.UTF8.GetBytes(
+            $"tenant:{tenantId.Value:D}:{txId.Value:D}:{imgId.Value:D}:{sideText}"
+        );
     }
 }

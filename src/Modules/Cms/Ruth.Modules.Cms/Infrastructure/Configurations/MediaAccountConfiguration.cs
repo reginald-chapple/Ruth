@@ -7,6 +7,8 @@ namespace Ruth.Modules.Cms.Infrastructure.Configurations;
 
 internal sealed class MediaAccountConfiguration : IEntityTypeConfiguration<MediaAccount>
 {
+    public const string SettingsEncryptionPurpose = "cms.media-account.settings";
+
     public void Configure(EntityTypeBuilder<MediaAccount> builder)
     {
         _ = builder.ToTable("media_accounts");
@@ -15,11 +17,12 @@ internal sealed class MediaAccountConfiguration : IEntityTypeConfiguration<Media
         _ = builder.Property(static x => x.Slug).HasMaxLength(96).IsRequired();
         _ = builder.Property(static x => x.ProviderKey).HasMaxLength(64).IsRequired();
         _ = builder.Property(static x => x.AccountIdentifier).HasMaxLength(200).IsRequired();
-        JsonbAttributeConventions.ConfigureJsonbDictionary(
+        TenantEncryptedValueConverters.ConfigureEncryptedJsonbNullableMap(
             builder,
             static x => x.Settings,
             "settings",
-            createGinIndex: false
+            purpose: SettingsEncryptionPurpose,
+            encryptAllValues: false
         );
         _ = builder.Ignore(static x => x.DomainEvents);
         _ = builder.HasIndex(static x => x.Slug).IsUnique();

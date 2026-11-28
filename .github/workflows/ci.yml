@@ -6,21 +6,33 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
-    name: Build, Analyze, Format & Test
+    name: Build, Security Gates, Test & Supply Chain
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Secret Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           global-json-file: global.json
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24"
           cache: "npm"
@@ -29,6 +41,17 @@ jobs:
         run: |
           dotnet tool restore
           dotnet restore Ruth.slnx
+          npm ci
+
+      - name: Dependency Vulnerability Audit (.NET & npm)
+        run: |
+          VULN_OUTPUT="$(dotnet list Ruth.slnx package --vulnerable --include-transitive)"
+          echo "$VULN_OUTPUT"
+          if echo "$VULN_OUTPUT" | grep -qi "has the following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet package detected in Ruth.slnx"
+            exit 1
+          fi
+          npm audit --audit-level=high
 
       - name: Check CSharpier Formatting
         run: dotnet tool run csharpier check .
@@ -41,11 +64,52 @@ jobs:
           dotnet format style Ruth.slnx --verify-no-changes --no-restore
           dotnet format analyzers Ruth.slnx --verify-no-changes --no-restore
 
-      - name: Run Tests & Collect Cobertura Coverage
+      - name: Run Automated Tests & Collect Cobertura Coverage
         run: dotnet test Ruth.slnx --no-build --collect:"XPlat Code Coverage" --results-directory artifacts/coverage
 
-      - name: Frontend JS/JSON & CSS Lint Gates
+      - name: Frontend JS/JSON, CSS & Sanitized HTML Lint Gates
         run: |
-          npm ci
           npm run lint:js
           npm run lint:css
+          npm run lint:html
+
+      - name: Trivy IaC & Dockerfile Configuration Gate
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+      - name: Build Hardened Chiseled Image & Verify Non-Root Read-Only Runtime
+        run: |
+          docker build -f deploy/docker/dotnet/Dockerfile -t ruth-host:ci .
+          IMAGE_USER="$(docker image inspect ruth-host:ci --format '{{.Config.User}}')"
+          echo "Configured image user: $IMAGE_USER"
+          if [ -z "$IMAGE_USER" ] || [ "$IMAGE_USER" = "0" ] || [ "$IMAGE_USER" = "root" ]; then
+            echo "::error::Container image must execute as a non-root UID"
+            exit 1
+          fi
+          RUNTIME_UID="$(docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m --entrypoint dotnet ruth-host:ci --info >/dev/null && echo ok)"
+          test "$RUNTIME_UID" = "ok"
+
+      - name: Trivy Container Image Vulnerability Gate
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "ruth-host:ci"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Generate Reproducible CycloneDX 1.6 SBOM
+        run: npm run sbom:generate
+
+      - name: Upload CycloneDX SBOM Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ruth-cyclonedx-sbom
+          path: artifacts/sbom/ruth.cdx.json
+          if-no-files-found: error
+          retention-days: 30

@@ -81,7 +81,7 @@ public sealed class W7S6CommerceMultiTenantRlsIntegrationTests(
         ).Value;
 
         await using var pdfStream = new MemoryStream(
-            Encoding.UTF8.GetBytes("Tenant A PDF Handbook")
+            Encoding.UTF8.GetBytes("%PDF-1.7\nTenant A PDF Handbook\n%%EOF")
         );
         var uploadedFile = (
             await commands.SendAsync<UploadBinaryFileCommand, BinaryFileResponse>(

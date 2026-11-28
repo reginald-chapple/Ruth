@@ -7,6 +7,7 @@ using Ruth.Modules.Finance.Domain.PaymentMethods;
 using Ruth.Modules.Finance.Domain.ValueObjects;
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Finance.Domain.Transactions;
 
@@ -223,6 +224,14 @@ public sealed class FinancialTransaction
         DateTimeOffset uploadedOnUtc
     )
     {
+        if (FileContentSecurityInspector.HasStorageKeyTraversal(storageObjectKey))
+        {
+            throw new ArgumentException(
+                "Check image storage key contains prohibited path traversal characters.",
+                nameof(storageObjectKey)
+            );
+        }
+
         var image = new FinancialTransactionImage(
             imageId.IsEmpty ? FinancialTransactionImageId.Create() : imageId,
             Id,

@@ -258,6 +258,21 @@ public static class CommunicationSystemGuids
         0x08
     );
 
+    /// <summary>EntityType SystemGuid for CommunicationTransportConfig.</summary>
+    public static readonly Guid CommunicationTransportConfig = new(
+        0x6a9c3109,
+        0x72d1,
+        0x489a,
+        0x91,
+        0x22,
+        0x11,
+        0x4b,
+        0x88,
+        0x90,
+        0x10,
+        0x09
+    );
+
     /// <summary>Seeded bulk CommunicationTemplate: Member &amp; Community Digest.</summary>
     public static readonly Guid SeededMemberDigestTemplate = new(
         0x6a9c3401,

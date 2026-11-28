@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Ruth.Modules.Communication.Contracts.BulkCommunications;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Communication.Domain.BulkCommunications;
 
@@ -81,7 +82,12 @@ public static class EmailSectionHtmlComposer
         if (!string.IsNullOrWhiteSpace(section.BodyMarkup))
         {
             _ = sb.Append("<p style=\"margin:0;font-size:15px;line-height:1.5;\">")
-                .Append(section.BodyMarkup)
+                .Append(
+                    AllowlistHtmlSanitizer.SanitizeFragment(
+                        section.BodyMarkup,
+                        allowMergeTokensInUrls: true
+                    )
+                )
                 .Append("</p>");
         }
 
@@ -101,7 +107,12 @@ public static class EmailSectionHtmlComposer
         if (!string.IsNullOrWhiteSpace(section.BodyMarkup))
         {
             _ = sb.Append("<div style=\"font-size:15px;line-height:1.6;color:#1f2937;\">")
-                .Append(section.BodyMarkup)
+                .Append(
+                    AllowlistHtmlSanitizer.SanitizeFragment(
+                        section.BodyMarkup,
+                        allowMergeTokensInUrls: true
+                    )
+                )
                 .Append("</div>");
         }
 
@@ -154,12 +165,22 @@ public static class EmailSectionHtmlComposer
             .Append(
                 "<td width=\"50%\" valign=\"top\" style=\"padding-right:10px;font-size:14px;line-height:1.5;\">"
             )
-            .Append(section.BodyMarkup ?? string.Empty)
+            .Append(
+                AllowlistHtmlSanitizer.SanitizeFragment(
+                    section.BodyMarkup,
+                    allowMergeTokensInUrls: true
+                )
+            )
             .Append("</td>")
             .Append(
                 "<td width=\"50%\" valign=\"top\" style=\"padding-left:10px;font-size:14px;line-height:1.5;\">"
             )
-            .Append(section.SecondaryColumnMarkup ?? string.Empty)
+            .Append(
+                AllowlistHtmlSanitizer.SanitizeFragment(
+                    section.SecondaryColumnMarkup,
+                    allowMergeTokensInUrls: true
+                )
+            )
             .Append("</td></tr></table>");
     }
 
@@ -168,7 +189,12 @@ public static class EmailSectionHtmlComposer
         _ = sb.Append(
                 "<div style=\"margin:20px 0 0;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;\">"
             )
-            .Append(section.BodyMarkup ?? string.Empty)
+            .Append(
+                AllowlistHtmlSanitizer.SanitizeFragment(
+                    section.BodyMarkup,
+                    allowMergeTokensInUrls: true
+                )
+            )
             .Append("</div>");
     }
 
@@ -184,11 +210,49 @@ public static class EmailSectionHtmlComposer
 
     private static string EncodePreservingMergeTokens(string text)
     {
-        return text.Contains("{{", StringComparison.Ordinal) ? text : WebUtility.HtmlEncode(text);
+        if (!text.Contains("{{", StringComparison.Ordinal))
+        {
+            return WebUtility.HtmlEncode(text);
+        }
+
+        var sb = new StringBuilder(text.Length + 16);
+        var cursor = 0;
+        while (cursor < text.Length)
+        {
+            var open = text.IndexOf("{{", cursor, StringComparison.Ordinal);
+            if (open < 0)
+            {
+                _ = sb.Append(WebUtility.HtmlEncode(text[cursor..]));
+                break;
+            }
+
+            if (open > cursor)
+            {
+                _ = sb.Append(WebUtility.HtmlEncode(text[cursor..open]));
+            }
+
+            var close = text.IndexOf("}}", open + 2, StringComparison.Ordinal);
+            if (close < 0)
+            {
+                _ = sb.Append(WebUtility.HtmlEncode(text[open..]));
+                break;
+            }
+
+            _ = sb.Append(text.AsSpan(open, close + 2 - open));
+            cursor = close + 2;
+        }
+
+        return sb.ToString();
     }
 
     private static string EncodeAttributePreservingTokens(string url)
     {
-        return url.StartsWith("{{", StringComparison.Ordinal) ? url : WebUtility.HtmlEncode(url);
+        var trimmed = url.Trim();
+        return
+            trimmed.StartsWith("{{", StringComparison.Ordinal)
+            && trimmed.EndsWith("}}", StringComparison.Ordinal)
+            && !trimmed[2..^2].Contains("{{", StringComparison.Ordinal)
+            ? trimmed
+            : WebUtility.HtmlEncode(trimmed);
     }
 }

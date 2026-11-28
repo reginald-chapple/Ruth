@@ -1,5 +1,6 @@
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Cms.Domain.Engine;
 
@@ -78,7 +79,10 @@ public sealed class HtmlContent
                 {
                     BlockId = blockId,
                     Version = version,
-                    Content = content ?? string.Empty,
+                    Content = AllowlistHtmlSanitizer.SanitizeFragment(
+                        content,
+                        allowMergeTokensInUrls: true
+                    ),
                     EntityValue = string.IsNullOrWhiteSpace(entityValue)
                         ? null
                         : entityValue.Trim(),

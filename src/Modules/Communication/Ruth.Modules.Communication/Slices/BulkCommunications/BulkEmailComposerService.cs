@@ -7,6 +7,7 @@ using Ruth.Modules.Communication.Domain.BulkCommunications;
 using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Slices.BulkCommunications;
@@ -89,19 +90,27 @@ internal sealed class BulkEmailComposerService(
             return Result.Failure<EmailComposerPreviewResponse>(bodyFragmentResult.Errors);
         }
 
+        var sanitizedSubject = EmailHeaderSanitizer.SanitizeHeaderValue(
+            subjectResult.Value.RenderedContent
+        );
+        var sanitizedBodyFragment = AllowlistHtmlSanitizer.SanitizeFragment(
+            bodyFragmentResult.Value.RenderedContent,
+            allowMergeTokensInUrls: false
+        );
+
         var fullHtmlResult = await WrapInLayoutAsync(
             razorLayoutKey,
-            subjectResult.Value.RenderedContent,
-            preheaderText,
-            bodyFragmentResult.Value.RenderedContent,
+            sanitizedSubject,
+            EmailHeaderSanitizer.SanitizeHeaderValue(preheaderText),
+            sanitizedBodyFragment,
             cancellationToken
         );
         return fullHtmlResult.IsFailure
             ? Result.Failure<EmailComposerPreviewResponse>(fullHtmlResult.Errors)
             : new EmailComposerPreviewResponse(
-                subjectResult.Value.RenderedContent,
+                sanitizedSubject,
                 fullHtmlResult.Value,
-                StripHtml(bodyFragmentResult.Value.RenderedContent)
+                StripHtml(sanitizedBodyFragment)
             );
     }
 

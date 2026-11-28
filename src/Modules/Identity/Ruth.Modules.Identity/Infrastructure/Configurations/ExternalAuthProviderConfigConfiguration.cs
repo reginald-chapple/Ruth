@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ruth.Modules.Identity.Domain;
+using Ruth.Persistence.EntityFramework;
 
 namespace Ruth.Modules.Identity.Infrastructure.Configurations;
 
 internal sealed class ExternalAuthProviderConfigConfiguration
     : IEntityTypeConfiguration<ExternalAuthProviderConfig>
 {
+    public const string ClientSecretEncryptionPurpose = "identity.external-auth.client-secret";
+
     public void Configure(EntityTypeBuilder<ExternalAuthProviderConfig> builder)
     {
         _ = builder.ToTable("external_auth_providers");
@@ -34,7 +37,13 @@ internal sealed class ExternalAuthProviderConfigConfiguration
             .HasColumnName("client_id")
             .HasMaxLength(200)
             .IsRequired();
-        _ = builder.Property(x => x.ClientSecret).HasColumnName("client_secret").HasMaxLength(512);
+        _ = TenantEncryptedValueConverters.ConfigureEncryptedSecretColumn(
+            builder,
+            static x => x.ClientSecret,
+            columnName: "client_secret",
+            purpose: ClientSecretEncryptionPurpose,
+            maxLength: 2048
+        );
         _ = builder.Property(x => x.Scopes).HasColumnName("scopes").HasMaxLength(300).IsRequired();
         _ = builder.Property(x => x.IsEnabled).HasColumnName("is_enabled").IsRequired();
         _ = builder

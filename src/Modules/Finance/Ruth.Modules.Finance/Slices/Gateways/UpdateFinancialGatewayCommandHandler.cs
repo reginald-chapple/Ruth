@@ -6,6 +6,7 @@ using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.Gateways;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Finance.Slices.Gateways;
 
@@ -35,7 +36,17 @@ internal sealed class UpdateFinancialGatewayCommandHandler(
             return FinanceErrors.GatewayNotFound;
         }
 
-        var updated = gateway.Update(command.Spec);
+        var mergedSpec = command.Spec.Settings is null
+            ? command.Spec
+            : command.Spec with
+            {
+                Settings = SensitiveSettingRedactor.MergePreservingRedactedSecrets(
+                    command.Spec.Settings,
+                    gateway.Settings
+                ),
+            };
+
+        var updated = gateway.Update(mergedSpec);
         if (updated.IsFailure)
         {
             return Result.Failure<FinancialGatewayResponse>(updated.Errors);

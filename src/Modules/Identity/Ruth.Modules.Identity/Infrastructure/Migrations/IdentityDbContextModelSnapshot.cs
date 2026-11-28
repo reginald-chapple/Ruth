@@ -382,8 +382,8 @@ namespace Ruth.Modules.Identity.Infrastructure.Migrations
                         .HasColumnName("client_id");
 
                     b.Property<string>("ClientSecret")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
                         .HasColumnName("client_secret");
 
                     b.Property<Guid>("ConcurrencyStamp")

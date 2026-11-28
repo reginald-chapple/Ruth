@@ -39,6 +39,21 @@ internal static class CoreDocumentErrors
         "File name is required and cannot use a blocked file extension."
     );
 
+    public static readonly DomainError BinaryFilePathTraversalDetected = DomainError.Validation(
+        "Core.BinaryFilePathTraversalDetected",
+        "File name contains prohibited path traversal or separator characters."
+    );
+
+    public static readonly DomainError BinaryFileActiveContentBlocked = DomainError.Validation(
+        "Core.BinaryFileActiveContentBlocked",
+        "SVG, HTML, script, executable, and polyglot active-content uploads are prohibited."
+    );
+
+    public static readonly DomainError BinaryFileMimeMagicMismatch = DomainError.Validation(
+        "Core.BinaryFileMimeMagicMismatch",
+        "Uploaded binary magic bytes do not match the declared file extension or MIME type."
+    );
+
     public static readonly DomainError BinaryFileExtensionNotAllowed = DomainError.Validation(
         "Core.BinaryFileExtensionNotAllowed",
         "File extension is not allowed by this binary file type."

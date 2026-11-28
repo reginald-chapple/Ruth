@@ -9,6 +9,7 @@ using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Infrastructure.Transports;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Communication.Slices.SystemCommunications;
@@ -30,6 +31,16 @@ internal sealed class SendSystemCommunicationCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+        if (
+            !string.IsNullOrWhiteSpace(command.RecipientEmail)
+            && !EmailHeaderSanitizer.TrySanitizeEmailAddress(command.RecipientEmail, out _)
+        )
+        {
+            return DomainError.Validation(
+                "Communication.EmailHeaderInjection",
+                "Recipient email address contains prohibited CR/LF or header-injection characters."
+            );
+        }
 
         var templateResult = await LoadActiveTemplateAsync(
             command.SystemCommunicationKey,

@@ -69,7 +69,9 @@ internal static class CommerceTestSeedHelper
         );
         Assert.True(fileType.IsSuccess);
 
-        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Digital Guide PDF Data"));
+        await using var stream = new MemoryStream(
+            Encoding.UTF8.GetBytes("%PDF-1.7\nDigital Guide PDF Data\n%%EOF")
+        );
         var file = await commands.SendAsync<UploadBinaryFileCommand, BinaryFileResponse>(
             new UploadBinaryFileCommand(
                 fileType.Value.Id,

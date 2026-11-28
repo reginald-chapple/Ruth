@@ -160,12 +160,32 @@ internal sealed class SafeMergeTemplateEngine(ITemplateSnippetStore snippetStore
             state.Culture,
             outputMode
         );
+        var scrubbed = ScrubUnsafeControlCharacters(formatted.Text);
         var finalText =
             outputMode == TemplateOutputMode.Html && !formatted.AlreadyHtmlEncoded
-                ? HtmlTextEncoder.Encode(formatted.Text)
-                : formatted.Text;
+                ? HtmlTextEncoder.Encode(scrubbed)
+                : scrubbed;
 
         return AppendBounded(state, finalText);
+    }
+
+    private static string ScrubUnsafeControlCharacters(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder(input.Length);
+        foreach (var ch in input)
+        {
+            if (ch is '\r' or '\n' or '\t' || !char.IsControl(ch))
+            {
+                _ = sb.Append(ch);
+            }
+        }
+
+        return sb.ToString();
     }
 
     private Task<Result> EvaluateIfAsync(

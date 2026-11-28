@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Ruth.Host.Configuration;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Host.DependencyInjection;
 
@@ -19,6 +20,37 @@ internal static class HostConfigurationExtensions
             .ValidateOnStart();
 
         _ = services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
+
+        _ = services
+            .AddOptions<TenantEnvelopeEncryptionOptions>()
+            .BindConfiguration(TenantEnvelopeEncryptionOptions.SectionName)
+            .PostConfigure<IConfiguration>(
+                static (options, configuration) =>
+                {
+                    var explicitKek = configuration[
+                        $"{TenantEnvelopeEncryptionOptions.SectionName}:MasterKey"
+                    ];
+                    if (string.IsNullOrWhiteSpace(explicitKek))
+                    {
+                        var jwtKey = JwtOptions.ResolveSigningKey(configuration);
+                        if (!string.IsNullOrWhiteSpace(jwtKey))
+                        {
+                            options.MasterKey = $"ruth-derived-kek:{jwtKey.Trim()}";
+                        }
+                    }
+
+                    TenantCredentialEncryptionContext.ConfigureDefault(
+                        new AesGcmTenantCredentialProtector(options)
+                    );
+                }
+            )
+            .ValidateOnStart();
+
+        _ = services.AddSingleton<ITenantCredentialProtector>(
+            static sp => new AesGcmTenantCredentialProtector(
+                sp.GetRequiredService<IOptions<TenantEnvelopeEncryptionOptions>>().Value
+            )
+        );
 
         return services;
     }

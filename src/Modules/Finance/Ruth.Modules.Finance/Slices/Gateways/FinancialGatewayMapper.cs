@@ -1,6 +1,7 @@
 using Ruth.Modules.Finance.Contracts.Gateways;
 using Ruth.Modules.Finance.Domain.Gateways;
 using Ruth.Modules.Finance.Infrastructure.Gateways;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Finance.Slices.Gateways;
 
@@ -24,7 +25,7 @@ internal static class FinancialGatewayMapper
             gateway.IsActive,
             gateway.BatchTimeOffsetHours,
             gateway.PublicTokenizerKey,
-            new Dictionary<string, string>(gateway.Settings, StringComparer.OrdinalIgnoreCase),
+            SensitiveSettingRedactor.RedactDictionary(gateway.Settings),
             gateway.CreatedOnUtc
         );
     }

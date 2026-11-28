@@ -37,9 +37,7 @@ internal static class AwsSigV4Signer
 
         var canonicalUri = EncodeCanonicalPath(request.RequestUri.AbsolutePath);
         var canonicalQuery = BuildCanonicalQueryString(request.RequestUri.Query);
-        var canonicalHeaders =
-            $"host:{hostHeader}\nx-amz-content-sha256:{payloadHashHex}\nx-amz-date:{amzDate}\n";
-        const string signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+        var (canonicalHeaders, signedHeaders) = BuildCanonicalAndSignedHeaders(request, hostHeader);
 
         var canonicalRequest = string.Join(
             '\n',
@@ -76,10 +74,13 @@ internal static class AwsSigV4Signer
         string secretKey,
         string region,
         DateTimeOffset utcNow,
-        int expiresInSeconds
+        int expiresInSeconds,
+        int maxAllowedSeconds = RustFsStorageOptions.DefaultMaxPresignedLifetimeSeconds,
+        IReadOnlyDictionary<string, string>? extraQueryParameters = null
     )
     {
-        var boundedExpires = Math.Clamp(expiresInSeconds, 1, 604_800);
+        var boundedMax = Math.Clamp(maxAllowedSeconds, 60, 3_600);
+        var boundedExpires = Math.Clamp(expiresInSeconds, 1, boundedMax);
         var amzDate = utcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
         var dateStamp = utcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         var credentialScope = $"{dateStamp}/{region}/{Service}/aws4_request";
@@ -95,6 +96,17 @@ internal static class AwsSigV4Signer
             ["X-Amz-Expires"] = boundedExpires.ToString(CultureInfo.InvariantCulture),
             ["X-Amz-SignedHeaders"] = "host",
         };
+
+        if (extraQueryParameters is not null)
+        {
+            foreach (var kv in extraQueryParameters)
+            {
+                if (!string.IsNullOrWhiteSpace(kv.Key))
+                {
+                    queryPairs[kv.Key] = kv.Value;
+                }
+            }
+        }
 
         var canonicalQuery = string.Join(
             '&',
@@ -125,6 +137,34 @@ internal static class AwsSigV4Signer
         return new Uri(
             $"{baseAuthority}{canonicalUri}?{canonicalQuery}&X-Amz-Signature={signature}"
         );
+    }
+
+    private static (string CanonicalHeaders, string SignedHeaders) BuildCanonicalAndSignedHeaders(
+        HttpRequestMessage request,
+        string hostHeader
+    )
+    {
+        var headers = new SortedDictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["host"] = hostHeader,
+        };
+
+        foreach (var header in request.Headers)
+        {
+            var lower = header.Key.ToLowerInvariant();
+            if (lower.StartsWith("x-amz-", StringComparison.Ordinal))
+            {
+                headers[lower] = string.Join(',', header.Value.Select(static v => v.Trim()));
+            }
+        }
+
+        var canonicalSb = new StringBuilder(128);
+        foreach (var kv in headers)
+        {
+            _ = canonicalSb.Append(kv.Key).Append(':').Append(kv.Value).Append('\n');
+        }
+
+        return (canonicalSb.ToString(), string.Join(';', headers.Keys));
     }
 
     private static string FormatHostHeader(Uri uri)

@@ -5,6 +5,7 @@ using Ruth.Modules.Communication.Domain.PersonalDevices;
 using Ruth.Modules.Communication.Domain.PhoneNumbers;
 using Ruth.Modules.Communication.Domain.SystemCommunications;
 using Ruth.Modules.Communication.Domain.Templates;
+using Ruth.Modules.Communication.Domain.Transports;
 using Ruth.Modules.Communication.Domain.TwoWaySms;
 using Ruth.SharedKernel.Metadata;
 
@@ -99,6 +100,16 @@ internal static class CommunicationEntityTypeCatalog
             CommunicationFlow.EntityTypeKeyName,
             nameof(CommunicationFlow),
             "Communication Drip Flow",
+            "Communication",
+            IsEntity: true,
+            IsSecured: true,
+            SupportsAttributes: false
+        ),
+        new(
+            CommunicationSystemGuids.CommunicationTransportConfig,
+            CommunicationTransportConfig.EntityTypeKeyName,
+            nameof(CommunicationTransportConfig),
+            "Communication Transport Configuration",
             "Communication",
             IsEntity: true,
             IsSecured: true,

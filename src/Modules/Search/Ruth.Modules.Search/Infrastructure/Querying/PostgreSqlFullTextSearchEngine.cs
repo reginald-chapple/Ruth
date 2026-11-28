@@ -221,7 +221,7 @@ internal sealed class PostgreSqlFullTextSearchEngine(
                     row.Title,
                     row.Subtitle,
                     SearchSnippetSanitizer.SanitizeHighlightedSnippet(row.RawHeadline),
-                    row.UrlPath,
+                    SearchSnippetSanitizer.SanitizeUrlPath(row.UrlPath),
                     Math.Round(row.Score, 4, MidpointRounding.AwayFromZero),
                     row.IsPublic,
                     PostgreSqlFullTextSqlBuilder.SplitTags(row.TagsText),

@@ -54,6 +54,16 @@ internal static class CommunicationW3S5SliceRegistration
             GetCommunicationTransportsQueryHandler
         >();
         _ = services.AddQueryHandler<
+            GetCommunicationTransportConfigsQuery,
+            IReadOnlyList<CommunicationTransportConfigResponse>,
+            GetCommunicationTransportConfigsQueryHandler
+        >();
+        _ = services.AddCommandHandler<
+            UpsertCommunicationTransportConfigCommand,
+            CommunicationTransportConfigResponse,
+            UpsertCommunicationTransportConfigCommandHandler
+        >();
+        _ = services.AddQueryHandler<
             GetInMemorySentMessagesQuery,
             IReadOnlyList<InMemoryCapturedMessageResponse>,
             GetInMemorySentMessagesQueryHandler

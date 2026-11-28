@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Communication.Contracts.Transports;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Providers.CommunicationTransports.SendGrid;
@@ -46,7 +47,13 @@ public sealed class SendGridCommunicationTransport(
             );
         }
 
-        using var request = BuildHttpRequest(message);
+        var sanitized = SanitizeOutboundMessage(message);
+        if (sanitized.IsFailure)
+        {
+            return Result.Failure<TransportDeliveryReceipt>(sanitized.Errors);
+        }
+
+        using var request = BuildHttpRequest(sanitized.Value);
         var client = httpClientFactory.CreateClient(HttpClientName);
         using var response = await client.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -71,6 +78,36 @@ public sealed class SendGridCommunicationTransport(
             clock.UtcNow,
             IsSimulated: false
         );
+    }
+
+    private Result<OutboundTransportMessage> SanitizeOutboundMessage(
+        OutboundTransportMessage message
+    )
+    {
+        var rawFrom = string.IsNullOrWhiteSpace(message.FromAddress)
+            ? _options.DefaultFromEmail
+            : message.FromAddress;
+        return
+            !EmailHeaderSanitizer.TrySanitizeEmailAddress(message.ToAddress, out var cleanTo)
+            || !EmailHeaderSanitizer.TrySanitizeEmailAddress(rawFrom, out var cleanFrom)
+            || (
+                !string.IsNullOrWhiteSpace(message.ReplyToAddress)
+                && !EmailHeaderSanitizer.TrySanitizeEmailAddress(message.ReplyToAddress, out _)
+            )
+            ? DomainError.Validation(
+                "SendGrid.HeaderInjectionBlocked",
+                "Email address contains prohibited CR/LF or header-injection characters."
+            )
+            : message with
+            {
+                ToAddress = cleanTo,
+                FromAddress = cleanFrom,
+                Subject = EmailHeaderSanitizer.SanitizeHeaderValue(message.Subject),
+                ToDisplayName = EmailHeaderSanitizer.SanitizeHeaderValue(message.ToDisplayName),
+                FromDisplayName = EmailHeaderSanitizer.SanitizeHeaderValue(
+                    message.FromDisplayName ?? _options.DefaultFromName
+                ),
+            };
     }
 
     private HttpRequestMessage BuildHttpRequest(OutboundTransportMessage message)

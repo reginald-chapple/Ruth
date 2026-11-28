@@ -5,6 +5,9 @@ namespace Ruth.Providers.RustFsStorage;
 /// <summary>Configuration options for the RustFS S3-compatible IStorageProvider.</summary>
 public sealed class RustFsStorageOptions
 {
+    /// <summary>Hard ceiling on presigned URL validity (15 minutes = 900 seconds).</summary>
+    public const int DefaultMaxPresignedLifetimeSeconds = 900;
+
     /// <summary>Primary configuration section path.</summary>
     public const string SectionName = "Storage:RustFs";
 
@@ -25,6 +28,13 @@ public sealed class RustFsStorageOptions
     /// <summary>Gets or sets the AWS SigV4 region identifier.</summary>
     public string Region { get; set; } = "us-east-1";
 
-    /// <summary>Gets or sets whether the provider automatically creates the configured bucket if missing.</summary>
+    /// <summary>Gets or sets whether the provider automatically creates the configured private bucket if missing.</summary>
     public bool AutoCreateBucket { get; set; } = true;
+
+    /// <summary>Gets or sets whether private ACLs and S3 Block Public Access are enforced on buckets and objects.</summary>
+    public bool EnforcePrivateBucket { get; set; } = true;
+
+    /// <summary>Gets or sets the maximum allowed presigned URL lifetime in seconds (capped at 900 seconds by default).</summary>
+    [Range(60, 3600)]
+    public int MaxPresignedUrlLifetimeSeconds { get; set; } = DefaultMaxPresignedLifetimeSeconds;
 }

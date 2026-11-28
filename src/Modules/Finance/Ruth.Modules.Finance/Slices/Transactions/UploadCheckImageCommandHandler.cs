@@ -6,6 +6,7 @@ using Ruth.Modules.Finance.Infrastructure;
 using Ruth.Modules.Finance.Infrastructure.CheckImages;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Slices.Transactions;
@@ -23,21 +24,13 @@ internal sealed class UploadCheckImageCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (string.IsNullOrWhiteSpace(command.ImageBase64))
+        var decoded = DecodeAndValidateCheckImage(command.ImageBase64, command.ContentType);
+        if (decoded.IsFailure)
         {
-            return FinanceErrors.CheckImageInvalid;
+            return Result.Failure<FinancialTransactionImageResponse>(decoded.Errors);
         }
 
-        byte[] rawBytes;
-        try
-        {
-            rawBytes = Convert.FromBase64String(command.ImageBase64.Trim());
-        }
-        catch (FormatException)
-        {
-            return FinanceErrors.CheckImageInvalid;
-        }
-
+        var (rawBytes, canonicalMime) = decoded.Value;
         var txId = FinancialTransactionId.From(command.TransactionId);
         var tx = await dbContext
             .FinancialTransactions.Include(static t => t.Images)
@@ -60,14 +53,11 @@ internal sealed class UploadCheckImageCommandHandler(
             return Result.Failure<FinancialTransactionImageResponse>(encrypted.Errors);
         }
 
-        var contentType = string.IsNullOrWhiteSpace(command.ContentType)
-            ? "image/png"
-            : command.ContentType.Trim();
         var attached = tx.AttachEncryptedImage(
             imageId,
             command.ImageSide,
             encrypted.Value.StorageObjectKey,
-            contentType,
+            canonicalMime,
             encrypted.Value.ByteLength,
             encrypted.Value.Sha256Hex,
             encrypted.Value.NonceBase64,
@@ -78,5 +68,31 @@ internal sealed class UploadCheckImageCommandHandler(
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
         return FinancialTransactionMapper.ToImageResponse(attached);
+    }
+
+    private static Result<(byte[] RawBytes, string CanonicalMime)> DecodeAndValidateCheckImage(
+        string? imageBase64,
+        string? contentType
+    )
+    {
+        if (string.IsNullOrWhiteSpace(imageBase64))
+        {
+            return FinanceErrors.CheckImageInvalid;
+        }
+
+        byte[] rawBytes;
+        try
+        {
+            rawBytes = Convert.FromBase64String(imageBase64.Trim());
+        }
+        catch (FormatException)
+        {
+            return FinanceErrors.CheckImageInvalid;
+        }
+
+        var validation = FileContentSecurityInspector.ValidateCheckImage(rawBytes, contentType);
+        return validation.IsValid
+            ? (rawBytes, validation.CanonicalMimeType)
+            : FinanceErrors.CheckImageInvalid;
     }
 }

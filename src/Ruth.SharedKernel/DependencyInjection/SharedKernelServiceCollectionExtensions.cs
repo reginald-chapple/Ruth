@@ -29,6 +29,7 @@ public static class SharedKernelServiceCollectionExtensions
         ));
         services.TryAddSingleton<ITenantContext>(AmbientTenantContext.Instance);
         services.TryAddSingleton<ICanonicalTenantUrlProvider, NullCanonicalTenantUrlProvider>();
+        services.TryAddSingleton(static _ => TenantCredentialEncryptionContext.Current);
         services.TryAddSingleton<WebhookReplayDeduplicator>();
         services.TryAddScoped<ICommandDispatcher, CommandDispatcher>();
         services.TryAddScoped<IQueryDispatcher, QueryDispatcher>();
