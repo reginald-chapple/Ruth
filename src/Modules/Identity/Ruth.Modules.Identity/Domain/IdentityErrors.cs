@@ -179,6 +179,26 @@ internal static class IdentityErrors
         "External identity provider configuration is invalid."
     );
 
+    public static readonly DomainError ExternalProviderSsrfBlocked = DomainError.Validation(
+        "Identity.ExternalProviderSsrfBlocked",
+        "External identity provider authority or OIDC endpoint targets a blocked internal or non-public network address."
+    );
+
+    public static readonly DomainError InvalidReturnUrl = DomainError.Validation(
+        "Identity.InvalidReturnUrl",
+        "ReturnUrl must be a local relative path and cannot redirect to an external origin."
+    );
+
+    public static readonly DomainError RedirectUriMismatch = DomainError.Unauthorized(
+        "Identity.RedirectUriMismatch",
+        "The supplied OIDC redirect URI does not exactly match the registered callback URI."
+    );
+
+    public static readonly DomainError ForbiddenAccess = DomainError.Forbidden(
+        "Identity.ForbiddenAccess",
+        "You are not authorized to access resources owned by another user account."
+    );
+
     public static readonly DomainError RemoteAuthSessionInvalid = DomainError.Unauthorized(
         "Identity.RemoteAuthSessionInvalid",
         "The remote authentication session is invalid, expired, or already completed."

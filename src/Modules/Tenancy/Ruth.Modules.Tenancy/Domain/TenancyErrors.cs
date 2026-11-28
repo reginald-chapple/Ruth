@@ -108,4 +108,24 @@ internal static class TenancyErrors
         "Tenancy.InvalidLifecycleTransition",
         "The requested lifecycle transition is not permitted from the organization's current compliance stage."
     );
+
+    public static readonly DomainError StripeConnectWebhookUnauthorized = DomainError.Unauthorized(
+        "Tenancy.StripeConnectWebhookSignatureInvalid",
+        "Stripe Connect webhook signature is missing, invalid, or outside the allowed replay timestamp window."
+    );
+
+    public static readonly DomainError StripeConnectWebhookReplayed = DomainError.Unauthorized(
+        "Tenancy.StripeConnectWebhookReplayed",
+        "This Stripe Connect webhook event has already been processed inside the active replay window."
+    );
+
+    public static readonly DomainError StripeConnectWebhookMalformed = DomainError.Validation(
+        "Tenancy.StripeConnectWebhookMalformed",
+        "Stripe Connect webhook JSON payload is malformed or missing required account capabilities."
+    );
+
+    public static readonly DomainError StripeConnectAccountNotFound = DomainError.NotFound(
+        "Tenancy.StripeConnectAccountNotFound",
+        "The referenced Stripe Connect Express account was not found."
+    );
 }

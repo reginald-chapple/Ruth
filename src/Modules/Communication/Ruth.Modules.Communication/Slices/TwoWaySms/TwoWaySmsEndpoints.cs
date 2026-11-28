@@ -1,24 +1,16 @@
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Options;
 using Ruth.Modules.Communication.Contracts.TwoWaySms;
 using Ruth.Modules.Communication.Domain.BulkCommunications;
-using Ruth.Modules.Communication.Infrastructure;
 using Ruth.Modules.Communication.Slices.BulkCommunications;
 using Ruth.SharedKernel.Messaging;
-using DomainResult = Ruth.SharedKernel.Results.Result;
 
 namespace Ruth.Modules.Communication.Slices.TwoWaySms;
 
 internal static class TwoWaySmsEndpoints
 {
-    private static readonly JsonSerializerOptions _jsonOptions = CreateJsonOptions();
-
     public static IEndpointRouteBuilder MapTwoWaySmsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         _ = endpoints.MapSmsPipelineEndpoints();
@@ -159,55 +151,28 @@ internal static class TwoWaySmsEndpoints
         Results<Ok<InboundSmsProcessResponse>, ProblemHttpResult>
     > IngestInboundSmsAsync(
         HttpContext httpContext,
-        IOptions<CommunicationBulkOptions> bulkOptions,
+        CommunicationInboundWebhookGuard webhookGuard,
         ICommandDispatcher dispatcher,
         CancellationToken cancellationToken
     )
     {
-        using var reader = new StreamReader(httpContext.Request.Body, Encoding.UTF8);
-        var rawBody = await reader.ReadToEndAsync(cancellationToken);
-        var signature = httpContext
-            .Request.Headers[CommunicationWebhookSignatureVerifier.HeaderName]
-            .FirstOrDefault();
-
-        if (
-            !CommunicationWebhookSignatureVerifier.VerifyIfConfigured(
-                rawBody,
-                signature,
-                bulkOptions.Value.WebhookSigningSecret
-            )
-        )
+        var verified = await webhookGuard.ReadAndVerifyAsync<ProcessInboundSmsWebhookCommand>(
+            httpContext,
+            "comms-sms",
+            BulkCommunicationErrors.SmsMessageBodyInvalid,
+            cancellationToken
+        );
+        if (verified.IsFailure)
         {
-            return CommunicationProblemResultMapper.ToProblemResult(
-                DomainResult.Failure(BulkCommunicationErrors.WebhookSignatureInvalid),
-                httpContext
-            );
-        }
-
-        var command = string.IsNullOrWhiteSpace(rawBody)
-            ? null
-            : JsonSerializer.Deserialize<ProcessInboundSmsWebhookCommand>(rawBody, _jsonOptions);
-        if (command is null)
-        {
-            return CommunicationProblemResultMapper.ToProblemResult(
-                DomainResult.Failure(BulkCommunicationErrors.SmsMessageBodyInvalid),
-                httpContext
-            );
+            return CommunicationProblemResultMapper.ToProblemResult(verified, httpContext);
         }
 
         var result = await dispatcher.SendAsync<
             ProcessInboundSmsWebhookCommand,
             InboundSmsProcessResponse
-        >(command, cancellationToken);
+        >(verified.Value, cancellationToken);
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);
-    }
-
-    private static JsonSerializerOptions CreateJsonOptions()
-    {
-        var opts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        opts.Converters.Add(new JsonStringEnumConverter());
-        return opts;
     }
 }

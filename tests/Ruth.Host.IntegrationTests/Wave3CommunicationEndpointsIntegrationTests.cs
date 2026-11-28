@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Ruth.Host.IntegrationTests.Fixtures;
+using Ruth.SharedKernel.Security;
 using Xunit;
 
 namespace Ruth.Host.IntegrationTests;
@@ -219,8 +221,7 @@ public sealed class Wave3CommunicationEndpointsIntegrationTests(HostContainersFi
         using var dispatchResp = await client.SendAsync(dispatchReq);
         Assert.Equal(HttpStatusCode.OK, dispatchResp.StatusCode);
 
-        using var webhookResp = await client.PostAsJsonAsync(
-            new Uri("/api/communication/webhooks/events", UriKind.Relative),
+        var eventsBody = JsonSerializer.Serialize(
             new
             {
                 events = new[]
@@ -229,10 +230,25 @@ public sealed class Wave3CommunicationEndpointsIntegrationTests(HostContainersFi
                 },
             }
         );
+        using var eventsWebhookReq = new HttpRequestMessage(
+            HttpMethod.Post,
+            new Uri("/api/communication/webhooks/events", UriKind.Relative)
+        )
+        {
+            Content = new StringContent(eventsBody, Encoding.UTF8, "application/json"),
+        };
+        eventsWebhookReq.Headers.Add(
+            "X-Ruth-Webhook-Signature",
+            WebhookHmacReplayVerifier.CreateTimestampedSignatureHeader(
+                eventsBody,
+                "ruth-dev-comms-webhook-hmac-secret-change-in-production",
+                DateTimeOffset.UtcNow
+            )
+        );
+        using var webhookResp = await client.SendAsync(eventsWebhookReq);
         Assert.Equal(HttpStatusCode.OK, webhookResp.StatusCode);
 
-        using var smsWebhookResp = await client.PostAsJsonAsync(
-            new Uri("/api/communication/sms/webhook", UriKind.Relative),
+        var smsBody = JsonSerializer.Serialize(
             new
             {
                 fromPhoneNumber = "+15557771234",
@@ -240,6 +256,22 @@ public sealed class Wave3CommunicationEndpointsIntegrationTests(HostContainersFi
                 messageBody = "HOURS",
             }
         );
+        using var smsWebhookReq = new HttpRequestMessage(
+            HttpMethod.Post,
+            new Uri("/api/communication/sms/webhook", UriKind.Relative)
+        )
+        {
+            Content = new StringContent(smsBody, Encoding.UTF8, "application/json"),
+        };
+        smsWebhookReq.Headers.Add(
+            "X-Ruth-Webhook-Signature",
+            WebhookHmacReplayVerifier.CreateTimestampedSignatureHeader(
+                smsBody,
+                "ruth-dev-comms-webhook-hmac-secret-change-in-production",
+                DateTimeOffset.UtcNow
+            )
+        );
+        using var smsWebhookResp = await client.SendAsync(smsWebhookReq);
         Assert.Equal(HttpStatusCode.OK, smsWebhookResp.StatusCode);
     }
 

@@ -28,6 +28,8 @@ internal sealed class TenantSignalRHubFilter : IHubFilter
             );
         }
 
+        EnsureSameOriginWebSocketRequest(context.Context.GetHttpContext());
+
         var hostKind = handshakeState.IsPlatformOperatorHost
             ? ResolvedHostKind.PlatformOperator
             : ResolvedHostKind.TenantWorkspace;
@@ -103,6 +105,40 @@ internal sealed class TenantSignalRHubFilter : IHubFilter
             {
                 AmbientTenantContext.SetCurrent(prior);
             }
+        }
+    }
+
+    private static void EnsureSameOriginWebSocketRequest(HttpContext? httpContext)
+    {
+        if (
+            httpContext is null
+            || !httpContext.Request.Headers.TryGetValue("Origin", out var originValues)
+        )
+        {
+            return;
+        }
+
+        var rawOrigin = originValues.ToString().Trim();
+        if (string.IsNullOrEmpty(rawOrigin))
+        {
+            return;
+        }
+
+        if (
+            !Uri.TryCreate(rawOrigin, UriKind.Absolute, out var originUri)
+            || !string.Equals(
+                originUri.Host,
+                httpContext.Request.Host.Host,
+                StringComparison.OrdinalIgnoreCase
+            )
+            || (
+                httpContext.Request.Host.Port.HasValue
+                && !originUri.IsDefaultPort
+                && originUri.Port != httpContext.Request.Host.Port.Value
+            )
+        )
+        {
+            throw new HubException("Cross-origin SignalR/WebSocket connections are forbidden.");
         }
     }
 }

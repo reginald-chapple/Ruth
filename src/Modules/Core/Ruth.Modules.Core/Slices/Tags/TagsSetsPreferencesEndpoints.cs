@@ -7,6 +7,7 @@ using Ruth.Modules.Core.Contracts.EntitySets;
 using Ruth.Modules.Core.Contracts.Preferences;
 using Ruth.Modules.Core.Contracts.Tags;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Results;
 
 namespace Ruth.Modules.Core.Slices.Tags;
 
@@ -301,6 +302,11 @@ internal static class TagsSetsPreferencesEndpoints
         CancellationToken cancellationToken
     )
     {
+        if (!CanAccessPreferenceOwner(httpContext, ownerKey))
+        {
+            return ForbiddenPreferenceResult(httpContext);
+        }
+
         var result = await dispatcher.QueryAsync<
             GetPersonPreferencesQuery,
             IReadOnlyList<PersonPreferenceResponse>
@@ -322,6 +328,11 @@ internal static class TagsSetsPreferencesEndpoints
         CancellationToken cancellationToken
     )
     {
+        if (!CanAccessPreferenceOwner(httpContext, command.OwnerKey))
+        {
+            return ForbiddenPreferenceResult(httpContext);
+        }
+
         var result = await dispatcher.SendAsync<
             SetPersonPreferenceCommand,
             PersonPreferenceResponse
@@ -339,6 +350,11 @@ internal static class TagsSetsPreferencesEndpoints
         CancellationToken cancellationToken
     )
     {
+        if (!CanAccessPreferenceOwner(httpContext, ownerKey))
+        {
+            return ForbiddenPreferenceResult(httpContext);
+        }
+
         var result = await dispatcher.SendAsync<DeletePersonPreferenceCommand, bool>(
             new DeletePersonPreferenceCommand(ownerKey, key),
             cancellationToken
@@ -346,6 +362,30 @@ internal static class TagsSetsPreferencesEndpoints
         return result.IsSuccess
             ? TypedResults.NoContent()
             : CoreProblemResultMapper.ToProblemResult(result, httpContext);
+    }
+
+    private static bool CanAccessPreferenceOwner(HttpContext context, Guid ownerKey)
+    {
+        if (context.User.IsInRole("Administrators") || context.User.IsInRole("Staff Workers"))
+        {
+            return true;
+        }
+
+        var callerId = TryResolveUserId(context);
+        return callerId.HasValue && callerId.Value == ownerKey;
+    }
+
+    private static ProblemHttpResult ForbiddenPreferenceResult(HttpContext httpContext)
+    {
+        return CoreProblemResultMapper.ToProblemResult(
+            Result.Failure(
+                DomainError.Forbidden(
+                    "Core.PreferenceOwnerForbidden",
+                    "You may only access or modify your own user preferences."
+                )
+            ),
+            httpContext
+        );
     }
 
     private static Guid? TryResolveUserId(HttpContext context)

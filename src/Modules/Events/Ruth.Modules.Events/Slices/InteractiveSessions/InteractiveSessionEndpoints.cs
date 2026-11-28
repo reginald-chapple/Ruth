@@ -283,10 +283,17 @@ internal static class InteractiveSessionEndpoints
         CancellationToken cancellationToken
     )
     {
+        var sanitizedBody =
+            httpContext.User.Identity?.IsAuthenticated == true
+                ? body
+                : body with
+                {
+                    ResponderPersonId = null,
+                };
         var res = await dispatcher.SendAsync<
             SubmitInteractiveResponseCommand,
             InteractiveStageProjectionResponse
-        >(body with { SessionIdOrJoinCode = codeOrId }, cancellationToken);
+        >(sanitizedBody with { SessionIdOrJoinCode = codeOrId }, cancellationToken);
         return res.IsSuccess
             ? TypedResults.Created($"/api/events/interactive-sessions/live/{codeOrId}", res.Value)
             : EventsProblemResultMapper.ToProblemResult(res, httpContext);

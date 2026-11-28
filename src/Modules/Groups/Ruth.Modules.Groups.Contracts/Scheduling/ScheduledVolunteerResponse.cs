@@ -22,5 +22,6 @@ public sealed record ScheduledVolunteerResponse(
     bool ScheduleReminderSent,
     bool HasBlackoutConflict,
     bool HasDoubleBookingConflict,
-    bool MeetsRequirements
+    bool MeetsRequirements,
+    string? CanonicalRsvpUrl = null
 );

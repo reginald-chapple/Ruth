@@ -17,6 +17,7 @@ using Ruth.Modules.Workflow.Slices.Instances;
 using Ruth.Modules.Workflow.Slices.Triggers;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Workflow.Slices;
 
@@ -24,9 +25,14 @@ internal static class W5S5WorkflowEngineRegistration
 {
     public static void Register(IServiceCollection services)
     {
-        _ = services.AddHttpClient(WebhookPostWorkflowAction.HttpClientName, static client =>
-            client.Timeout = TimeSpan.FromSeconds(15)
-        );
+        _ = services
+            .AddHttpClient(WebhookPostWorkflowAction.HttpClientName, static client =>
+                client.Timeout = TimeSpan.FromSeconds(15)
+            )
+            .ConfigurePrimaryHttpMessageHandler(static () =>
+                SafeOutboundHttpHandler.CreateSocketsHandler()
+            )
+            .AddHttpMessageHandler(static () => SafeOutboundHttpHandler.CreatePipelineHandler());
 
         services.TryAddScoped<WorkflowExecutionEngine>();
         RegisterCoreActionPlugins(services);

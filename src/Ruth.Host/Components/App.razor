@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+@inject IHttpContextAccessor HttpContextAccessor
 
 <head>
     <meta charset="utf-8" />
@@ -9,17 +10,34 @@
     <link rel="stylesheet" href="@AssetUrl("_content/Microsoft.FluentUI.AspNetCore.Components/css/default-fuib.css")" />
     <link rel="stylesheet" href="@AssetUrl("Ruth.Host.styles.css")" />
     <link rel="stylesheet" href="@AssetUrl("app.css")" />
-    <ImportMap />
+    <ImportMap nonce="@CspNonce" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
     <Routes @rendermode="InteractiveServer" />
-    <script src="@AssetUrl("_framework/blazor.web.js")"></script>
+    <script src="@AssetUrl("_framework/blazor.web.js")" nonce="@CspNonce"></script>
 </body>
 
 </html>
 
 @code {
+    [CascadingParameter]
+    private HttpContext? CascadingHttpContext { get; set; }
+
+    private string? CspNonce
+    {
+        get
+        {
+            var ctx = CascadingHttpContext ?? HttpContextAccessor.HttpContext;
+            return ctx?.Items.TryGetValue(
+                Ruth.Host.Middleware.StealthResponseHeadersMiddleware.CspNonceItemKey,
+                out var raw
+            ) == true
+                ? raw as string
+                : null;
+        }
+    }
+
     private string AssetUrl(string path) => $"/{Assets[path].TrimStart('/')}";
 }

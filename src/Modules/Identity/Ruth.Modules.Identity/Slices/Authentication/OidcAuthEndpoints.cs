@@ -6,6 +6,7 @@ using Ruth.Modules.Identity.Contracts.Authentication;
 using Ruth.Modules.Identity.Infrastructure.Security;
 using Ruth.Modules.Identity.Slices.Onboarding;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
 
@@ -38,6 +39,7 @@ internal static class OidcAuthEndpoints
             .WithSummary("Start a PKCE-protected external OIDC sign-in session")
             .Produces<StartOidcLoginResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group
@@ -47,6 +49,7 @@ internal static class OidcAuthEndpoints
             .Produces<AuthTokensResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         return endpoints;
@@ -136,7 +139,8 @@ internal static class OidcAuthEndpoints
                 request.State,
                 request.Code,
                 httpContext.Connection.RemoteIpAddress?.ToString(),
-                httpContext.Request.Headers.UserAgent.ToString()
+                httpContext.Request.Headers.UserAgent.ToString(),
+                request.RedirectUri
             ),
             cancellationToken
         );

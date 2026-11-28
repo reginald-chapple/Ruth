@@ -7,6 +7,7 @@
   3. Module assemblies never reference another module's internal assembly (only `*.Contracts` and `Ruth.SharedKernel`).
   4. Non-abstract `*Handler`, `*Request`, and `*Response` classes are `sealed`.
   5. Every entity mapped in a tenant-scoped `ModuleDbContext` implements `ITenantScoped`, while control-plane entities remain isolated in `Ruth.Modules.Tenancy` (`platform` schema).
+  6. Every mapped HTTP and SignalR endpoint across all 16 modules explicitly declares `IAuthorizeData` or is an audited intentional `[AllowAnonymous]` route (`EndpointAuthorizationArchitectureTests`).
 - Whenever a new `Ruth.Modules.<Context>` project is created, add a `<ProjectReference>` here so its assembly is loaded and verified automatically.
 
 ## Applicable Skills

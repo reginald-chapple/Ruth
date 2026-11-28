@@ -1,16 +1,11 @@
-using System.Net;
-using System.Net.Http.Json;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Ruth.Modules.Finance.Contracts.Gateways;
 using Ruth.Modules.Finance.Contracts.Pledges;
 using Ruth.Modules.Finance.Domain.Gateways;
 using Ruth.Modules.Finance.Domain.PaymentMethods;
-using Ruth.Providers.PaymentGateways.Nmi;
-using Ruth.Providers.PaymentGateways.Stripe;
-using Ruth.SharedKernel.Time;
 using Xunit;
 
 namespace Ruth.Modules.Finance.Tests;
@@ -131,7 +126,7 @@ public sealed class W4S2GatewayPaymentMethodAndBankHashDomainTests
     public async Task NmiAndStripeProviders_VaultChargeRefundSyncAndVerifyHmacWebhooks()
     {
         var personId = Guid.CreateVersion7();
-        var nmiProvider = CreateNmiProvider();
+        var nmiProvider = GatewayProviderTestHttpFactory.CreateNmiProvider();
         var nmiVault = await nmiProvider.VaultPaymentMethodAsync(
             new GatewayVaultRequest(
                 personId,
@@ -199,16 +194,21 @@ public sealed class W4S2GatewayPaymentMethodAndBankHashDomainTests
                 },
             }
         );
-        var nmiSig = ComputeHmacHex("nmi-secret", $"999.{nmiBody}");
-        Assert.True(nmiProvider.ParseAndVerifyWebhook(nmiBody, $"t=999,s={nmiSig}").IsSuccess);
-        Assert.True(nmiProvider.ParseAndVerifyWebhook(nmiBody, "t=999,s=deadbeef").IsFailure);
+        var nmiTs = DateTimeOffset
+            .UtcNow.ToUnixTimeSeconds()
+            .ToString(CultureInfo.InvariantCulture);
+        var nmiSig = ComputeHmacHex("nmi-secret", $"{nmiTs}.{nmiBody}");
+        Assert.True(nmiProvider.ParseAndVerifyWebhook(nmiBody, $"t={nmiTs},s={nmiSig}").IsSuccess);
+        Assert.True(nmiProvider.ParseAndVerifyWebhook(nmiBody, $"t={nmiTs},s=deadbeef").IsFailure);
+        var staleNmiSig = ComputeHmacHex("nmi-secret", $"999.{nmiBody}");
+        Assert.True(nmiProvider.ParseAndVerifyWebhook(nmiBody, $"t=999,s={staleNmiSig}").IsFailure);
 
         await VerifyStripeAdapterAsync(personId);
     }
 
     private static async Task VerifyStripeAdapterAsync(Guid personId)
     {
-        var stripeProvider = CreateStripeProvider();
+        var stripeProvider = GatewayProviderTestHttpFactory.CreateStripeProvider();
         var stripeVault = await stripeProvider.VaultPaymentMethodAsync(
             new GatewayVaultRequest(
                 personId,
@@ -264,61 +264,24 @@ public sealed class W4S2GatewayPaymentMethodAndBankHashDomainTests
                 },
             }
         );
-        var stripeSig = ComputeHmacHex("whsec_test", $"1700000000.{stripeBody}");
+        var stripeTs = DateTimeOffset
+            .UtcNow.ToUnixTimeSeconds()
+            .ToString(CultureInfo.InvariantCulture);
+        var stripeSig = ComputeHmacHex("whsec_test", $"{stripeTs}.{stripeBody}");
         Assert.True(
             stripeProvider
-                .ParseAndVerifyWebhook(stripeBody, $"t=1700000000,v1={stripeSig}")
+                .ParseAndVerifyWebhook(stripeBody, $"t={stripeTs},v1={stripeSig}")
                 .IsSuccess
         );
         Assert.True(
-            stripeProvider.ParseAndVerifyWebhook(stripeBody, "t=1700000000,v1=0000").IsFailure
+            stripeProvider.ParseAndVerifyWebhook(stripeBody, $"t={stripeTs},v1=0000").IsFailure
         );
-    }
-
-    private static NmiGatewayProvider CreateNmiProvider()
-    {
-        var factory = new StubHttpClientFactory(static _ => new HttpResponseMessage(
-            HttpStatusCode.OK
-        )
-        {
-            Content = new StringContent(
-                "response=1&responsetext=SUCCESS&customer_vault_id=nvault_1&transactionid=ntx_1&authcode=A1&subscription_id=nsub_1"
-            ),
-        });
-        var opts = Options.Create(
-            new NmiGatewayOptions
-            {
-                SecurityKey = "nmi-key",
-                WebhookSigningKey = "nmi-secret",
-                EndpointUrl = "https://nmi.ruth.test/api/transact.php",
-            }
+        var staleStripeSig = ComputeHmacHex("whsec_test", $"1700000000.{stripeBody}");
+        Assert.True(
+            stripeProvider
+                .ParseAndVerifyWebhook(stripeBody, $"t=1700000000,v1={staleStripeSig}")
+                .IsFailure
         );
-        return new NmiGatewayProvider(factory, opts, new SystemClock());
-    }
-
-    private static StripePaymentGatewayProvider CreateStripeProvider()
-    {
-        var factory = new StubHttpClientFactory(static req =>
-        {
-            var path = req.RequestUri?.AbsolutePath ?? string.Empty;
-            object payload =
-                path.Contains("customers", StringComparison.Ordinal) ? new { id = "cus_123" }
-                : path.Contains("refunds", StringComparison.Ordinal) ? new { id = "re_123" }
-                : new { id = "pi_123", status = "succeeded" };
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(payload),
-            };
-        });
-        var opts = Options.Create(
-            new StripeGatewayOptions
-            {
-                SecretKey = "sk_test_123",
-                WebhookSigningSecret = "whsec_test",
-                BaseUrl = "https://stripe.ruth.test",
-            }
-        );
-        return new StripePaymentGatewayProvider(factory, opts, new SystemClock());
     }
 
     private static string ComputeHmacHex(string key, string payload)
@@ -326,27 +289,5 @@ public sealed class W4S2GatewayPaymentMethodAndBankHashDomainTests
         return Convert.ToHexStringLower(
             HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(payload))
         );
-    }
-
-    private sealed class StubHttpClientFactory(
-        Func<HttpRequestMessage, HttpResponseMessage> responder
-    ) : IHttpClientFactory
-    {
-        public HttpClient CreateClient(string name)
-        {
-            return new HttpClient(new StubHandler(responder), disposeHandler: true);
-        }
-    }
-
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
-        : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken
-        )
-        {
-            return Task.FromResult(responder(request));
-        }
     }
 }

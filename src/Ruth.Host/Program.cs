@@ -5,7 +5,6 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Ruth.Host.Components;
 using Ruth.Host.Components.Cms;
 using Ruth.Host.DependencyInjection;
-using Ruth.Host.Endpoints;
 using Ruth.Host.Health;
 using Ruth.Host.Middleware;
 using Ruth.Host.Observability;
@@ -80,6 +79,7 @@ builder.Services.Configure<RouteHandlerOptions>(static options => options.ThrowO
 builder.Services.AddOpenApi();
 
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddRuthForwardedHeaders();
 builder.Services.AddRuthRateLimiting();
 builder.Services.AddOutputCache();
 builder.Services.AddAntiforgery(static options =>
@@ -103,29 +103,9 @@ var app = builder.Build();
 
 app.UseMiddleware<StealthResponseHeadersMiddleware>();
 app.UseExceptionHandler();
-
-app.UseWhen(
-    static context =>
-        HttpMethods.IsGet(context.Request.Method)
-        && !context.Items.ContainsKey(TenantResolutionMiddleware.StealthPlainNotFoundItemKey)
-        && !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
-        && !context.Request.Path.StartsWithSegments("/hubs", StringComparison.OrdinalIgnoreCase)
-        && !context.Request.Path.StartsWithSegments("/openapi", StringComparison.OrdinalIgnoreCase)
-        && !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
-    static branch =>
-        _ = branch.UseStatusCodePagesWithReExecute(
-            "/not-found",
-            createScopeForStatusCodePages: true
-        )
-);
-
-app.UseWhen(
-    static context =>
-        context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
-        && !context.Items.ContainsKey(TenantResolutionMiddleware.StealthPlainNotFoundItemKey),
-    static branch =>
-        _ = branch.UseStatusCodePages(ProblemDetailsResponseWriter.WriteApiStatusCodeProblemAsync)
-);
+app.UseMiddleware<ProxyAndHostGuardMiddleware>();
+app.UseForwardedHeaders();
+app.UseRuthStatusCodeBranches();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -145,27 +125,14 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
-if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("OpenApi:Enabled"))
+if (
+    !app.Environment.IsProduction()
+    && (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("OpenApi:Enabled"))
+)
 {
     _ = app.MapOpenApi().AllowAnonymous();
 }
 
-app.MapHealthEndpoints();
-app.MapTenancyModuleEndpoints();
-app.MapIdentityModuleEndpoints();
-app.MapCoreModuleEndpoints();
-app.MapCrmModuleEndpoints();
-app.MapGroupsModuleEndpoints();
-app.MapCheckInModuleEndpoints();
-app.MapCommunicationModuleEndpoints();
-app.MapFinanceModuleEndpoints();
-app.MapEventsModuleEndpoints();
-app.MapCommerceModuleEndpoints();
-app.MapEngagementModuleEndpoints();
-app.MapWorkflowModuleEndpoints();
-app.MapCmsModuleEndpoints();
-app.MapReportingModuleEndpoints();
-app.MapLmsModuleEndpoints();
-app.MapSearchModuleEndpoints();
+app.MapRuthAllEndpoints();
 
 await app.RunAsync();

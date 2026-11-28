@@ -186,11 +186,12 @@ public sealed class StripePaymentGatewayProvider(
         return !StripeWebhookSignatureVerifier.Verify(
             rawBody,
             signatureHeader,
-            options.Value.WebhookSigningSecret
+            options.Value.WebhookSigningSecret,
+            clock.UtcNow
         )
             ? DomainError.Unauthorized(
                 "Finance.Stripe.WebhookSignatureInvalid",
-                "Stripe-Signature HMAC-SHA256 verification failed."
+                "Stripe-Signature HMAC-SHA256 or replay timestamp verification failed."
             )
             : ParseStripeEvent(rawBody, clock.UtcNow);
     }

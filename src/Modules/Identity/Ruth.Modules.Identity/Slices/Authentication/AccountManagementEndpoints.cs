@@ -7,6 +7,7 @@ using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure.Security;
 using Ruth.Modules.Identity.Slices.Onboarding;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
 
@@ -41,6 +42,7 @@ internal static class AccountManagementEndpoints
             .WithName("AuthRequestPasswordReset")
             .WithSummary("Request a single-use password reset token")
             .Produces(StatusCodes.Status202Accepted)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group
@@ -49,6 +51,7 @@ internal static class AccountManagementEndpoints
             .WithSummary("Confirm a password reset using a single-use token")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group
@@ -57,6 +60,7 @@ internal static class AccountManagementEndpoints
             .WithSummary("Confirm a user account using a single-use confirmation token")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
     }
 
@@ -168,6 +172,14 @@ internal static class AccountManagementEndpoints
     {
         var callerId = httpContext.User.GetUserAccountId();
         var isAdmin = httpContext.User.IsInRole(SecurityRole.AdministratorsRoleName);
+        if (!isAdmin && userAccountId.HasValue && userAccountId.Value != callerId)
+        {
+            return OnboardingProblemResultMapper.ToProblemResult(
+                SharedKernel.Results.Result.Failure(IdentityErrors.ForbiddenAccess),
+                httpContext
+            );
+        }
+
         var effectiveUserId = isAdmin ? userAccountId : callerId;
 
         var result = await dispatcher.QueryAsync<

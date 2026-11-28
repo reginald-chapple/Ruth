@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Ruth.Modules.Crm.Contracts.BackgroundChecks;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Crm.Infrastructure.BackgroundChecks;
 
@@ -75,10 +76,19 @@ public sealed class InMemoryBackgroundCheckProvider : IBackgroundCheckProvider
             return false;
         }
 
-        var expected = ComputeSignature(rawPayload);
-        var left = Encoding.UTF8.GetBytes(expected);
-        var right = Encoding.UTF8.GetBytes(signatureHeader.Trim().ToLowerInvariant());
-        return left.Length == right.Length && CryptographicOperations.FixedTimeEquals(left, right);
+        var trimmed = signatureHeader.Trim();
+        return trimmed.StartsWith("t=", StringComparison.Ordinal)
+            ? WebhookHmacReplayVerifier.VerifyTimestampedHeader(
+                rawPayload,
+                trimmed,
+                DefaultWebhookSecret,
+                TimeProvider.System.GetUtcNow()
+            )
+            : WebhookHmacReplayVerifier.VerifyRawHmacHexConstantTime(
+                rawPayload,
+                trimmed,
+                DefaultWebhookSecret
+            );
     }
 
     /// <inheritdoc />

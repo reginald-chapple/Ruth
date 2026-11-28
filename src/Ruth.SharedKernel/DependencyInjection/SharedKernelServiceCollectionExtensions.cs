@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Ruth.SharedKernel.Events;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
@@ -27,6 +28,8 @@ public static class SharedKernelServiceCollectionExtensions
             localTimeZone
         ));
         services.TryAddSingleton<ITenantContext>(AmbientTenantContext.Instance);
+        services.TryAddSingleton<ICanonicalTenantUrlProvider, NullCanonicalTenantUrlProvider>();
+        services.TryAddSingleton<WebhookReplayDeduplicator>();
         services.TryAddScoped<ICommandDispatcher, CommandDispatcher>();
         services.TryAddScoped<IQueryDispatcher, QueryDispatcher>();
         services.TryAddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

@@ -1,16 +1,17 @@
-using System.Text.Json;
 using Ruth.Modules.Cms.Contracts.Media;
 
 namespace Ruth.Modules.Cms.Infrastructure.Media;
 
-internal sealed class VimeoMediaSyncProvider : IMediaAccountSyncProvider
+internal sealed class VimeoMediaSyncProvider(CmsMediaSyncRemoteFetcher? remoteFetcher = null)
+    : IMediaAccountSyncProvider
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly CmsMediaSyncRemoteFetcher _remoteFetcher = remoteFetcher
+        ?? new CmsMediaSyncRemoteFetcher();
 
     public string ProviderKey => "vimeo";
     public string DisplayName => "Vimeo Media Sync";
 
-    public Task<IReadOnlyList<SyncedMediaFolderSpec>> FetchFoldersAsync(
+    public async Task<IReadOnlyList<SyncedMediaFolderSpec>> FetchFoldersAsync(
         string accountIdentifier,
         IReadOnlyDictionary<string, string?> settings,
         CancellationToken cancellationToken = default
@@ -18,19 +19,13 @@ internal sealed class VimeoMediaSyncProvider : IMediaAccountSyncProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (
-            settings.TryGetValue("ManifestJson", out var manifestJson)
-            && !string.IsNullOrWhiteSpace(manifestJson)
-        )
+        var resolved = await _remoteFetcher.TryResolveConfiguredFoldersAsync(
+            settings,
+            cancellationToken
+        );
+        if (resolved is not null)
         {
-            var parsed = JsonSerializer.Deserialize<List<SyncedMediaFolderSpec>>(
-                manifestJson,
-                _jsonOptions
-            );
-            if (parsed is not null)
-            {
-                return Task.FromResult<IReadOnlyList<SyncedMediaFolderSpec>>(parsed);
-            }
+            return resolved;
         }
 
         var id = accountIdentifier.Trim();
@@ -62,6 +57,7 @@ internal sealed class VimeoMediaSyncProvider : IMediaAccountSyncProvider
             ),
         ];
 
-        return Task.FromResult<IReadOnlyList<SyncedMediaFolderSpec>>(fallback);
+        CmsMediaSyncRemoteFetcher.ValidateSyncedFolders(fallback);
+        return fallback;
     }
 }

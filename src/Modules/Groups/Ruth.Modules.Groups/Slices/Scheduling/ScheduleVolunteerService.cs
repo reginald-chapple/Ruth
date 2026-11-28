@@ -10,6 +10,7 @@ using Ruth.Modules.Groups.Domain.Scheduling;
 using Ruth.Modules.Groups.Infrastructure;
 using Ruth.Modules.Groups.Slices.Requirements;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Groups.Slices.Scheduling;
@@ -17,7 +18,8 @@ namespace Ruth.Modules.Groups.Slices.Scheduling;
 internal sealed class ScheduleVolunteerService(
     GroupsDbContext dbContext,
     GroupRequirementEvaluatorService requirementEvaluator,
-    IClock clock
+    IClock clock,
+    ICanonicalTenantUrlProvider? canonicalUrlProvider = null
 )
 {
     public async Task<Result<ScheduledVolunteerResponse>> ScheduleAsync(
@@ -65,20 +67,66 @@ internal sealed class ScheduleVolunteerService(
         );
         _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-        var locationName = group
-            .Locations.FirstOrDefault(l => l.LocationId == command.LocationId)
-            ?.LocationName;
         return Result.Success(
-            ToScheduledResponse(
-                attendance,
+            await ProjectScheduledAsync(
+                group,
                 occurrence,
-                group.Name,
-                locationName,
-                conflicts.HasBlackout,
-                conflicts.HasDoubleBooking,
-                conflicts.MeetsRequirements
+                attendance,
+                command.LocationId,
+                conflicts,
+                cancellationToken
             )
         );
+    }
+
+    private async Task<ScheduledVolunteerResponse> ProjectScheduledAsync(
+        Group group,
+        AttendanceOccurrence occurrence,
+        Attendance attendance,
+        Guid? locationId,
+        ConflictSummary conflicts,
+        CancellationToken cancellationToken
+    )
+    {
+        var locationName = group
+            .Locations.FirstOrDefault(l => l.LocationId == locationId)
+            ?.LocationName;
+        var canonicalRsvpUrl = await BuildCanonicalRsvpUrlAsync(
+            canonicalUrlProvider,
+            attendance.RsvpToken,
+            cancellationToken
+        );
+        return ToScheduledResponse(
+            attendance,
+            occurrence,
+            group.Name,
+            locationName,
+            conflicts.HasBlackout,
+            conflicts.HasDoubleBooking,
+            conflicts.MeetsRequirements,
+            canonicalRsvpUrl
+        );
+    }
+
+    public static async ValueTask<string?> BuildCanonicalRsvpUrlAsync(
+        ICanonicalTenantUrlProvider? canonicalUrlProvider,
+        string? rsvpToken,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrWhiteSpace(rsvpToken))
+        {
+            return null;
+        }
+
+        var rsvpPath = $"/api/groups/scheduling/rsvp/{Uri.EscapeDataString(rsvpToken.Trim())}";
+        return canonicalUrlProvider is not null
+            ? await canonicalUrlProvider.BuildTenantUrlAsync(
+                AmbientTenantContext.CurrentTenantId,
+                rsvpPath,
+                cancellationToken
+            )
+            : rsvpPath;
     }
 
     public static ScheduledVolunteerResponse ToScheduledResponse(
@@ -88,7 +136,8 @@ internal sealed class ScheduleVolunteerService(
         string? locationName,
         bool hasBlackout,
         bool hasDoubleBooking,
-        bool meetsRequirements
+        bool meetsRequirements,
+        string? canonicalRsvpUrl = null
     )
     {
         return new ScheduledVolunteerResponse(
@@ -112,7 +161,8 @@ internal sealed class ScheduleVolunteerService(
             attendance.ScheduleReminderSent ?? false,
             hasBlackout,
             hasDoubleBooking,
-            meetsRequirements
+            meetsRequirements,
+            canonicalRsvpUrl
         );
     }
 

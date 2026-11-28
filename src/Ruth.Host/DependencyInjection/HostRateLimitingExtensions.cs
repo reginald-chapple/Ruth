@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Ruth.Host.Configuration;
-using Ruth.Host.Middleware;
+using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Host.DependencyInjection;
 
@@ -23,20 +23,84 @@ internal static class HostRateLimitingExtensions
         _ = services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
-                CreatePartition
+            options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+                PartitionedRateLimiter.Create<HttpContext, string>(CreatePerIpPartition),
+                PartitionedRateLimiter.Create<HttpContext, string>(CreatePerTenantPartition)
             );
-            options.OnRejected = HandleRejectedAsync;
+            _ = options.AddPolicy(RateLimitPolicyNames.AuthStrict, CreateAuthStrictPartition);
+            _ = options.AddPolicy(RateLimitPolicyNames.KioskStrict, CreateKioskStrictPartition);
+            options.OnRejected = RateLimitRejectionWriter.WriteRejectedAsync;
         });
 
         return services;
     }
 
-    private static RateLimitPartition<string> CreatePartition(HttpContext httpContext)
+    private static RateLimitPartition<string> CreatePerIpPartition(HttpContext httpContext)
+    {
+        if (IsExemptRequest(httpContext, out var exemptKey))
+        {
+            return RateLimitPartition.GetNoLimiter(exemptKey);
+        }
+
+        var options = GetOptions(httpContext);
+        var permitLimit = Math.Clamp(options.PermitLimit, 1, 100_000);
+        var windowSeconds = Math.Clamp(options.WindowSeconds, 1, 3600);
+        var remoteIp = ResolveClientIpKey(httpContext);
+        var partitionKey = string.Create(
+            CultureInfo.InvariantCulture,
+            $"ip|{remoteIp}|{permitLimit}|{windowSeconds}"
+        );
+        return CreateFixedWindow(partitionKey, permitLimit, windowSeconds);
+    }
+
+    private static RateLimitPartition<string> CreatePerTenantPartition(HttpContext httpContext)
+    {
+        if (IsExemptRequest(httpContext, out var exemptKey))
+        {
+            return RateLimitPartition.GetNoLimiter(exemptKey);
+        }
+
+        var options = GetOptions(httpContext);
+        var permitLimit = Math.Clamp(options.TenantPermitLimit, 1, 500_000);
+        var windowSeconds = Math.Clamp(options.TenantWindowSeconds, 1, 3600);
+        var tenantKey = ResolveTenantOrHostKey(httpContext);
+        var partitionKey = string.Create(
+            CultureInfo.InvariantCulture,
+            $"tenant|{tenantKey}|{permitLimit}|{windowSeconds}"
+        );
+        return CreateFixedWindow(partitionKey, permitLimit, windowSeconds);
+    }
+
+    private static RateLimitPartition<string> CreateAuthStrictPartition(HttpContext httpContext)
+    {
+        var options = GetOptions(httpContext);
+        var permitLimit = Math.Clamp(options.AuthPermitLimit, 1, 10_000);
+        var windowSeconds = Math.Clamp(options.AuthWindowSeconds, 1, 3600);
+        var key = string.Create(
+            CultureInfo.InvariantCulture,
+            $"auth|{ResolveTenantOrHostKey(httpContext)}|{ResolveClientIpKey(httpContext)}|{permitLimit}|{windowSeconds}"
+        );
+        return CreateFixedWindow(key, permitLimit, windowSeconds);
+    }
+
+    private static RateLimitPartition<string> CreateKioskStrictPartition(HttpContext httpContext)
+    {
+        var options = GetOptions(httpContext);
+        var permitLimit = Math.Clamp(options.KioskPermitLimit, 1, 10_000);
+        var windowSeconds = Math.Clamp(options.KioskWindowSeconds, 1, 3600);
+        var key = string.Create(
+            CultureInfo.InvariantCulture,
+            $"kiosk|{ResolveTenantOrHostKey(httpContext)}|{ResolveClientIpKey(httpContext)}|{permitLimit}|{windowSeconds}"
+        );
+        return CreateFixedWindow(key, permitLimit, windowSeconds);
+    }
+
+    private static bool IsExemptRequest(HttpContext httpContext, out string exemptKey)
     {
         if (httpContext.Features.Get<IStatusCodeReExecuteFeature>() is not null)
         {
-            return RateLimitPartition.GetNoLimiter("reexecute");
+            exemptKey = "reexecute";
+            return true;
         }
 
         if (
@@ -46,20 +110,20 @@ internal static class HostRateLimitingExtensions
             )
         )
         {
-            return RateLimitPartition.GetNoLimiter("health");
+            exemptKey = "health";
+            return true;
         }
 
-        var options = httpContext
-            .RequestServices.GetRequiredService<IOptionsMonitor<RateLimitingOptions>>()
-            .CurrentValue;
-        var permitLimit = Math.Clamp(options.PermitLimit, 1, 100_000);
-        var windowSeconds = Math.Clamp(options.WindowSeconds, 1, 3600);
+        exemptKey = string.Empty;
+        return false;
+    }
 
-        var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "loopback";
-        var partitionKey = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{remoteIp}|{permitLimit}|{windowSeconds}"
-        );
+    private static RateLimitPartition<string> CreateFixedWindow(
+        string partitionKey,
+        int permitLimit,
+        int windowSeconds
+    )
+    {
         return RateLimitPartition.GetFixedWindowLimiter(
             partitionKey,
             _ => new FixedWindowRateLimiterOptions
@@ -73,46 +137,27 @@ internal static class HostRateLimitingExtensions
         );
     }
 
-    private static async ValueTask HandleRejectedAsync(
-        Microsoft.AspNetCore.RateLimiting.OnRejectedContext context,
-        CancellationToken cancellationToken
-    )
+    private static RateLimitingOptions GetOptions(HttpContext httpContext)
     {
-        var httpContext = context.HttpContext;
-        if (httpContext.Response.HasStarted)
+        return httpContext
+            .RequestServices.GetRequiredService<IOptionsMonitor<RateLimitingOptions>>()
+            .CurrentValue;
+    }
+
+    private static string ResolveClientIpKey(HttpContext httpContext)
+    {
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "loopback";
+    }
+
+    private static string ResolveTenantOrHostKey(HttpContext httpContext)
+    {
+        var currentTenant = AmbientTenantContext.CurrentTenantId;
+        if (!currentTenant.IsEmpty)
         {
-            return;
+            return currentTenant.Value.ToString("N");
         }
 
-        var logger = httpContext
-            .RequestServices.GetRequiredService<ILoggerFactory>()
-            .CreateLogger(typeof(HostRateLimitingExtensions).FullName!);
-        var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "loopback";
-
-        HostLog.RateLimitExceeded(
-            logger,
-            httpContext.Request.Method,
-            httpContext.Request.Path,
-            remoteIp
-        );
-
-        var problemDetailsService =
-            httpContext.RequestServices.GetService<IProblemDetailsService>();
-
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status429TooManyRequests,
-            Title = "Too Many Requests",
-            Detail = "Rate limit exceeded. Please retry later.",
-            Type = "https://tools.ietf.org/html/rfc6585#section-4",
-            Instance = httpContext.Request.Path,
-        };
-
-        await ProblemDetailsResponseWriter.WriteAsync(
-            httpContext,
-            problemDetailsService,
-            problemDetails,
-            cancellationToken: cancellationToken
-        );
+        var host = httpContext.Request.Host.Host;
+        return string.IsNullOrWhiteSpace(host) ? "default" : host.Trim().ToLowerInvariant();
     }
 }

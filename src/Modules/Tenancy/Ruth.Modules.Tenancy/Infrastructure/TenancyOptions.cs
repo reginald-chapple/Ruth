@@ -15,6 +15,17 @@ public sealed class TenancyOptions
     /// <summary>Gets or sets whether Stripe Connect runs in deterministic zero-config mock mode.</summary>
     public bool StripeMockMode { get; set; } = true;
 
+    /// <summary>Default local development HMAC-SHA256 signing secret for Stripe Connect webhooks.</summary>
+    public const string DefaultDevelopmentStripeConnectWebhookSecret =
+        "whsec_dev_stripe_connect_signing_secret_change_in_prod";
+
+    /// <summary>Gets or sets the HMAC-SHA256 signing secret required on inbound Stripe Connect webhooks.</summary>
+    public string StripeConnectWebhookSecret { get; set; } =
+        DefaultDevelopmentStripeConnectWebhookSecret;
+
+    /// <summary>Gets or sets the maximum allowed timestamp skew in seconds on inbound Stripe Connect webhooks.</summary>
+    public int WebhookReplayToleranceSeconds { get; set; } = 300;
+
     /// <summary>Gets or sets whether custom domain DNS TXT verification runs in deterministic mock mode.</summary>
     public bool DnsMockMode { get; set; } = true;
 

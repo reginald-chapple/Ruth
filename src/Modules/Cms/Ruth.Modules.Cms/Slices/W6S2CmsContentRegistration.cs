@@ -12,6 +12,7 @@ using Ruth.Modules.Cms.Slices.Datasets;
 using Ruth.Modules.Cms.Slices.Media;
 using Ruth.Persistence.DependencyInjection;
 using Ruth.SharedKernel.DependencyInjection;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Cms.Slices;
 
@@ -19,6 +20,16 @@ internal static class W6S2CmsContentRegistration
 {
     public static void Register(IServiceCollection services)
     {
+        _ = services
+            .AddHttpClient(CmsMediaSyncRemoteFetcher.HttpClientName, static client =>
+                client.Timeout = TimeSpan.FromSeconds(15)
+            )
+            .ConfigurePrimaryHttpMessageHandler(static () =>
+                SafeOutboundHttpHandler.CreateSocketsHandler()
+            )
+            .AddHttpMessageHandler(static () => SafeOutboundHttpHandler.CreatePipelineHandler());
+        services.TryAddSingleton<CmsMediaSyncRemoteFetcher>();
+
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IMediaAccountSyncProvider, InMemoryMediaSyncProvider>()
         );

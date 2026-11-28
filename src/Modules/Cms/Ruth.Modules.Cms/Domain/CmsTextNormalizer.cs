@@ -112,7 +112,7 @@ public static class CmsTextNormalizer
         return trimmed.Trim('/');
     }
 
-    /// <summary>Validates that a URL is either relative (/...) or http/https.</summary>
+    /// <summary>Validates that a URL is either root-relative (/...) or http/https without backslash or userinfo bypasses.</summary>
     public static bool IsSafeHttpOrRelativeUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -121,11 +121,23 @@ public static class CmsTextNormalizer
         }
 
         var trimmed = url.Trim();
+        foreach (var ch in trimmed)
+        {
+            if (char.IsControl(ch) || ch is '\\' or '@')
+            {
+                return false;
+            }
+        }
+
         var isRootRelative =
-            trimmed.StartsWith('/') && !trimmed.StartsWith("//", StringComparison.Ordinal);
+            trimmed.StartsWith('/')
+            && !trimmed.StartsWith("//", StringComparison.Ordinal)
+            && !trimmed.StartsWith("/%2f", StringComparison.OrdinalIgnoreCase)
+            && !trimmed.StartsWith("/%5c", StringComparison.OrdinalIgnoreCase);
         return isRootRelative
             || (
                 Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+                && string.IsNullOrEmpty(uri.UserInfo)
                 && (
                     string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(

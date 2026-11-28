@@ -28,9 +28,11 @@ internal sealed class CreateRestApiKeyCommandHandler(
             return IdentityErrors.UserAccountNotFound;
         }
 
-        var plaintextKey = $"ruth_{tokenService.GenerateOpaqueToken(32)}";
-        var prefix = plaintextKey[..12];
-        var hash = tokenService.ComputeSha256Hash(plaintextKey);
+        var prefixEntropy = tokenService.GenerateOpaqueToken(16)[..11];
+        var secretEntropy = tokenService.GenerateOpaqueToken(32);
+        var plaintextKey = $"ruth_{prefixEntropy}_{secretEntropy}";
+        var prefix = plaintextKey[..16];
+        var hash = tokenService.HashApiKeyWithSalt(plaintextKey);
 
         var created = RestApiKey.Create(
             command.Name,

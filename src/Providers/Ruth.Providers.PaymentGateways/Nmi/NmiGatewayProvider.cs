@@ -189,11 +189,12 @@ public sealed class NmiGatewayProvider(
         return !NmiWebhookSignatureVerifier.Verify(
             rawBody,
             signatureHeader,
-            options.Value.WebhookSigningKey
+            options.Value.WebhookSigningKey,
+            clock.UtcNow
         )
             ? DomainError.Unauthorized(
                 "Finance.Nmi.WebhookSignatureInvalid",
-                "NMI Webhook-Signature HMAC verification failed."
+                "NMI Webhook-Signature HMAC or replay timestamp verification failed."
             )
             : ParseWebhookJson(rawBody, clock.UtcNow);
     }

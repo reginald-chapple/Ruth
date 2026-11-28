@@ -228,8 +228,13 @@ public static class CrmErrors
     public static readonly DomainError BackgroundCheckWebhookInvalidSignature =
         DomainError.Unauthorized(
             "Crm.BackgroundCheck.InvalidWebhookSignature",
-            "The background check webhook signature is missing or invalid."
+            "The background check webhook signature is missing, invalid, or outside the replay timestamp window."
         );
+
+    public static readonly DomainError BackgroundCheckWebhookReplayed = DomainError.Unauthorized(
+        "Crm.BackgroundCheck.WebhookReplayed",
+        "This background check webhook delivery has already been processed in the active replay window."
+    );
 
     public static readonly DomainError IdentityVerificationReferenceRequired =
         DomainError.Validation(

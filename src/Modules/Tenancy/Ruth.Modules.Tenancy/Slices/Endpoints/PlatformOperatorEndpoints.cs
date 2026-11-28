@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Routing;
 using Ruth.Modules.Tenancy.Contracts.Operators;
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Tenancy.Slices.Endpoints;
@@ -26,6 +27,7 @@ internal static class PlatformOperatorEndpoints
 
         _ = authGroup
             .MapPost("/authenticate", AuthenticateAsync)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous()
             .WithName("AuthenticatePlatformOperator")
             .WithSummary("Authenticate a Platform Operator on the isolated operator host")

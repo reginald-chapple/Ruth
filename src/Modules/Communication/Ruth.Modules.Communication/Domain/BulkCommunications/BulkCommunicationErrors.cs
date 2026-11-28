@@ -92,7 +92,12 @@ public static class BulkCommunicationErrors
 
     public static readonly DomainError WebhookSignatureInvalid = DomainError.Unauthorized(
         "Communication.WebhookSignatureInvalid",
-        "Webhook signature header is missing or invalid."
+        "Webhook signature header is missing, invalid, or outside the allowed replay timestamp window."
+    );
+
+    public static readonly DomainError WebhookReplayed = DomainError.Unauthorized(
+        "Communication.WebhookReplayed",
+        "This webhook delivery has already been processed inside the active replay window."
     );
 
     public static readonly DomainError PreferenceTokenInvalid = DomainError.Unauthorized(

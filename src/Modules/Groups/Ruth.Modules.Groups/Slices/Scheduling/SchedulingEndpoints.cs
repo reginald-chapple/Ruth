@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Ruth.Modules.Groups.Contracts.Scheduling;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Groups.Slices.Scheduling;
 
@@ -143,6 +144,7 @@ internal static class SchedulingEndpoints
 
         _ = group
             .MapGet("/rsvp/{token}", GetRsvpByTokenAsync)
+            .RequireRateLimiting(RateLimitPolicyNames.KioskStrict)
             .AllowAnonymous()
             .WithName("GroupsGetRsvpByToken")
             .WithSummary("Look up a volunteer RSVP link by token")
@@ -150,6 +152,7 @@ internal static class SchedulingEndpoints
 
         _ = group
             .MapPost("/rsvp/respond", RespondToRsvpAsync)
+            .RequireRateLimiting(RateLimitPolicyNames.KioskStrict)
             .AllowAnonymous()
             .WithName("GroupsRespondToRsvp")
             .WithSummary("Record a volunteer Accept, Decline, or Maybe RSVP response")

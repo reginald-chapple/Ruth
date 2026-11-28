@@ -5,12 +5,16 @@ using Ruth.Modules.Groups.Domain.Attendances;
 using Ruth.Modules.Groups.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Groups.Slices.Scheduling;
 
-internal sealed class RespondToRsvpCommandHandler(GroupsDbContext dbContext, IClock clock)
-    : ICommandHandler<RespondToRsvpCommand, ScheduledVolunteerResponse>
+internal sealed class RespondToRsvpCommandHandler(
+    GroupsDbContext dbContext,
+    IClock clock,
+    ICanonicalTenantUrlProvider? canonicalUrlProvider = null
+) : ICommandHandler<RespondToRsvpCommand, ScheduledVolunteerResponse>
 {
     public async Task<Result<ScheduledVolunteerResponse>> HandleAsync(
         RespondToRsvpCommand command,
@@ -40,6 +44,11 @@ internal sealed class RespondToRsvpCommandHandler(GroupsDbContext dbContext, ICl
             .FirstAsync(o => o.Id == attendance.OccurrenceId, cancellationToken);
 
         var (groupName, locationName) = await ResolveNamesAsync(occurrence, cancellationToken);
+        var canonicalRsvpUrl = await ScheduleVolunteerService.BuildCanonicalRsvpUrlAsync(
+            canonicalUrlProvider,
+            attendance.RsvpToken,
+            cancellationToken
+        );
         return Result.Success(
             ScheduleVolunteerService.ToScheduledResponse(
                 attendance,
@@ -48,7 +57,8 @@ internal sealed class RespondToRsvpCommandHandler(GroupsDbContext dbContext, ICl
                 locationName,
                 hasBlackout: false,
                 hasDoubleBooking: false,
-                meetsRequirements: true
+                meetsRequirements: true,
+                canonicalRsvpUrl
             )
         );
     }

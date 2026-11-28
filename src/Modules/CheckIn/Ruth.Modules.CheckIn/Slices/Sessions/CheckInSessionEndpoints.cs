@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Ruth.Modules.CheckIn.Contracts.Sessions;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.CheckIn.Slices.Sessions;
 
@@ -27,6 +28,7 @@ internal static class CheckInSessionEndpoints
         var sessions = endpoints
             .MapGroup("/api/checkin/sessions")
             .WithTags("Check-In Sessions & Kiosk")
+            .RequireRateLimiting(RateLimitPolicyNames.KioskStrict)
             .RequireAuthorization();
 
         _ = sessions
@@ -117,6 +119,7 @@ internal static class CheckInSessionEndpoints
         var mobile = endpoints
             .MapGroup("/api/checkin/mobile")
             .WithTags("Mobile Check-In")
+            .RequireRateLimiting(RateLimitPolicyNames.KioskStrict)
             .RequireAuthorization();
 
         _ = mobile

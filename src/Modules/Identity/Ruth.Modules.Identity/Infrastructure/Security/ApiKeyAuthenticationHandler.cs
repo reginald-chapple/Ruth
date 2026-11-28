@@ -39,17 +39,13 @@ internal sealed class ApiKeyAuthenticationHandler(
         }
 
         var utcNow = clock.UtcNow;
-        var hash = tokenService.ComputeSha256Hash(rawKey);
-        var keyEntity = await dbContext.RestApiKeys.FirstOrDefaultAsync(
-            k => k.KeyHash == hash,
+        var keyEntity = await FindMatchingApiKeyAsync(
+            rawKey,
+            currentTenantId,
             Context.RequestAborted
         );
 
-        if (
-            keyEntity is null
-            || keyEntity.TenantId != currentTenantId
-            || !keyEntity.IsValidAt(utcNow)
-        )
+        if (keyEntity is null || !keyEntity.IsValidAt(utcNow))
         {
             return AuthenticateResult.Fail("Invalid or expired API key.");
         }
@@ -70,6 +66,37 @@ internal sealed class ApiKeyAuthenticationHandler(
 
         var principal = BuildPrincipal(account, roles, keyEntity.Id);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
+    }
+
+    private async Task<RestApiKey?> FindMatchingApiKeyAsync(
+        string rawKey,
+        TenantId currentTenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (rawKey.Length < 12)
+        {
+            return null;
+        }
+
+        var prefix16 = rawKey.Length >= 16 ? rawKey[..16] : rawKey;
+        var prefix12 = rawKey[..12];
+        var candidates = await dbContext
+            .RestApiKeys.Where(k => k.KeyPrefix == prefix16 || k.KeyPrefix == prefix12)
+            .ToListAsync(cancellationToken);
+
+        foreach (var candidate in candidates)
+        {
+            if (
+                candidate.TenantId == currentTenantId
+                && tokenService.VerifyApiKeyHash(rawKey, candidate.KeyHash)
+            )
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private async Task<List<SecurityRole>> LoadActiveRolesAsync(

@@ -1,9 +1,12 @@
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Ruth.Modules.Identity.Domain;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
 
@@ -24,25 +27,48 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
     )
     {
         ArgumentNullException.ThrowIfNull(provider);
+        if (
+            string.IsNullOrWhiteSpace(state)
+            || string.IsNullOrWhiteSpace(nonce)
+            || string.IsNullOrWhiteSpace(codeChallenge)
+        )
+        {
+            return IdentityErrors.RemoteAuthSessionInvalid;
+        }
 
-        var discovery = await FetchDiscoveryAsync(provider.Authority, cancellationToken);
-        var authorizeEndpoint = discovery?.AuthorizationEndpoint
-            ?? $"{provider.Authority}/authorize";
+        try
+        {
+            var authorityUri = new Uri(provider.Authority, UriKind.Absolute);
+            OutboundAddressGuard.EnsureAllowedUri(authorityUri);
 
-        var query = string.Join(
-            '&',
-            $"client_id={Uri.EscapeDataString(provider.ClientId)}",
-            $"redirect_uri={Uri.EscapeDataString(provider.CallbackPath)}",
-            "response_type=code",
-            $"scope={Uri.EscapeDataString(provider.Scopes)}",
-            $"state={Uri.EscapeDataString(state)}",
-            $"nonce={Uri.EscapeDataString(nonce)}",
-            $"code_challenge={Uri.EscapeDataString(codeChallenge)}",
-            "code_challenge_method=S256"
-        );
+            var discovery = await FetchDiscoveryAsync(provider.Authority, cancellationToken);
+            var authorizeEndpoint = discovery?.AuthorizationEndpoint
+                ?? $"{provider.Authority}/authorize";
+            OutboundAddressGuard.EnsureAllowedUri(new Uri(authorizeEndpoint, UriKind.Absolute));
 
-        var separator = authorizeEndpoint.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        return $"{authorizeEndpoint}{separator}{query}";
+            var query = string.Join(
+                '&',
+                $"client_id={Uri.EscapeDataString(provider.ClientId)}",
+                $"redirect_uri={Uri.EscapeDataString(provider.CallbackPath)}",
+                "response_type=code",
+                $"scope={Uri.EscapeDataString(provider.Scopes)}",
+                $"state={Uri.EscapeDataString(state)}",
+                $"nonce={Uri.EscapeDataString(nonce)}",
+                $"code_challenge={Uri.EscapeDataString(codeChallenge)}",
+                "code_challenge_method=S256"
+            );
+
+            var separator = authorizeEndpoint.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+            return $"{authorizeEndpoint}{separator}{query}";
+        }
+        catch (OutboundSsrfBlockedException)
+        {
+            return IdentityErrors.ExternalProviderSsrfBlocked;
+        }
+        catch (UriFormatException)
+        {
+            return IdentityErrors.ExternalProviderInvalid;
+        }
     }
 
     public async Task<Result<ExternalOidcUserInfo>> ExchangeCodeAsync(
@@ -54,10 +80,54 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
     )
     {
         ArgumentNullException.ThrowIfNull(provider);
+        if (
+            string.IsNullOrWhiteSpace(code)
+            || string.IsNullOrWhiteSpace(codeVerifier)
+            || string.IsNullOrWhiteSpace(expectedNonce)
+        )
+        {
+            return IdentityErrors.RemoteAuthSessionInvalid;
+        }
 
-        var discovery = await FetchDiscoveryAsync(provider.Authority, cancellationToken);
-        var tokenEndpoint = discovery?.TokenEndpoint ?? $"{provider.Authority}/oauth/token";
+        try
+        {
+            OutboundAddressGuard.EnsureAllowedUri(new Uri(provider.Authority, UriKind.Absolute));
+            var discovery = await FetchDiscoveryAsync(provider.Authority, cancellationToken);
+            var tokenEndpoint = discovery?.TokenEndpoint ?? $"{provider.Authority}/oauth/token";
+            var tokenUri = new Uri(tokenEndpoint, UriKind.Absolute);
+            OutboundAddressGuard.EnsureAllowedUri(tokenUri);
 
+            var formFields = BuildTokenExchangeFields(provider, code, codeVerifier);
+            using var client = _httpClientFactory.CreateClient(HttpClientName);
+            using var form = new FormUrlEncodedContent(formFields);
+            using var response = await client.PostAsync(tokenUri, form, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return IdentityErrors.RemoteAuthSessionInvalid;
+            }
+
+            var tokenPayload = await response.Content.ReadFromJsonAsync<JsonElement>(
+                cancellationToken
+            );
+            return ExtractUserInfo(tokenPayload, expectedNonce);
+        }
+        catch (OutboundSsrfBlockedException)
+        {
+            return IdentityErrors.ExternalProviderSsrfBlocked;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or UriFormatException)
+        {
+            return IdentityErrors.RemoteAuthSessionInvalid;
+        }
+    }
+
+    private static Dictionary<string, string> BuildTokenExchangeFields(
+        ExternalAuthProviderConfig provider,
+        string code,
+        string codeVerifier
+    )
+    {
         var formFields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["grant_type"] = "authorization_code",
@@ -71,21 +141,7 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
             formFields["client_secret"] = provider.ClientSecret;
         }
 
-        using var client = _httpClientFactory.CreateClient(HttpClientName);
-        using var form = new FormUrlEncodedContent(formFields);
-        using var response = await client.PostAsync(
-            new Uri(tokenEndpoint, UriKind.Absolute),
-            form,
-            cancellationToken
-        );
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return IdentityErrors.RemoteAuthSessionInvalid;
-        }
-
-        var tokenPayload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-        return ExtractUserInfo(tokenPayload, expectedNonce);
+        return formFields;
     }
 
     private async Task<OidcDiscoveryDocument?> FetchDiscoveryAsync(
@@ -100,12 +156,17 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
                 $"{authority.TrimEnd('/')}/.well-known/openid-configuration",
                 UriKind.Absolute
             );
+            OutboundAddressGuard.EnsureAllowedUri(discoveryUri);
             using var response = await client.GetAsync(discoveryUri, cancellationToken);
             return !response.IsSuccessStatusCode
                 ? null
                 : await response.Content.ReadFromJsonAsync<OidcDiscoveryDocument>(
                     cancellationToken
                 );
+        }
+        catch (OutboundSsrfBlockedException)
+        {
+            throw;
         }
         catch (HttpRequestException)
         {
@@ -133,15 +194,7 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
         }
 
         var jwt = handler.ReadJsonWebToken(idToken);
-        var tokenNonce = jwt
-            .Claims.FirstOrDefault(static c =>
-                string.Equals(c.Type, "nonce", StringComparison.Ordinal)
-            )
-            ?.Value;
-        if (
-            !string.IsNullOrEmpty(expectedNonce)
-            && !string.Equals(tokenNonce, expectedNonce, StringComparison.Ordinal)
-        )
+        if (!IsValidSignedIdTokenWithNonce(jwt, expectedNonce))
         {
             return IdentityErrors.RemoteAuthSessionInvalid;
         }
@@ -152,28 +205,41 @@ internal sealed class HttpExternalOidcClient(IHttpClientFactory httpClientFactor
             return IdentityErrors.RemoteAuthSessionInvalid;
         }
 
-        var email = jwt
-            .Claims.FirstOrDefault(static c =>
-                string.Equals(c.Type, "email", StringComparison.Ordinal)
-            )
-            ?.Value;
-        var emailVerifiedRaw = jwt
-            .Claims.FirstOrDefault(static c =>
-                string.Equals(c.Type, "email_verified", StringComparison.Ordinal)
-            )
-            ?.Value;
+        var email = FindClaimValue(jwt, "email");
         var emailVerified = string.Equals(
-            emailVerifiedRaw,
+            FindClaimValue(jwt, "email_verified"),
             "true",
             StringComparison.OrdinalIgnoreCase
         );
-        var name = jwt
-            .Claims.FirstOrDefault(static c =>
-                string.Equals(c.Type, "name", StringComparison.Ordinal)
-            )
-            ?.Value;
+        var name = FindClaimValue(jwt, "name");
 
         return new ExternalOidcUserInfo(subject, email, emailVerified, name);
+    }
+
+    private static bool IsValidSignedIdTokenWithNonce(JsonWebToken jwt, string expectedNonce)
+    {
+        if (
+            string.IsNullOrWhiteSpace(jwt.Alg)
+            || string.Equals(jwt.Alg, "none", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return false;
+        }
+
+        var tokenNonce = FindClaimValue(jwt, "nonce");
+        return !string.IsNullOrWhiteSpace(expectedNonce)
+            && !string.IsNullOrWhiteSpace(tokenNonce)
+            && CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(tokenNonce),
+                Encoding.UTF8.GetBytes(expectedNonce)
+            );
+    }
+
+    private static string? FindClaimValue(JsonWebToken jwt, string claimType)
+    {
+        return jwt
+            .Claims.FirstOrDefault(c => string.Equals(c.Type, claimType, StringComparison.Ordinal))
+            ?.Value;
     }
 
     private sealed record OidcDiscoveryDocument(

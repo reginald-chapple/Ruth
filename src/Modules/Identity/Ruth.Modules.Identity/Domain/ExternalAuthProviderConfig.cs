@@ -1,5 +1,6 @@
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Domain;
 
@@ -167,7 +168,7 @@ public sealed class ExternalAuthProviderConfig
             || string.IsNullOrWhiteSpace(displayName)
             || displayName.Trim().Length > AuthenticationPolicy.ProviderDisplayNameMaxLength
             || string.IsNullOrWhiteSpace(clientId)
-            || string.IsNullOrWhiteSpace(callbackPath)
+            || !SafeRedirectValidator.IsSafeRegisteredRedirectUri(callbackPath)
             || !Uri.TryCreate(authority?.Trim(), UriKind.Absolute, out var authorityUri)
             || (
                 !string.Equals(

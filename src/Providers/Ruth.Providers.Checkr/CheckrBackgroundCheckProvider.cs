@@ -6,13 +6,15 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Crm.Contracts.BackgroundChecks;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Time;
 
 namespace Ruth.Providers.Checkr;
 
 /// <summary>Modular Checkr REST + HMAC-SHA256 webhook background check provider.</summary>
 public sealed class CheckrBackgroundCheckProvider(
     HttpClient httpClient,
-    IOptions<CheckrOptions> options
+    IOptions<CheckrOptions> options,
+    IClock? clock = null
 ) : IBackgroundCheckProvider
 {
     /// <summary>Canonical lowercase provider key.</summary>
@@ -134,7 +136,8 @@ public sealed class CheckrBackgroundCheckProvider(
         return CheckrWebhookSignatureVerifier.Verify(
             rawPayload,
             signatureHeader,
-            _options.EffectiveWebhookSecret
+            _options.EffectiveWebhookSecret,
+            clock?.UtcNow ?? TimeProvider.System.GetUtcNow()
         );
     }
 

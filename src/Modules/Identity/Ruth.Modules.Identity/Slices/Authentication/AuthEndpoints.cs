@@ -9,6 +9,7 @@ using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure.Security;
 using Ruth.Modules.Identity.Slices.Onboarding;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
 
@@ -28,6 +29,7 @@ internal static class AuthEndpoints
             .Produces<AuthTokensResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group
@@ -37,6 +39,7 @@ internal static class AuthEndpoints
             .Produces<AuthTokensResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group
@@ -52,6 +55,7 @@ internal static class AuthEndpoints
             .WithSummary("Rotate refresh token and issue a fresh JWT access token")
             .Produces<AuthTokensResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group

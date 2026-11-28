@@ -4,6 +4,7 @@ using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
@@ -33,14 +34,23 @@ internal sealed class RefreshAccessTokenCommandHandler(
             cancellationToken
         );
 
-        if (existingToken is null)
+        var ambientTenantId = AmbientTenantContext.CurrentTenantId;
+        if (
+            existingToken is null
+            || (!ambientTenantId.IsEmpty && existingToken.TenantId != ambientTenantId)
+        )
         {
             return IdentityErrors.RefreshTokenInvalid;
         }
 
         if (existingToken.IsRevoked)
         {
-            await RevokeTokenFamilyAsync(existingToken.FamilyId, utcNow, cancellationToken);
+            await RevokeTokenFamilyAndAuditReuseAsync(
+                existingToken,
+                command,
+                utcNow,
+                cancellationToken
+            );
             return IdentityErrors.RefreshTokenInvalid;
         }
 
@@ -123,20 +133,40 @@ internal sealed class RefreshAccessTokenCommandHandler(
         );
     }
 
-    private async Task RevokeTokenFamilyAsync(
-        Guid familyId,
+    private async Task RevokeTokenFamilyAndAuditReuseAsync(
+        RefreshToken reusedToken,
+        RefreshAccessTokenCommand command,
         DateTimeOffset utcNow,
         CancellationToken cancellationToken
     )
     {
         var familyTokens = await dbContext
-            .RefreshTokens.Where(t => t.FamilyId == familyId && t.RevokedOnUtc == null)
+            .RefreshTokens.Where(t => t.FamilyId == reusedToken.FamilyId && t.RevokedOnUtc == null)
             .ToListAsync(cancellationToken);
 
         foreach (var token in familyTokens)
         {
             token.Revoke(utcNow, "RefreshTokenReuseDetected");
         }
+
+        var userName = await dbContext
+            .UserAccounts.AsNoTracking()
+            .Where(u => u.Id == reusedToken.UserAccountId)
+            .Select(static u => u.UserName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        _ = dbContext.LoginHistoryEntries.Add(
+            LoginHistoryEntry.Record(
+                reusedToken.UserAccountId,
+                userName ?? "revoked-refresh-token",
+                "RefreshToken",
+                succeeded: false,
+                utcNow,
+                failureReason: "RefreshTokenReuseDetected",
+                ipAddress: command.IpAddress,
+                userAgent: command.UserAgent
+            )
+        );
 
         _ = await dbContext.SaveChangesAsync(cancellationToken);
     }

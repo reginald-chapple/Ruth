@@ -50,6 +50,7 @@ public static class TenancyModuleExtensions
             sp.GetRequiredService<ActiveTenantRegistry>()
         );
         services.TryAddSingleton<ITenantHostResolver, TenantHostResolver>();
+        _ = services.AddSingleton<ICanonicalTenantUrlProvider, CanonicalTenantUrlProvider>();
         services.TryAddSingleton<
             IIrsCharityVerificationProvider,
             SimulatedIrsEoBmfVerificationProvider
@@ -132,6 +133,11 @@ public static class TenancyModuleExtensions
             AuthenticatePlatformOperatorCommand,
             PlatformOperatorAuthResponse,
             AuthenticatePlatformOperatorCommandHandler
+        >();
+        _ = services.AddCommandHandler<
+            ProcessStripeConnectWebhookCommand,
+            StripeConnectWebhookResponse,
+            ProcessStripeConnectWebhookCommandHandler
         >();
     }
 }

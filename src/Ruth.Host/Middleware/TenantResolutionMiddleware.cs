@@ -7,7 +7,10 @@ namespace Ruth.Host.Middleware;
 /// Resolves incoming HTTP Host headers to isolated tenant workspaces or dedicated platform hosts,
 /// returning an empty 404 Not Found on unknown, unverified, or cross-plane requests.
 /// </summary>
-internal sealed class TenantResolutionMiddleware(RequestDelegate next)
+internal sealed class TenantResolutionMiddleware(
+    RequestDelegate next,
+    IHostEnvironment hostEnvironment
+)
 {
     public const string StealthPlainNotFoundItemKey = "Stealth.PlainNotFound";
 
@@ -16,8 +19,10 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
         "/_framework",
         "/_content",
         "/_blazor",
-        "/openapi",
     ];
+
+    private readonly IHostEnvironment _hostEnvironment = hostEnvironment
+        ?? throw new ArgumentNullException(nameof(hostEnvironment));
 
     private static readonly string[] _staticExtensions =
     [
@@ -95,7 +100,11 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
                 "/api/v1/platform/operators",
                 StringComparison.OrdinalIgnoreCase
             )
-            && !IsSharedShellAsset(path)
+            && !path.StartsWithSegments(
+                "/api/v1/tenancy/webhooks/stripe-connect",
+                StringComparison.OrdinalIgnoreCase
+            )
+            && !IsSharedShellAsset(path, _hostEnvironment)
         )
         {
             WriteStealthNotFound(context);
@@ -123,7 +132,7 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
                 "/api/v1/platform/signup",
                 StringComparison.OrdinalIgnoreCase
             )
-            && !IsSharedShellAsset(path)
+            && !IsSharedShellAsset(path, _hostEnvironment)
         )
         {
             WriteStealthNotFound(context);
@@ -161,8 +170,16 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
         }
     }
 
-    private static bool IsSharedShellAsset(PathString path)
+    private static bool IsSharedShellAsset(PathString path, IHostEnvironment environment)
     {
+        if (
+            !environment.IsProduction()
+            && path.StartsWithSegments("/openapi", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return true;
+        }
+
         foreach (var prefix in _sharedFrameworkPrefixes)
         {
             if (path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase))

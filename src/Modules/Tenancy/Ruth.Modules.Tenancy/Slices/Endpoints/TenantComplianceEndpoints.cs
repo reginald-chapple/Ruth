@@ -61,7 +61,25 @@ internal static class TenantComplianceEndpoints
                 "Verifies Stripe Connect payout readiness and IRS Exempt Organizations Business Master File status before queuing for Platform Operator approval."
             );
 
+        MapStripeConnectWebhook(endpoints);
         return endpoints;
+    }
+
+    private static void MapStripeConnectWebhook(IEndpointRouteBuilder endpoints)
+    {
+        _ = endpoints
+            .MapPost("/api/v1/tenancy/webhooks/stripe-connect", ReceiveStripeConnectWebhookAsync)
+            .AllowAnonymous()
+            .WithTags("Organization Compliance")
+            .WithName("ReceiveStripeConnectWebhook")
+            .WithSummary("Receive HMAC-verified and replay-guarded Stripe Connect webhook")
+            .WithDescription(
+                "Verifies Stripe-Signature HMAC-SHA256 + 5-minute replay timestamp window and updates Stripe Connect Express capability state."
+            )
+            .Produces<StripeConnectWebhookResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     private static async Task<
@@ -165,6 +183,27 @@ internal static class TenantComplianceEndpoints
             SubmitTenantForGoLiveCommand,
             TenantComplianceStatusResponse
         >(new SubmitTenantForGoLiveCommand(), cancellationToken);
+        return result.IsSuccess
+            ? TypedResults.Ok(result.Value)
+            : TenancyProblemResultMapper.ToProblem(result, httpContext);
+    }
+
+    private static async Task<
+        Results<Ok<StripeConnectWebhookResponse>, ProblemHttpResult>
+    > ReceiveStripeConnectWebhookAsync(
+        HttpContext httpContext,
+        ICommandDispatcher dispatcher,
+        CancellationToken cancellationToken
+    )
+    {
+        using var reader = new StreamReader(httpContext.Request.Body, System.Text.Encoding.UTF8);
+        var rawBody = await reader.ReadToEndAsync(cancellationToken);
+        var signature = httpContext.Request.Headers["Stripe-Signature"].FirstOrDefault();
+
+        var result = await dispatcher.SendAsync<
+            ProcessStripeConnectWebhookCommand,
+            StripeConnectWebhookResponse
+        >(new ProcessStripeConnectWebhookCommand(rawBody, signature), cancellationToken);
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : TenancyProblemResultMapper.ToProblem(result, httpContext);

@@ -4,6 +4,7 @@ using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
@@ -21,6 +22,11 @@ internal sealed class StartOidcLoginCommandHandler(
     )
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (!SafeRedirectValidator.IsSafeLocalReturnPath(command.ReturnUrl))
+        {
+            return IdentityErrors.InvalidReturnUrl;
+        }
 
         var key = command.ProviderKey?.Trim().ToLowerInvariant() ?? string.Empty;
         var provider = await dbContext

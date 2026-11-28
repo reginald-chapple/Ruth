@@ -15,7 +15,8 @@ internal sealed class BulkEmailComposerService(
     IMergeTemplateEngine mergeEngine,
     IRazorTemplateRenderer razorRenderer,
     IOptions<CommunicationTransportOptions> transportOptions,
-    IOptions<CommunicationBulkOptions> bulkOptions
+    IOptions<CommunicationBulkOptions> bulkOptions,
+    ICanonicalTenantUrlProvider? canonicalUrlProvider = null
 )
 {
     private readonly CommunicationTransportOptions _transportOptions = transportOptions.Value;
@@ -51,7 +52,9 @@ internal sealed class BulkEmailComposerService(
         CancellationToken cancellationToken
     )
     {
+        var baseUrl = await ResolveBaseUrlAsync(cancellationToken);
         var context = BuildMergeContext(
+            baseUrl,
             topicKey,
             recipientName,
             normalizedDestination,
@@ -112,7 +115,9 @@ internal sealed class BulkEmailComposerService(
         CancellationToken cancellationToken
     )
     {
+        var baseUrl = await ResolveBaseUrlAsync(cancellationToken);
         var context = BuildMergeContext(
+            baseUrl,
             topicKey,
             recipientName,
             normalizedDestination,
@@ -131,7 +136,25 @@ internal sealed class BulkEmailComposerService(
             : rendered.Value.RenderedContent;
     }
 
+    private async ValueTask<string> ResolveBaseUrlAsync(CancellationToken cancellationToken)
+    {
+        if (canonicalUrlProvider is not null && !AmbientTenantContext.CurrentTenantId.IsEmpty)
+        {
+            var canonical = await canonicalUrlProvider.GetCanonicalBaseUrlAsync(
+                AmbientTenantContext.CurrentTenantId,
+                cancellationToken
+            );
+            if (!string.IsNullOrWhiteSpace(canonical))
+            {
+                return canonical.TrimEnd('/');
+            }
+        }
+
+        return _bulkOptions.PublicBaseUrl.TrimEnd('/');
+    }
+
     private Dictionary<string, object?> BuildMergeContext(
+        string baseUrl,
         string topicKey,
         string? recipientName,
         string? normalizedDestination,
@@ -140,7 +163,6 @@ internal sealed class BulkEmailComposerService(
         CommunicationChannel channel = CommunicationChannel.Email
     )
     {
-        var baseUrl = _bulkOptions.PublicBaseUrl.TrimEnd('/');
         var dest = string.IsNullOrWhiteSpace(normalizedDestination)
             ? "preview@example.org"
             : normalizedDestination;

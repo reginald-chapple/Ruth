@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ruth.Modules.Identity.Domain;
-using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Identity.Infrastructure.Security;
 
@@ -23,9 +23,6 @@ internal static class IdentityAuthSetupExtensions
         _ = services
             .AddOptions<IdentityJwtOptions>()
             .Bind(configuration.GetSection(IdentityJwtOptions.SectionName));
-
-        var jwtOptions = new IdentityJwtOptions();
-        configuration.GetSection(IdentityJwtOptions.SectionName).Bind(jwtOptions);
 
         _ = services
             .AddAuthentication(static options =>
@@ -43,12 +40,16 @@ internal static class IdentityAuthSetupExtensions
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 StealthHostCookieManager.ConfigureCookieOptions
             )
-            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-                ConfigureJwtBearerOptions(options, jwtOptions)
-            )
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme)
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
                 IdentityAuthorizationPolicies.ApiKeyScheme,
                 static _ => { }
+            );
+
+        _ = services
+            .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<IdentityJwtOptions>>(
+                static (options, jwtOptions) => ConfigureJwtBearerOptions(options, jwtOptions.Value)
             );
 
         _ = services.AddAuthorization(static options =>
@@ -85,29 +86,15 @@ internal static class IdentityAuthSetupExtensions
             ValidAudience = jwtOptions.Audience,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = signingKey,
+            RequireSignedTokens = true,
+            RequireExpirationTime = true,
+            ValidAlgorithms = [JwtBearerSecurityEvents.PinnedAlgorithm],
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = "unique_name",
             RoleClaimType = ClaimTypes.Role,
         };
-        options.Events = new JwtBearerEvents { OnTokenValidated = ValidateJwtTenantBindingAsync };
-    }
-
-    private static Task ValidateJwtTenantBindingAsync(TokenValidatedContext context)
-    {
-        var activeTenantId = AmbientTenantContext.CurrentTenantId;
-        if (activeTenantId.IsEmpty)
-        {
-            return Task.CompletedTask;
-        }
-
-        var tokenTid = context.Principal?.FindFirst(RuthClaimTypes.TenantId)?.Value;
-        if (!Guid.TryParse(tokenTid, out var parsed) || parsed != activeTenantId.Value)
-        {
-            context.Fail("Access token tenant claim does not match active workspace.");
-        }
-
-        return Task.CompletedTask;
+        options.Events = JwtBearerSecurityEvents.Create();
     }
 
     private static string SelectAuthenticationScheme(HttpContext context)

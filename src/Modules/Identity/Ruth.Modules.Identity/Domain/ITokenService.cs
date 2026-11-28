@@ -13,8 +13,14 @@ public interface ITokenService
     /// <summary>Generates a cryptographically random URL-safe opaque token string.</summary>
     string GenerateOpaqueToken(int byteLength = 32);
 
-    /// <summary>Computes a deterministic SHA-256 hex hash of an opaque token or API key.</summary>
+    /// <summary>Computes a deterministic SHA-256 hex hash of an opaque token.</summary>
     string ComputeSha256Hash(string plaintextToken);
+
+    /// <summary>Hashes a plaintext REST API key using a per-key CSPRNG salt and PBKDF2-HMAC-SHA256.</summary>
+    string HashApiKeyWithSalt(string plaintextApiKey);
+
+    /// <summary>Verifies a plaintext REST API key against a salted hash in constant time.</summary>
+    bool VerifyApiKeyHash(string plaintextApiKey, string storedHash);
 
     /// <summary>Computes a PKCE S256 code challenge from a code verifier.</summary>
     string ComputePkceChallenge(string codeVerifier);

@@ -12,4 +12,7 @@ public sealed record CompleteOidcLoginRequest
     /// <summary>Gets the authorization code returned by the external provider.</summary>
     [Required]
     public required string Code { get; init; }
+
+    /// <summary>Gets the optional callback redirect URI to verify against the registered provider callback.</summary>
+    public string? RedirectUri { get; init; }
 }

@@ -1,15 +1,10 @@
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Options;
 using Ruth.Modules.Communication.Contracts.BulkCommunications;
 using Ruth.Modules.Communication.Contracts.Transports;
 using Ruth.Modules.Communication.Domain.BulkCommunications;
-using Ruth.Modules.Communication.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using DomainResult = Ruth.SharedKernel.Results.Result;
 
@@ -17,8 +12,6 @@ namespace Ruth.Modules.Communication.Slices.BulkCommunications;
 
 internal static class CommunicationWebhookAndPreferenceEndpoints
 {
-    private static readonly JsonSerializerOptions _jsonOptions = CreateJsonOptions();
-
     public static IEndpointRouteBuilder MapCommunicationWebhookAndPreferenceEndpoints(
         this IEndpointRouteBuilder endpoints
     )
@@ -73,49 +66,26 @@ internal static class CommunicationWebhookAndPreferenceEndpoints
         Results<Ok<CommunicationWebhookProcessResponse>, ProblemHttpResult>
     > IngestWebhookEventsAsync(
         HttpContext httpContext,
-        IOptions<CommunicationBulkOptions> bulkOptions,
+        CommunicationInboundWebhookGuard webhookGuard,
         ICommandDispatcher dispatcher,
         CancellationToken cancellationToken
     )
     {
-        using var reader = new StreamReader(httpContext.Request.Body, Encoding.UTF8);
-        var rawBody = await reader.ReadToEndAsync(cancellationToken);
-        var signature = httpContext
-            .Request.Headers[CommunicationWebhookSignatureVerifier.HeaderName]
-            .FirstOrDefault();
-
-        if (
-            !CommunicationWebhookSignatureVerifier.VerifyIfConfigured(
-                rawBody,
-                signature,
-                bulkOptions.Value.WebhookSigningSecret
-            )
-        )
+        var verified = await webhookGuard.ReadAndVerifyAsync<ProcessCommunicationWebhooksCommand>(
+            httpContext,
+            "comms-events",
+            BulkCommunicationErrors.WebhookEventsEmpty,
+            cancellationToken
+        );
+        if (verified.IsFailure)
         {
-            return CommunicationProblemResultMapper.ToProblemResult(
-                DomainResult.Failure(BulkCommunicationErrors.WebhookSignatureInvalid),
-                httpContext
-            );
-        }
-
-        var command = string.IsNullOrWhiteSpace(rawBody)
-            ? null
-            : JsonSerializer.Deserialize<ProcessCommunicationWebhooksCommand>(
-                rawBody,
-                _jsonOptions
-            );
-        if (command is null)
-        {
-            return CommunicationProblemResultMapper.ToProblemResult(
-                DomainResult.Failure(BulkCommunicationErrors.WebhookEventsEmpty),
-                httpContext
-            );
+            return CommunicationProblemResultMapper.ToProblemResult(verified, httpContext);
         }
 
         var result = await dispatcher.SendAsync<
             ProcessCommunicationWebhooksCommand,
             CommunicationWebhookProcessResponse
-        >(command, cancellationToken);
+        >(verified.Value, cancellationToken);
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);
@@ -222,12 +192,5 @@ internal static class CommunicationWebhookAndPreferenceEndpoints
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : CommunicationProblemResultMapper.ToProblemResult(result, httpContext);
-    }
-
-    private static JsonSerializerOptions CreateJsonOptions()
-    {
-        var opts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        opts.Converters.Add(new JsonStringEnumConverter());
-        return opts;
     }
 }

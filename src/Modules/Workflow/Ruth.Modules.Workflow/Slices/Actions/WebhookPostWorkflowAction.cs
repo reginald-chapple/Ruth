@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using Ruth.Modules.Workflow.Contracts.Actions;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Workflow.Slices.Actions;
 
@@ -33,7 +34,36 @@ internal sealed class WebhookPostWorkflowAction(IHttpClientFactory httpClientFac
             );
         }
 
-        var client = httpClientFactory.CreateClient(HttpClientName);
+        try
+        {
+            return await SendWebhookCoreAsync(uri, context, cancellationToken);
+        }
+        catch (OutboundSsrfBlockedException ex)
+        {
+            return Result.Failure<WorkflowActionDirective>(
+                DomainError.Validation("Workflow.WebhookSsrfBlocked", ex.Message)
+            );
+        }
+        catch (HttpRequestException ex)
+        {
+            return Result.Failure<WorkflowActionDirective>(
+                DomainError.Failure(
+                    "Workflow.WebhookTransportFailed",
+                    $"Webhook POST to {uri.Host} failed: {ex.Message}"
+                )
+            );
+        }
+    }
+
+    private async Task<Result<WorkflowActionDirective>> SendWebhookCoreAsync(
+        Uri uri,
+        WorkflowActionExecutionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var cfg = context.Configuration;
+        OutboundAddressGuard.EnsureAllowedUri(uri);
+        using var client = httpClientFactory.CreateClient(HttpClientName);
         using var response = await client.PostAsJsonAsync(
             uri,
             BuildPayload(context),

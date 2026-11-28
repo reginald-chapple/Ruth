@@ -1,9 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Ruth.Modules.Finance.Contracts.Gateways;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Finance.Infrastructure.Gateways;
@@ -151,22 +150,39 @@ internal sealed class TestPaymentGatewayProvider(
             );
         }
 
-        var secretBytes = Encoding.UTF8.GetBytes(securityOptions.Value.TestGatewayWebhookSecret);
-        var expectedHex = Convert.ToHexStringLower(
-            HMACSHA256.HashData(secretBytes, Encoding.UTF8.GetBytes(rawBody))
-        );
-        var providedHex = signatureHeader.Trim();
-        if (providedHex.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase))
+        var secret = securityOptions.Value.TestGatewayWebhookSecret;
+        var provided = signatureHeader.Trim();
+        bool verified;
+        if (provided.StartsWith("t=", StringComparison.Ordinal))
         {
-            providedHex = providedHex[7..];
+            verified =
+                WebhookHmacReplayVerifier.VerifyTimestampedHeader(
+                    rawBody,
+                    provided,
+                    secret,
+                    clock.UtcNow,
+                    signatureKey: "v1"
+                )
+                || WebhookHmacReplayVerifier.VerifyTimestampedHeader(
+                    rawBody,
+                    provided,
+                    secret,
+                    clock.UtcNow,
+                    signatureKey: "sha256"
+                );
+        }
+        else
+        {
+            var hex = provided.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase)
+                ? provided.AsSpan(7)
+                : provided.AsSpan();
+            verified = WebhookHmacReplayVerifier.VerifyRawHmacHexConstantTime(rawBody, hex, secret);
         }
 
-        var expectedBytes = Encoding.ASCII.GetBytes(expectedHex);
-        var providedBytes = Encoding.ASCII.GetBytes(providedHex.ToLowerInvariant());
-        return !CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes)
+        return !verified
             ? DomainError.Unauthorized(
                 "Finance.Gateway.WebhookSignatureInvalid",
-                "Test gateway webhook HMAC-SHA256 signature verification failed."
+                "Test gateway webhook HMAC-SHA256 or replay timestamp verification failed."
             )
             : DeserializeWebhookJson(rawBody, clock.UtcNow);
     }

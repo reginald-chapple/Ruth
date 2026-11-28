@@ -3,11 +3,14 @@ using Ruth.Modules.Communication.Contracts.SystemCommunications;
 using Ruth.Modules.Identity.Contracts.Authentication;
 using Ruth.SharedKernel.Events;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Communication.Slices.Events;
 
-internal sealed class PasswordResetNotificationConsumer(ICommandDispatcher commandDispatcher)
-    : IIntegrationEventConsumer<PasswordResetRequestedIntegrationEvent>
+internal sealed class PasswordResetNotificationConsumer(
+    ICommandDispatcher commandDispatcher,
+    ICanonicalTenantUrlProvider? canonicalUrlProvider = null
+) : IIntegrationEventConsumer<PasswordResetRequestedIntegrationEvent>
 {
     public async Task ConsumeAsync(
         PasswordResetRequestedIntegrationEvent integrationEvent,
@@ -16,10 +19,21 @@ internal sealed class PasswordResetNotificationConsumer(ICommandDispatcher comma
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
+        var resetPath =
+            $"/reset-password?token={Uri.EscapeDataString(integrationEvent.ResetToken)}";
+        var resetUrl = canonicalUrlProvider is not null
+            ? await canonicalUrlProvider.BuildTenantUrlAsync(
+                AmbientTenantContext.CurrentTenantId,
+                resetPath,
+                cancellationToken
+            )
+            : resetPath;
+
         var merge = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["UserName"] = integrationEvent.UserName,
             ["ResetToken"] = integrationEvent.ResetToken,
+            ["ResetUrl"] = resetUrl,
             ["ExpiresOnUtc"] = integrationEvent.ExpiresOnUtc.ToString(
                 "u",
                 CultureInfo.InvariantCulture

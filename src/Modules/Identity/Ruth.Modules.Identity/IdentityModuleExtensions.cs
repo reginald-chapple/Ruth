@@ -111,7 +111,14 @@ public static class IdentityModuleExtensions
         services.TryAddSingleton<ITokenService, JwtTokenService>();
         services.TryAddSingleton<IAclSnapshotCache, AclSnapshotCache>();
         services.TryAddSingleton<IEntityAuthorizationService, EntityAuthorizationService>();
-        _ = services.AddHttpClient(HttpExternalOidcClient.HttpClientName);
+        _ = services
+            .AddHttpClient(HttpExternalOidcClient.HttpClientName, static client =>
+                client.Timeout = TimeSpan.FromSeconds(15)
+            )
+            .ConfigurePrimaryHttpMessageHandler(static () =>
+                SafeOutboundHttpHandler.CreateSocketsHandler()
+            )
+            .AddHttpMessageHandler(static () => SafeOutboundHttpHandler.CreatePipelineHandler());
         services.TryAddScoped<IExternalOidcClient, HttpExternalOidcClient>();
 
         _ = services.AddIdentityAuthenticationAndAuthorization(configuration);

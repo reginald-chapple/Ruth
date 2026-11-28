@@ -61,6 +61,7 @@ public static class CommunicationModuleExtensions
 
         _ = services.AddSingleton<IRazorTemplateRegistry, RazorTemplateRegistry>();
         _ = services.AddSingleton<IRazorTemplateRenderer, RazorHtmlTemplateRenderer>();
+        services.TryAddSingleton<CommunicationInboundWebhookGuard>();
 
         RegisterTemplateHandlers(services);
         CommunicationW3S5SliceRegistration.RegisterW3S5Services(services, configuration);

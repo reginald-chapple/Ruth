@@ -1,5 +1,6 @@
 using Ruth.SharedKernel.Primitives;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 
 namespace Ruth.Modules.Identity.Domain;
 
@@ -90,8 +91,8 @@ public sealed class AuthClient : AggregateRoot<AuthClientId>, IAuditableEntity, 
             string.IsNullOrWhiteSpace(name)
             || string.IsNullOrWhiteSpace(clientId)
             || clientId.Trim().Length > 50
-            || string.IsNullOrWhiteSpace(redirectUri)
-            || string.IsNullOrWhiteSpace(postLogoutRedirectUri)
+            || !SafeRedirectValidator.IsSafeRegisteredRedirectUri(redirectUri)
+            || !SafeRedirectValidator.IsSafeRegisteredRedirectUri(postLogoutRedirectUri)
             || scopeApprovalExpirationDays < 0
             ? (Result<AuthClient>)IdentityErrors.AuthClientInvalid
             : (Result<AuthClient>)
@@ -107,6 +108,13 @@ public sealed class AuthClient : AggregateRoot<AuthClientId>, IAuditableEntity, 
                     allowUserApiAccess,
                     scopeApprovalExpirationDays
                 );
+    }
+
+    /// <summary>Verifies an exact RFC 9700 ordinal match against <see cref="RedirectUri" />.</summary>
+    public bool MatchesRedirectUri(string? candidateRedirectUri)
+    {
+        return IsActive
+            && SafeRedirectValidator.MatchesExactRedirectUri(RedirectUri, candidateRedirectUri);
     }
 
     /// <inheritdoc />

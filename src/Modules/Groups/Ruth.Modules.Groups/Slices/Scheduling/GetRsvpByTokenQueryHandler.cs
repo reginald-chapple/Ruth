@@ -4,11 +4,14 @@ using Ruth.Modules.Groups.Domain;
 using Ruth.Modules.Groups.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Groups.Slices.Scheduling;
 
-internal sealed class GetRsvpByTokenQueryHandler(GroupsDbContext dbContext)
-    : IQueryHandler<GetRsvpByTokenQuery, ScheduledVolunteerResponse>
+internal sealed class GetRsvpByTokenQueryHandler(
+    GroupsDbContext dbContext,
+    ICanonicalTenantUrlProvider? canonicalUrlProvider = null
+) : IQueryHandler<GetRsvpByTokenQuery, ScheduledVolunteerResponse>
 {
     public async Task<Result<ScheduledVolunteerResponse>> HandleAsync(
         GetRsvpByTokenQuery query,
@@ -50,6 +53,11 @@ internal sealed class GetRsvpByTokenQueryHandler(GroupsDbContext dbContext)
             }
         }
 
+        var canonicalRsvpUrl = await ScheduleVolunteerService.BuildCanonicalRsvpUrlAsync(
+            canonicalUrlProvider,
+            attendance.RsvpToken,
+            cancellationToken
+        );
         return Result.Success(
             ScheduleVolunteerService.ToScheduledResponse(
                 attendance,
@@ -58,7 +66,8 @@ internal sealed class GetRsvpByTokenQueryHandler(GroupsDbContext dbContext)
                 locationName,
                 hasBlackout: false,
                 hasDoubleBooking: false,
-                meetsRequirements: true
+                meetsRequirements: true,
+                canonicalRsvpUrl
             )
         );
     }

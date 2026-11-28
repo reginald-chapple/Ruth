@@ -7,7 +7,7 @@ using Ruth.SharedKernel.Tenancy;
 namespace Ruth.Modules.Events.Infrastructure.Realtime;
 
 /// <summary>SignalR hub for real-time town-hall, classroom, and conference interactive sessions, polls, Q&amp;A, and stage displays.</summary>
-[AllowAnonymous]
+[Authorize]
 public sealed class InteractiveSessionHub(
     IQueryDispatcher queryDispatcher,
     ICommandDispatcher commandDispatcher
@@ -46,6 +46,7 @@ public sealed class InteractiveSessionHub(
         return base.OnConnectedAsync();
     }
 
+    [AllowAnonymous]
     public async Task<InteractiveStageProjectionResponse?> JoinSession(string sessionIdOrJoinCode)
     {
         if (string.IsNullOrWhiteSpace(sessionIdOrJoinCode))
@@ -82,6 +83,7 @@ public sealed class InteractiveSessionHub(
         return result.Value;
     }
 
+    [AllowAnonymous]
     public async Task LeaveSession(Guid sessionId, string? joinCode = null)
     {
         using var scope = RestoreConnectionTenantScope();
@@ -106,6 +108,7 @@ public sealed class InteractiveSessionHub(
         }
     }
 
+    [AllowAnonymous]
     public async Task<InteractiveStageProjectionResponse?> SubmitAudienceResponse(
         SubmitInteractiveResponseCommand command
     )
@@ -117,10 +120,39 @@ public sealed class InteractiveSessionHub(
             return null;
         }
 
+        if (command.ResponderPersonId.HasValue && Context.User?.Identity?.IsAuthenticated != true)
+        {
+            throw new HubException(
+                "Anonymous audience participants cannot spoof a constituent ResponderPersonId."
+            );
+        }
+
         var result = await commandDispatcher.SendAsync<
             SubmitInteractiveResponseCommand,
             InteractiveStageProjectionResponse
         >(command, Context.ConnectionAborted);
+        return result.IsSuccess ? result.Value : null;
+    }
+
+    [Authorize]
+    public async Task<InteractiveStageProjectionResponse?> ProjectActiveAction(
+        Guid sessionId,
+        Guid? activeActionId
+    )
+    {
+        using var scope = RestoreConnectionTenantScope();
+        if (AmbientTenantContext.CurrentTenantId.IsEmpty)
+        {
+            return null;
+        }
+
+        var result = await commandDispatcher.SendAsync<
+            SetActiveInteractiveActionCommand,
+            InteractiveStageProjectionResponse
+        >(
+            new SetActiveInteractiveActionCommand(sessionId, activeActionId),
+            Context.ConnectionAborted
+        );
         return result.IsSuccess ? result.Value : null;
     }
 

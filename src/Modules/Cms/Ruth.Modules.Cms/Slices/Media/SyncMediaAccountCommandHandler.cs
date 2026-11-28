@@ -5,6 +5,7 @@ using Ruth.Modules.Cms.Domain.Media;
 using Ruth.Modules.Cms.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Cms.Slices.Media;
@@ -42,12 +43,13 @@ internal sealed class SyncMediaAccountCommandHandler(
             );
         }
 
-        var syncedFolders = await provider.FetchFoldersAsync(
-            account.AccountIdentifier,
-            account.Settings,
-            cancellationToken
-        );
-        var folderIds = await UpsertFoldersAsync(accountId, syncedFolders, cancellationToken);
+        var fetched = await TryFetchFoldersAsync(provider, account, cancellationToken);
+        if (fetched.IsFailure)
+        {
+            return Result.Failure<MediaAccountResponse>(fetched.Errors);
+        }
+
+        var folderIds = await UpsertFoldersAsync(accountId, fetched.Value, cancellationToken);
 
         account.MarkSynced(clock.UtcNow);
         _ = await db.SaveChangesAsync(cancellationToken);
@@ -69,6 +71,35 @@ internal sealed class SyncMediaAccountCommandHandler(
                 totalElements
             )
         );
+    }
+
+    private static async Task<Result<IReadOnlyList<SyncedMediaFolderSpec>>> TryFetchFoldersAsync(
+        IMediaAccountSyncProvider provider,
+        MediaAccount account,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var synced = await provider.FetchFoldersAsync(
+                account.AccountIdentifier,
+                account.Settings,
+                cancellationToken
+            );
+            return Result.Success(synced);
+        }
+        catch (OutboundSsrfBlockedException ex)
+        {
+            return Result.Failure<IReadOnlyList<SyncedMediaFolderSpec>>(
+                DomainError.Validation("Cms.MediaSync.SsrfBlocked", ex.Message)
+            );
+        }
+        catch (HttpRequestException ex)
+        {
+            return Result.Failure<IReadOnlyList<SyncedMediaFolderSpec>>(
+                DomainError.Failure("Cms.MediaSync.TransportFailed", ex.Message)
+            );
+        }
     }
 
     private async Task<List<MediaFolderId>> UpsertFoldersAsync(

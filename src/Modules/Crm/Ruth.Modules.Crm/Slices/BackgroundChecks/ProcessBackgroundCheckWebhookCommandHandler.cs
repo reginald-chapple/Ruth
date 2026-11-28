@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Crm.Contracts.BackgroundChecks;
 using Ruth.Modules.Crm.Domain;
@@ -5,6 +7,8 @@ using Ruth.Modules.Crm.Infrastructure;
 using Ruth.Modules.Crm.Infrastructure.BackgroundChecks;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
+using Ruth.SharedKernel.Tenancy;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Crm.Slices.BackgroundChecks;
@@ -12,7 +16,8 @@ namespace Ruth.Modules.Crm.Slices.BackgroundChecks;
 internal sealed class ProcessBackgroundCheckWebhookCommandHandler(
     CrmDbContext dbContext,
     IBackgroundCheckProviderResolver providerResolver,
-    IClock clock
+    IClock clock,
+    WebhookReplayDeduplicator? replayDeduplicator = null
 ) : ICommandHandler<ProcessBackgroundCheckWebhookCommand, BackgroundCheckResponse>
 {
     public async Task<Result<BackgroundCheckResponse>> HandleAsync(
@@ -39,6 +44,18 @@ internal sealed class ProcessBackgroundCheckWebhookCommandHandler(
 
         var evt = parsed.Value;
         var providerKey = provider.ProviderKey;
+        var bodyDigest = Convert.ToHexStringLower(
+            SHA256.HashData(Encoding.UTF8.GetBytes(command.RawPayload))
+        );
+        var replayKey = $"{AmbientTenantContext.CurrentTenantId}:{providerKey}:{bodyDigest}";
+        if (
+            replayDeduplicator is not null
+            && !replayDeduplicator.TryRegisterDelivery("crm-bgcheck", replayKey, clock.UtcNow)
+        )
+        {
+            return CrmErrors.BackgroundCheckWebhookReplayed;
+        }
+
         var check = await dbContext.BackgroundChecks.FirstOrDefaultAsync(
             b => b.ProviderKey == providerKey && b.RequestId == evt.ProviderRequestId,
             cancellationToken

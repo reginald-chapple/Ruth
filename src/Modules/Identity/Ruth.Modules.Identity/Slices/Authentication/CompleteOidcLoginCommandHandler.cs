@@ -1,9 +1,12 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Ruth.Modules.Identity.Contracts.Authentication;
 using Ruth.Modules.Identity.Domain;
 using Ruth.Modules.Identity.Infrastructure;
 using Ruth.SharedKernel.Messaging;
 using Ruth.SharedKernel.Results;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Time;
 
 namespace Ruth.Modules.Identity.Slices.Authentication;
@@ -22,17 +25,13 @@ internal sealed class CompleteOidcLoginCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var utcNow = clock.UtcNow;
-        var key = command.ProviderKey?.Trim().ToLowerInvariant() ?? string.Empty;
-        var session = await dbContext.RemoteAuthenticationSessions.FirstOrDefaultAsync(
-            s => s.ProviderKey == key && s.State == command.State,
-            cancellationToken
-        );
-        if (session is null || !session.IsValidAt(utcNow))
+        if (string.IsNullOrWhiteSpace(command.State) || string.IsNullOrWhiteSpace(command.Code))
         {
             return IdentityErrors.RemoteAuthSessionInvalid;
         }
 
+        var utcNow = clock.UtcNow;
+        var key = command.ProviderKey?.Trim().ToLowerInvariant() ?? string.Empty;
         var provider = await dbContext
             .ExternalAuthProviders.AsNoTracking()
             .FirstOrDefaultAsync(p => p.ProviderKey == key && p.IsEnabled, cancellationToken);
@@ -41,10 +40,30 @@ internal sealed class CompleteOidcLoginCommandHandler(
             return IdentityErrors.ExternalProviderNotFound;
         }
 
+        if (
+            command.RedirectUri is not null
+            && !SafeRedirectValidator.MatchesExactRedirectUri(
+                provider.CallbackPath,
+                command.RedirectUri
+            )
+        )
+        {
+            return IdentityErrors.RedirectUriMismatch;
+        }
+
+        var session = await dbContext.RemoteAuthenticationSessions.FirstOrDefaultAsync(
+            s => s.ProviderKey == key && s.State == command.State,
+            cancellationToken
+        );
+        if (!IsValidSessionWithConstantTimeState(session, command.State, utcNow))
+        {
+            return IdentityErrors.RemoteAuthSessionInvalid;
+        }
+
         var userInfoResult = await oidcClient.ExchangeCodeAsync(
             provider,
             command.Code,
-            session.CodeVerifier,
+            session!.CodeVerifier,
             session.Nonce,
             cancellationToken
         );
@@ -173,5 +192,21 @@ internal sealed class CompleteOidcLoginCommandHandler(
             )
         );
         return matchedAccount;
+    }
+
+    private static bool IsValidSessionWithConstantTimeState(
+        RemoteAuthenticationSession? session,
+        string candidateState,
+        DateTimeOffset utcNow
+    )
+    {
+        return session is not null
+            && session.IsValidAt(utcNow)
+            && !string.IsNullOrWhiteSpace(session.CodeVerifier)
+            && !string.IsNullOrWhiteSpace(session.Nonce)
+            && CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(session.State),
+                Encoding.UTF8.GetBytes(candidateState)
+            );
     }
 }

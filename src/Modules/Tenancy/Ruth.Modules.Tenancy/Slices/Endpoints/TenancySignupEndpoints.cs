@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Ruth.Modules.Tenancy.Contracts.Tenants;
 using Ruth.SharedKernel.Messaging;
+using Ruth.SharedKernel.Security;
 using Ruth.SharedKernel.Tenancy;
 
 namespace Ruth.Modules.Tenancy.Slices.Endpoints;
@@ -17,6 +18,7 @@ internal static class TenancySignupEndpoints
         var group = endpoints
             .MapGroup("/api/v1/platform/signup")
             .WithTags("Platform Signup")
+            .RequireRateLimiting(RateLimitPolicyNames.AuthStrict)
             .AllowAnonymous();
 
         _ = group

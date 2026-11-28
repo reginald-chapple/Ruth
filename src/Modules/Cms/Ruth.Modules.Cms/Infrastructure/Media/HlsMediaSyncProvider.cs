@@ -1,16 +1,17 @@
-using System.Text.Json;
 using Ruth.Modules.Cms.Contracts.Media;
 
 namespace Ruth.Modules.Cms.Infrastructure.Media;
 
-internal sealed class HlsMediaSyncProvider : IMediaAccountSyncProvider
+internal sealed class HlsMediaSyncProvider(CmsMediaSyncRemoteFetcher? remoteFetcher = null)
+    : IMediaAccountSyncProvider
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly CmsMediaSyncRemoteFetcher _remoteFetcher = remoteFetcher
+        ?? new CmsMediaSyncRemoteFetcher();
 
     public string ProviderKey => "hls";
     public string DisplayName => "HLS Manifest Sync";
 
-    public Task<IReadOnlyList<SyncedMediaFolderSpec>> FetchFoldersAsync(
+    public async Task<IReadOnlyList<SyncedMediaFolderSpec>> FetchFoldersAsync(
         string accountIdentifier,
         IReadOnlyDictionary<string, string?> settings,
         CancellationToken cancellationToken = default
@@ -18,26 +19,20 @@ internal sealed class HlsMediaSyncProvider : IMediaAccountSyncProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (
-            settings.TryGetValue("ManifestJson", out var manifestJson)
-            && !string.IsNullOrWhiteSpace(manifestJson)
-        )
+        var resolved = await _remoteFetcher.TryResolveConfiguredFoldersAsync(
+            settings,
+            cancellationToken
+        );
+        if (resolved is not null)
         {
-            var parsed = JsonSerializer.Deserialize<List<SyncedMediaFolderSpec>>(
-                manifestJson,
-                _jsonOptions
-            );
-            if (parsed is not null)
-            {
-                return Task.FromResult<IReadOnlyList<SyncedMediaFolderSpec>>(parsed);
-            }
+            return resolved;
         }
 
         var manifestUrl =
             settings.TryGetValue("MasterManifestUrl", out var configured)
             && !string.IsNullOrWhiteSpace(configured)
                 ? configured.Trim()
-                : $"https://streams.ruth.local/{accountIdentifier.Trim()}/master.m3u8";
+                : $"https://streams.example.org/{accountIdentifier.Trim()}/master.m3u8";
 
         SyncedMediaFolderSpec[] fallback =
         [
@@ -67,6 +62,7 @@ internal sealed class HlsMediaSyncProvider : IMediaAccountSyncProvider
             ),
         ];
 
-        return Task.FromResult<IReadOnlyList<SyncedMediaFolderSpec>>(fallback);
+        CmsMediaSyncRemoteFetcher.ValidateSyncedFolders(fallback);
+        return fallback;
     }
 }
